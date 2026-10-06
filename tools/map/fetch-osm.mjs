@@ -185,16 +185,19 @@ let lastRequest = 0;
  * @returns {Promise<{ ok: boolean, status: number, text: string }>}
  */
 async function exchange(url, init) {
+  // The tunnel to overpass-api.de from this container drops now and then for minutes at a
+  // time, so be patient: up to 10 tries, waiting 2 s, 4 s, ... up to 2 minutes between them.
   let wait = 2000;
   for (let attempt = 1; ; attempt++) {
     try {
       const res = await fetch(url, init);
       return { ok: res.ok, status: res.status, text: await res.text() };
     } catch (err) {
-      if (attempt >= 6) throw err;
-      console.log(`  network error (${err instanceof Error ? err.message : err}): waiting ${wait / 1000} s`);
+      if (attempt >= 10) throw err;
+      const why = err instanceof Error ? `${err.message}${/** @type {any} */ (err).cause?.code ? ` ${/** @type {any} */ (err).cause.code}` : ''}` : err;
+      console.log(`  network error (${why}): waiting ${wait / 1000} s`);
       await sleep(wait);
-      wait *= 2;
+      wait = Math.min(wait * 2, 120_000);
     }
   }
 }
