@@ -58,7 +58,6 @@ export const sha256 = (data) => createHash('sha256').update(data).digest('hex');
  * @property {number} [bytes]      the whole file's size
  * @property {string} [sha256]     for files downloaded whole
  * @property {string} fetched      when first fetched (ISO date)
- * @property {boolean} [missing]   the host has no such file (e.g. a WorldCover tile over open sea)
  * @property {Record<string, string>} [windows] "offset+length" to SHA-256, for files read by range
  */
 
@@ -118,7 +117,8 @@ class HttpError extends Error {
 
 /**
  * GETs a URL (optionally one byte range) with retries. Client errors other than 429 are not
- * retried: they will not get better.
+ * retried: they will not get better. A range answer that is not exactly the bytes asked for
+ * (a cut-off transfer, or the wrong place in the file) is retried, never returned.
  * @param {string} url @param {{ offset: number, length: number }} [range]
  */
 export async function getWithRetry(url, range) {
@@ -133,6 +133,7 @@ export async function getWithRetry(url, range) {
         const body = new Uint8Array(await res.arrayBuffer());
         traffic.bytes += body.length;
         traffic.requests++;
+        if (range) checkRangeAnswer(url, range, res.headers.get('content-range'), body.length);
         return { body, headers: res.headers };
       });
     } catch (err) {
@@ -143,6 +144,25 @@ export async function getWithRetry(url, range) {
       await new Promise((resolve) => setTimeout(resolve, wait * (0.75 + Math.random() / 2)));
       wait *= 2;
     }
+  }
+}
+
+/**
+ * Throws unless a range answer holds exactly the bytes asked for: it must start at the offset
+ * asked for, and be as long as asked, or run to the end of the file. A short body would
+ * otherwise be cached, hashed and trusted on every later run.
+ * @param {string} url @param {{ offset: number, length: number }} range
+ * @param {string | null} contentRange the Content-Range header, e.g. "bytes 0-65535/3286944666"
+ * @param {number} got bytes in the body
+ */
+export function checkRangeAnswer(url, range, contentRange, got) {
+  const m = /^bytes (\d+)-(\d+)\/(\d+|\*)$/.exec((contentRange ?? '').trim());
+  if (!m) throw new Error(`${url}: range answer without a usable Content-Range (${contentRange})`);
+  const [start, last] = [Number(m[1]), Number(m[2])];
+  const total = m[3] === '*' ? Infinity : Number(m[3]);
+  const want = Math.min(range.offset + range.length, total) - range.offset;
+  if (start !== range.offset || last - start + 1 !== want || got !== want) {
+    throw new Error(`${url}: asked for ${want} bytes at ${range.offset}, got ${got} bytes (${contentRange})`);
   }
 }
 
@@ -190,7 +210,9 @@ function s3Version(h) {
 
 /**
  * A ByteSource (see tiff.mjs) for a remote file, cached on disk window by window. Returns null
- * when the host has no such file (recorded, so a rerun does not ask again).
+ * only when the host answers 404 (no such file). That is not recorded: a rerun asks again, so a
+ * passing fault can never blank a file for good. Any other failure, 403 included (a proxy
+ * denial or a passing AccessDenied), throws.
  * @param {string} key manifest key, e.g. "gebco-2026/GEBCO_2026.tif"
  * @param {string} url
  * @returns {Promise<import('./tiff.mjs').ByteSource & { key: string } | null>}
@@ -200,7 +222,8 @@ export async function rangeSource(key, url) {
   const dir = join(CACHE, ...key.split('/'));
   if (m[key]?.url !== url) m[key] = { url, fetched: new Date().toISOString(), windows: {} };
   const entry = m[key];
-  if (entry.missing) return null;
+  // Older manifests recorded 404s and 403s for good (missing: true): drop that and ask again.
+  delete /** @type {ManifestEntry & { missing?: boolean }} */ (entry).missing;
   entry.windows ??= {};
   const windows = entry.windows;
 
@@ -221,13 +244,14 @@ export async function rangeSource(key, url) {
     const name = `${offset}+${length}`;
     const path = join(dir, `${name}.bin`);
     const want = windows[name];
+    const end = entry.bytes ? Math.min(entry.bytes, offset + length) : offset + length;
     if (want) {
       try {
         const data = new Uint8Array(await readFile(path));
-        if (sha256(data) === want) { chunks.push({ offset, data }); return data; }
+        // The size check also catches a short window cached by an older version of this tool.
+        if (data.length === end - offset && sha256(data) === want) { chunks.push({ offset, data }); return data; }
       } catch { /* not cached: fetch it */ }
     }
-    const end = entry.bytes ? Math.min(entry.bytes, offset + length) : offset + length;
     const { body, headers } = await getWithRetry(url, { offset, length: end - offset });
     checkSameFile(entry, headers, url);
     await mkdir(dir, { recursive: true });
@@ -241,9 +265,8 @@ export async function rangeSource(key, url) {
   try {
     await load(0, 65536);
   } catch (err) {
-    if (err instanceof HttpError && (err.status === 404 || err.status === 403)) {
-      m[key] = { url, fetched: new Date().toISOString(), missing: true };
-      await saveManifest();
+    if (err instanceof HttpError && err.status === 404) {
+      if (!Object.keys(windows).length) delete m[key];
       return null;
     }
     throw err;

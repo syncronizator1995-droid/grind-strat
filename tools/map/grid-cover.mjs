@@ -19,7 +19,9 @@ export const COVER_PLANES = Object.freeze([
   { name: 'bare', classes: [60, 70] }, // snow and ice folded into bare
   { name: 'water', classes: [80] },
   { name: 'wetland', classes: [90, 95] }, // herbaceous wetland (mangrove folded in; none here)
-  { name: 'moss', classes: [100] }, // moss and lichen: in the Baltic, mostly open raised bog
+  // Moss and lichen. Not Baltic bog: on this map it is almost all mountain tundra in Norway and
+  // Sweden (82% of it above 900 m, almost none below 300 m). Baltic open bogs come in as class 90.
+  { name: 'moss', classes: [100] },
 ]);
 
 /** 10 x 10 samples per 1 km cell (100 m apart): each sample is one percent. */
@@ -45,7 +47,9 @@ const pad = (n, w) => String(Math.abs(n)).padStart(w, '0');
 export const coverTileName = (lat, lon) => `${lat < 0 ? 'S' : 'N'}${pad(lat, 2)}${lon < 0 ? 'W' : 'E'}${pad(lon, 3)}`;
 
 /**
- * Builds worldcover-1km.u8, reading the tiles one at a time.
+ * Builds worldcover-1km.u8, reading the tiles one at a time. Every 3 x 3 degree tile in the
+ * window exists on ESA's server (55 of 55 in October 2026), so a missing tile means a fetch
+ * problem, not open sea: the build stops rather than leave a 3 x 3 degree hole of "no data".
  * @param {import('./resample.mjs').Lattice} L the 1 km lattice @param {import('./grid-sources.mjs').Box} window
  */
 export async function buildWorldCover(L, window) {
@@ -56,20 +60,19 @@ export async function buildWorldCover(L, window) {
   const planeOf = new Int8Array(256).fill(-1);
   COVER_PLANES.forEach((p, k) => { for (const c of p.classes) planeOf[c] = k; });
   const counts = new Uint8Array(planes * cells);
-  /** @type {string[]} */ const missing = [];
   /** @type {string[]} */ const used = [];
   for (let lat = Math.floor(window.south / 3) * 3; lat < window.north; lat += 3) {
     for (let lon = Math.floor(window.west / 3) * 3; lon < window.east; lon += 3) {
       const name = coverTileName(lat, lon);
       const remote = await openRemoteTiff(`worldcover-2021/${name}`, src.url.replace('{tile}', name));
-      if (!remote) { missing.push(name); continue; }
+      if (!remote) throw new Error(`WorldCover tile ${name} is not on the server (HTTP 404). Every tile in the window existed when this was written: check the url in sources.json.`);
       used.push(name);
       const tile = { west: lon, east: lon + 3, south: lat, north: lat + 3 };
       await countTile(L, remote.tiff, tile, window, counts, planeOf);
-      progress(`worldcover: ${used.length} tiles read, ${missing.length} not on the server`);
+      progress(`worldcover: ${used.length} tiles read`);
     }
   }
-  progress(`worldcover: ${used.length} tiles read, ${missing.length} not on the server`, true);
+  progress(`worldcover: ${used.length} tiles read`, true);
   const percent = countsToPercent(counts, planes, cells);
   let noData = 0;
   for (let i = 0; i < cells; i++) {
@@ -83,10 +86,10 @@ export async function buildWorldCover(L, window) {
     planes: COVER_PLANES.map((p) => ({ name: p.name, worldcoverClasses: p.classes })),
     sources: ['worldcover-2021'],
     inputs: await Promise.all(used.map((n) => inputRecord(`worldcover-2021/${n}`))),
-    params: { overviewPixelDegrees: COVER_PIXEL_DEG, samplesPerCell: COVER_SAMPLES * COVER_SAMPLES, sampling: 'nearest pixel', tilesRead: used, tilesNotOnServer: missing },
-    notes: `Each cell's planes add up to exactly 100 where WorldCover has data. ${noData} cells have no WorldCover data at all (open sea outside the land tiles: the server has no tile for ${missing.join(', ') || 'none'}); all their planes are 0. Cells only partly covered are shares of the covered part.`,
+    params: { overviewPixelDegrees: COVER_PIXEL_DEG, samplesPerCell: COVER_SAMPLES * COVER_SAMPLES, sampling: 'nearest pixel', tilesRead: used },
+    notes: `Each cell's planes add up to exactly 100 where WorldCover has data. ${noData} cells have no WorldCover data at all (open sea that the tiles leave as no data); all their planes are 0. Every tile in the window was read. Cells only partly covered are shares of the covered part.`,
   });
-  return { percent, noData, used, missing };
+  return { percent, noData, used };
 }
 
 /**

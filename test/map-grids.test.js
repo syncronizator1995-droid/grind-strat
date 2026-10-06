@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { inflateSync } from 'node:zlib';
-import { mergeRanges } from '../tools/map/fetch-grids.mjs';
+import { checkRangeAnswer, mergeRanges } from '../tools/map/fetch-grids.mjs';
 import { coverTileName } from '../tools/map/grid-cover.mjs';
 import { parsePollenCsv } from '../tools/map/build-grids.mjs';
 import { MARSH_CLASSES, marshShare, stretchMarsh } from '../tools/map/marsh.mjs';
@@ -126,6 +126,18 @@ describe('fetching', () => {
     assert.deepEqual(merged, [{ offset: 0, length: 65 }, { offset: 100, length: 10 }, { offset: 1000, length: 5 }]);
     assert.deepEqual(mergeRanges([{ offset: 0, length: 50 }, { offset: 70, length: 10 }], 20, 1000), [{ offset: 0, length: 80 }]);
     assert.deepEqual(mergeRanges([{ offset: 0, length: 60 }, { offset: 60, length: 60 }], 0, 100), [{ offset: 0, length: 60 }, { offset: 60, length: 60 }]);
+  });
+
+  it('accepts only range answers that hold exactly the bytes asked for', () => {
+    const r = { offset: 100, length: 50 };
+    assert.doesNotThrow(() => checkRangeAnswer('u', r, 'bytes 100-149/1000', 50));
+    // At the end of the file the answer is rightly shorter.
+    assert.doesNotThrow(() => checkRangeAnswer('u', r, 'bytes 100-119/120', 20));
+    // A body cut short, even with an honest header; a header that says less; the wrong place; no header.
+    assert.throws(() => checkRangeAnswer('u', r, 'bytes 100-149/1000', 30), /asked for 50 bytes at 100, got 30/);
+    assert.throws(() => checkRangeAnswer('u', r, 'bytes 100-129/1000', 30), /got 30/);
+    assert.throws(() => checkRangeAnswer('u', r, 'bytes 0-49/1000', 50), /asked for 50 bytes at 100/);
+    assert.throws(() => checkRangeAnswer('u', r, null, 50), /Content-Range/);
   });
 
   it('reads the pollen CSV by its column names', () => {

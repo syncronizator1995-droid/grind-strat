@@ -6,6 +6,10 @@
 // So: drop the thin background, stretch the rest so real bog cores read as mostly marsh, and
 // take the larger of that and today's open wetland from ESA WorldCover (herbaceous wetland and
 // moss), because a bog that is still open today certainly was in 1219.
+//
+// Open question for Ignas: on this map WorldCover's moss and lichen (class 100) is almost all
+// mountain tundra in Norway and Sweden, not bog, so it turns high fells into "marsh". Leaving it
+// out, or counting it only below about 300 m, would fix that and change no Baltic bog.
 
 /** GLWD v2 classes that count as marsh or bog (see the legend, GLWD_Legend_v2_0.csv). */
 export const MARSH_CLASSES = Object.freeze([
