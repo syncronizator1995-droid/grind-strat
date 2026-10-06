@@ -28,6 +28,8 @@ const SETTLE_MS = 140;
  */
 const LEVELS = [{ tolerancePx: 0.8, below: 0.06 }, { tolerancePx: 0.6, below: 0.25 }, { tolerancePx: 0, below: Infinity }];
 const WATER = '#4a7f96';
+/** Placing names stops after this long (ms); the biggest rivers and lakes are named first. */
+const LABEL_BUDGET_MS = 4;
 /** Name colours: dark blue with a light halo; on a dark phone, light blue with a dark halo. */
 const LABEL_INK = { light: { fill: '#173f56', halo: 'rgba(238, 241, 232, 0.88)' }, dark: { fill: '#d3e6f0', halo: 'rgba(14, 26, 34, 0.86)' } };
 
@@ -345,7 +347,11 @@ export function createMapView(canvas, map) {
     const dx = (fw - cssW) / 2;
     const dy = (fh - cssH) / 2;
     const covered = keepOut.map(([l, t, r, b]) => [l + dx, t + dy, r + dx, b + dy]);
-    const labels = placeWaterLabels({ water: map.water, index: waterIndex, level: index, scale: s, ox, oy, width: fw, height: fh, measure, keepOut: covered });
+    const labels = placeWaterLabels({
+      water: map.water, index: waterIndex, level: index, scale: s, ox, oy, width: fw, height: fh, measure, keepOut: covered,
+      screen: [dx, dy, dx + cssW, dy + cssH],
+      budgetMs: LABEL_BUDGET_MS, now: () => performance.now(),
+    });
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.lineJoin = 'round';

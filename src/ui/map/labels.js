@@ -61,6 +61,8 @@ export class Occupancy {
     this.grid = Array.from({ length: this.cols * this.rows }, () => []);
     /** @type {number[][]} areas no name may touch, [left, top, right, bottom] */
     this.rects = [];
+    /** @type {number[] | null} the screen within the frame: names sit wholly on it or wholly off it */
+    this.screen = null;
   }
 
   /**
@@ -84,6 +86,7 @@ export class Occupancy {
 
   /** @param {number[][]} discs */
   fits(discs) {
+    if (this.screen && straddles(discs, this.screen)) return false;
     for (const [l, t, r, b] of this.rects) {
       for (const [x, y, rad] of discs) if (x + rad > l && x - rad < r && y + rad > t && y - rad < b) return false;
     }
@@ -101,6 +104,21 @@ export class Occupancy {
   add(discs) {
     this.each(discs, (i, d) => this.grid[i].push(d));
   }
+}
+
+/**
+ * Does a name cross the screen's edge (part on screen, part off)? Such a name shows cut in half.
+ * @param {number[][]} discs @param {number[]} screen [left, top, right, bottom]
+ */
+function straddles(discs, screen) {
+  let inside = false;
+  let outside = false;
+  for (const [x, y, r] of discs) {
+    if (x - r >= screen[0] && x + r <= screen[2] && y - r >= screen[1] && y + r <= screen[3]) inside = true;
+    else if (x + r <= screen[0] || x - r >= screen[2] || y + r <= screen[1] || y - r >= screen[3]) outside = true;
+    else return true;
+  }
+  return inside && outside;
 }
 
 /**
@@ -122,27 +140,37 @@ export function labelDiscs(x, y, angle, width, size) {
 }
 
 /**
+ * @typedef {{ x0: number, y0: number, x1: number, y1: number, d: number }} Stretch
+ */
+
+/** Scratch space for the arc lengths along a line, reused so placing names makes no garbage. */
+let arcs = new Float64Array(1024);
+/** Scratch space for a line's points on screen. */
+let buffer = new Float64Array(4096);
+
+/**
  * Straight-ish stretches of a line (screen points) at least `length` long, as candidate places for
  * a name: the chord from start to end, with the line never straying more than `maxDev` from it.
- * Returned nearest to (cx, cy) first.
- * @param {Float64Array} pts flat screen points [x0, y0, ...]
+ * Starts are tried every quarter of `length` along the line, which finds the room there is
+ * without trying every point. Returned nearest to the frame's middle first.
+ * @param {Float64Array} pts flat screen points [x0, y0, ...], all inside the frame
  * @param {number} length CSS px @param {number} maxDev CSS px
  * @param {{ cx: number, cy: number, width: number, height: number }} frame
- * @returns {{ x0: number, y0: number, x1: number, y1: number, d: number }[]}
+ * @param {number} [count] how many points of `pts` to use
+ * @param {Stretch[]} [out] added to
+ * @returns {Stretch[]}
  */
-export function straightStretches(pts, length, maxDev, frame) {
-  const n = pts.length / 2;
-  /** @type {{ x0: number, y0: number, x1: number, y1: number, d: number }[]} */
-  const out = [];
+export function straightStretches(pts, length, maxDev, frame, count = pts.length / 2, out = []) {
+  const n = count;
+  if (arcs.length < n) arcs = new Float64Array(n * 2);
+  arcs[0] = 0;
+  for (let i = 1; i < n; i++) arcs[i] = arcs[i - 1] + Math.hypot(pts[i * 2] - pts[i * 2 - 2], pts[i * 2 + 1] - pts[i * 2 - 1]);
+  const stride = length / 4;
   let j = 0;
-  let arc = 0; // length from i to j along the line
-  for (let i = 0; i < n - 1; i++) {
-    if (j < i) { j = i; arc = 0; }
-    while (j < n - 1 && arc < length) {
-      arc += Math.hypot(pts[(j + 1) * 2] - pts[j * 2], pts[(j + 1) * 2 + 1] - pts[j * 2 + 1]);
-      j++;
-    }
-    if (arc < length) break;
+  for (let i = 0; i < n - 1;) {
+    if (j < i) j = i;
+    while (j < n - 1 && arcs[j] - arcs[i] < length) j++;
+    if (arcs[j] - arcs[i] < length) break;
     const x0 = pts[i * 2]; const y0 = pts[i * 2 + 1]; const x1 = pts[j * 2]; const y1 = pts[j * 2 + 1];
     const chord = Math.hypot(x1 - x0, y1 - y0);
     if (chord >= length * 0.9 && within(frame, x0, y0) && within(frame, x1, y1)) {
@@ -152,9 +180,10 @@ export function straightStretches(pts, length, maxDev, frame) {
       }
       if (worst <= maxDev) out.push({ x0, y0, x1, y1, d: Math.hypot((x0 + x1) / 2 - frame.cx, (y0 + y1) / 2 - frame.cy) });
     }
-    arc -= Math.hypot(pts[(i + 1) * 2] - x0, pts[(i + 1) * 2 + 1] - y0);
+    const next = arcs[i] + stride;
+    do i++; while (i < n - 1 && arcs[i] < next);
   }
-  return out.sort((a, b) => a.d - b.d);
+  return out.sort((p, q) => p.d - q.d);
 }
 
 /** @param {{ width: number, height: number }} f @param {number} x @param {number} y */
@@ -167,8 +196,30 @@ function within(f, x, y) {
  * @property {number[][]} linesOf river index -> its line indexes
  * @property {Int32Array} lineStart first point of each line in the levels list
  * @property {Float64Array} lineBox [minX, minY, maxX, maxY] per line, game units
+ * @property {Float64Array[]} chunkBox per line, the box of every CHUNK points, so only the parts
+ *   of a long river near the screen are looked at
  * @property {Uint8Array} lakeLevel coarsest level at which each lake is drawn
  */
+
+/** Points per chunk of a river line. */
+const CHUNK = 64;
+
+/**
+ * [minX, minY, maxX, maxY] of points from..to (inclusive) of a flat line, into out at `at`.
+ * @param {ArrayLike<number>} line @param {number} from @param {number} to
+ * @param {Float64Array} out @param {number} at
+ */
+function boxOf(line, from, to, out, at) {
+  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+  for (let p = from; p <= to; p++) {
+    const x = line[p * 2]; const y = line[p * 2 + 1];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  out[at] = minX; out[at + 1] = minY; out[at + 2] = maxX; out[at + 3] = maxY;
+}
 
 /**
  * @param {import('./load.js').WaterData} water
@@ -179,19 +230,19 @@ export function indexWater(water) {
   const linesOf = water.riverInfo.map(() => []);
   const lineStart = new Int32Array(water.rivers.length);
   const lineBox = new Float64Array(water.rivers.length * 4);
+  /** @type {Float64Array[]} */
+  const chunkBox = [];
   let at = 0;
   water.rivers.forEach((line, i) => {
     linesOf[water.riverOf[i]]?.push(i);
     lineStart[i] = at;
-    at += line.length / 2;
-    let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
-    for (let k = 0; k < line.length; k += 2) {
-      if (line[k] < minX) minX = line[k];
-      if (line[k] > maxX) maxX = line[k];
-      if (line[k + 1] < minY) minY = line[k + 1];
-      if (line[k + 1] > maxY) maxY = line[k + 1];
-    }
-    lineBox.set([minX, minY, maxX, maxY], i * 4);
+    const n = line.length / 2;
+    at += n;
+    boxOf(line, 0, n - 1, lineBox, i * 4);
+    // Chunk c covers points c*CHUNK to (c+1)*CHUNK: neighbouring chunks share a point.
+    const chunks = new Float64Array(Math.max(1, Math.ceil((n - 1) / CHUNK)) * 4);
+    for (let c = 0; c * 4 < chunks.length; c++) boxOf(line, c * CHUNK, Math.min(n - 1, (c + 1) * CHUNK), chunks, c * 4);
+    chunkBox.push(chunks);
   });
   const lakeLevel = new Uint8Array(water.lakeInfo.length).fill(255);
   at = 0;
@@ -200,11 +251,12 @@ export function indexWater(water) {
     for (let p = 0; p < ring.length / 2; p++) lakeLevel[k] = Math.min(lakeLevel[k], water.lakeLevels[at + p]);
     at += ring.length / 2;
   });
-  return { linesOf, lineStart, lineBox, lakeLevel };
+  return { linesOf, lineStart, lineBox, chunkBox, lakeLevel };
 }
 
 /**
- * Chooses where the names go for one frame.
+ * Chooses where the names go for one frame. The water's rivers and lakes must come biggest
+ * first, as the packed data has them.
  * @param {object} p
  * @param {import('./load.js').WaterData} p.water
  * @param {WaterIndex} p.index
@@ -214,43 +266,61 @@ export function indexWater(water) {
  * @param {number} p.width @param {number} p.height the frame, CSS px
  * @param {(text: string, size: number) => number} p.measure text width in CSS px
  * @param {number[][]} [p.keepOut] areas of the frame no name may touch, [left, top, right, bottom]
+ * @param {number[]} [p.screen] the part of the frame on screen, [left, top, right, bottom]: no name
+ *   is placed across its edge
+ * @param {number} [p.budgetMs] stop placing names after this long: the biggest are placed first,
+ *   so a slow phone shows fewer small names rather than a slow map
+ * @param {() => number} [p.now] the clock, in ms
  * @returns {Label[]}
  */
-export function placeWaterLabels({ water, index, level, scale, ox, oy, width, height, measure, keepOut = [] }) {
+export function placeWaterLabels({ water, index, level, scale, ox, oy, width, height, measure, keepOut = [], screen, budgetMs = Infinity, now = () => 0 }) {
+  const deadline = now() + budgetMs;
   const occupied = new Occupancy(width, height);
+  occupied.screen = screen ?? null;
   for (const [l, t, r, b] of keepOut) occupied.keepOut(l, t, r, b);
   const frame = { cx: width / 2, cy: height / 2, width, height };
-  /** @type {{ priority: number, kind: 'lake' | 'river', k: number }[]} */
-  const candidates = [];
-  water.lakeInfo.forEach((lake, k) => {
-    if (!lake.name || index.lakeLevel[k] > level || lake.areaKm2 * 100 * scale * scale < LAKE_MIN_PX2) return;
-    const x = ox + lake.at[0] * scale;
-    const y = oy - lake.at[1] * scale;
-    if (within(frame, x, y)) candidates.push({ priority: Math.sqrt(lake.areaKm2) * 25, kind: 'lake', k });
-  });
-  water.riverInfo.forEach((river, k) => {
-    if (river.name && bandShown(riverBand(river.lengthKm), scale)) candidates.push({ priority: river.lengthKm, kind: 'river', k });
-  });
-  candidates.sort((a, b) => b.priority - a.priority || a.k - b.k);
-
+  const lakes = water.lakeInfo;
+  const rivers = water.riverInfo;
+  // Both lists come biggest first (tools/map/pack-water.mjs sorts them), so the two are merged
+  // as they go, and each stops at the first one too small to show: everything after it is smaller.
+  const lakePriority = (/** @type {number} */ k) => Math.sqrt(lakes[k].areaKm2) * 25;
+  let li = 0;
+  let ri = 0;
   /** @type {Label[]} */
   const labels = [];
-  for (const c of candidates) {
-    if (labels.length >= MAX_LABELS) break;
-    if (c.kind === 'lake') {
-      const lake = water.lakeInfo[c.k];
-      const size = lakeFont(lake.areaKm2);
-      const label = { text: lake.name, size, x: ox + lake.at[0] * scale, y: oy - lake.at[1] * scale, angle: 0 };
-      const discs = labelDiscs(label.x, label.y, 0, measure(lake.name, size), size);
-      if (occupied.fits(discs)) {
-        occupied.add(discs);
-        labels.push(label);
-      }
+  while (labels.length < MAX_LABELS && now() <= deadline) {
+    const lakeLeft = li < lakes.length && lakes[li].areaKm2 * 100 * scale * scale >= LAKE_MIN_PX2;
+    const riverLeft = ri < rivers.length && bandShown(riverBand(rivers[ri].lengthKm), scale);
+    if (!lakeLeft && !riverLeft) break;
+    if (lakeLeft && (!riverLeft || lakePriority(li) >= rivers[ri].lengthKm)) {
+      const label = placeLake(lakes[li], index.lakeLevel[li] <= level, scale, ox, oy, frame, measure, occupied);
+      if (label) labels.push(label);
+      li++;
     } else {
-      for (const label of placeRiver(water, index, c.k, level, scale, ox, oy, frame, measure, occupied)) labels.push(label);
+      if (rivers[ri].name) for (const label of placeRiver(water, index, ri, level, scale, ox, oy, frame, measure, occupied)) labels.push(label);
+      ri++;
     }
   }
   return labels;
+}
+
+/**
+ * A lake's name at its middle, if the lake is drawn, on screen, and the place is free.
+ * @param {import('./load.js').LakeInfo} lake @param {boolean} drawn @param {number} scale
+ * @param {number} ox @param {number} oy @param {{ cx: number, cy: number, width: number, height: number }} frame
+ * @param {(text: string, size: number) => number} measure @param {Occupancy} occupied
+ * @returns {Label | null}
+ */
+function placeLake(lake, drawn, scale, ox, oy, frame, measure, occupied) {
+  if (!lake.name || !drawn) return null;
+  const x = ox + lake.at[0] * scale;
+  const y = oy - lake.at[1] * scale;
+  if (!within(frame, x, y)) return null;
+  const size = lakeFont(lake.areaKm2);
+  const discs = labelDiscs(x, y, 0, measure(lake.name, size), size);
+  if (!occupied.fits(discs)) return null;
+  occupied.add(discs);
+  return { text: lake.name, size, x, y, angle: 0 };
 }
 
 /**
@@ -270,22 +340,51 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
   // Game-unit window of the frame, to skip lines that are off screen.
   const minX = -ox / scale; const maxX = (frame.width - ox) / scale;
   const minY = (oy - frame.height) / scale; const maxY = oy / scale;
-  /** @type {{ x0: number, y0: number, x1: number, y1: number, d: number }[]} */
-  let stretches = [];
+  // Zoomed far out every river wiggles at the scale of a word: allow a little more bend there.
+  const bend = size * (scale < THIN_BELOW ? 0.6 : 0.4);
+  const length = textWidth + size;
+  /** @type {Stretch[]} */
+  const stretches = [];
   for (const i of index.linesOf[k] ?? []) {
     const b = index.lineBox.subarray(i * 4, i * 4 + 4);
     if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
+    // A line whose whole extent on screen is shorter than the name can't carry it.
+    if (Math.max(b[2] - b[0], b[3] - b[1]) * scale < length * 0.9) continue;
     const line = water.rivers[i];
     const start = index.lineStart[i];
-    const pts = [];
-    for (let p = 0; p < line.length / 2; p++) {
-      if (water.riverLevels[start + p] <= level) pts.push(ox + line[p * 2] * scale, oy - line[p * 2 + 1] * scale);
+    const n = line.length / 2;
+    const chunks = index.chunkBox[i];
+    if (buffer.length < line.length) buffer = new Float64Array(line.length * 2);
+    // Only the runs of the line inside the frame (a name must fit on screen anyway), looking only
+    // at chunks of the line near it.
+    let count = 0;
+    const flush = () => {
+      if (count >= 2) straightStretches(buffer, length, bend, frame, count, stretches);
+      count = 0;
+    };
+    for (let c = 0; c * 4 < chunks.length; c++) {
+      if (chunks[c * 4 + 2] < minX || chunks[c * 4] > maxX || chunks[c * 4 + 3] < minY || chunks[c * 4 + 1] > maxY) {
+        flush();
+        continue;
+      }
+      // Each chunk's first point is the last point of the chunk before; take it only when a new
+      // run starts here.
+      for (let p = c * CHUNK + (count ? 1 : 0), end = Math.min(n - 1, (c + 1) * CHUNK); p <= end; p++) {
+        if (water.riverLevels[start + p] > level) continue;
+        const x = ox + line[p * 2] * scale;
+        const y = oy - line[p * 2 + 1] * scale;
+        if (x >= 0 && y >= 0 && x <= frame.width && y <= frame.height) {
+          buffer[count * 2] = x;
+          buffer[count * 2 + 1] = y;
+          count++;
+        } else {
+          flush();
+        }
+      }
     }
-    // Zoomed far out every river wiggles at the scale of a word: allow a little more bend there.
-    const bend = size * (scale < THIN_BELOW ? 0.6 : 0.4);
-    if (pts.length >= 4) stretches = stretches.concat(straightStretches(Float64Array.from(pts), textWidth + size, bend, frame));
+    flush();
   }
-  stretches.sort((a, b) => a.d - b.d);
+  stretches.sort((p, q) => p.d - q.d);
   /** @type {Label[]} */
   const placed = [];
   for (const s of stretches) {

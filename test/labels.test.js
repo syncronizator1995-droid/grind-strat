@@ -33,6 +33,11 @@ describe('collisions', () => {
     occ.add(a);
     assert.ok(!occ.fits(labelDiscs(120, 104, 0.3, 80, 12)), 'crossing names collide');
     assert.ok(occ.fits(labelDiscs(100, 160, 0, 80, 12)), 'a name well below is fine');
+    occ.keepOut(0, 300, 400, 400);
+    assert.ok(!occ.fits(labelDiscs(100, 310, 0, 80, 12)), 'nothing under a button');
+    occ.screen = [50, 50, 350, 350];
+    assert.ok(!occ.fits(labelDiscs(45, 200, 0, 80, 12)), 'nothing cut in half by the screen edge');
+    assert.ok(occ.fits(labelDiscs(200, 200, 0, 80, 12)) && occ.fits(labelDiscs(10, 200, 1.5, 20, 12)), 'wholly on or wholly off the screen is fine');
   });
 });
 
