@@ -222,6 +222,8 @@ Faith:
 Titles and realm:
 
 - Land dukes, the grand duke, and a possible crown: Mindaugas was crowned king in 1253.
+- Creating the Grand Duchy takes size (enough land) and renown, your house's fame. The numbers are
+  set in step 3a.
 - Vassals with loyalty, taxes, soldiers and revolts.
 
 Starting point (proposed): 1219, when 21 Lithuanian dukes signed a treaty with Galicia–Volhynia.
@@ -281,6 +283,10 @@ History's path after 1219, followed unless the player changes it:
   turns roads to mud. The Battle of Karuse in 1270 was fought on the ice near Saaremaa.
 - Raids or conquest: tribal war is mostly raiding for loot and captives, as early Lithuanian war bands
   did. Conquest needs forts and sieges.
+- Simple wars come first, in step 3b, with battles settled automatically. Supply, seasons and
+  frozen winter routes come in step 5.
+- Hunger and unrest: from step 3c, hunger raises a province's unrest, which cuts its tax and
+  soldiers. From step 5, very high unrest can become a peasant revolt with rebel armies.
 - Sieges: walls slow them, starving a fort works, and storming one is bloody.
 - War score and peace: battles and occupation build a score that decides the peace terms.
 - Commanders are characters with traits and skills: they can die, defect or win fame.
@@ -314,7 +320,9 @@ History's path after 1219, followed unless the player changes it:
   vassals may resent it. (Ignas, 6 October 2026. This replaces the earlier "Other holdings: run
   from the realm map with build menus".)
 - While you are inside a holding, the realm clock slows to speed 1; big events still pause it.
-- A siege of your seat is fought on your own town map.
+- Sieges and raids of any holding you built, your seat included, are fought on its own layout.
+- A holding you built keeps your work when it changes hands, for example to a brother under split
+  inheritance; only the holder changes.
 - Still open: do holdings nobody is building grow by themselves?
 - Far future: a Stellaris-style age beyond today is a maybe.
 
@@ -393,8 +401,9 @@ in 3a, and its code and test files weren't uploaded).
    Ignas's phone:
    - 3a: the real map, characters, family, succession and titles. The prototype engine is rewritten.
    - 3b: diplomacy, vassals with fine-grained terms, faith, one faction type (a relative claiming
-     your throne), and the goals of the crusading Orders and the Golden Horde.
-   - 3c: harvests and the full market.
+     your throne), simple wars with battles settled automatically, and the goals of the
+     crusading Orders and the Golden Horde.
+   - 3c: harvests, hunger and unrest, and the full market.
 4. Middle Ages, intrigue: schemes, secrets, the council and spymaster, friends, rivals and lovers,
    and stress as an idea to test (faith itself arrives in 3b; secret pagan worship comes here).
 5. Middle Ages, war: armies, supply, seasons and sieges, with battles settled automatically.
@@ -444,6 +453,13 @@ The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Cod
 | Entering land | Every holding in your realm can be built by hand, even a vassal's (replaces "build menus") |
 | Clock inside a holding | Slows to speed 1; big events still pause |
 | Seat sieges | Fought on your own town map |
+| Sieges and raids of built holdings | Fought on that holding's own layout |
+| A built holding changing hands | Your work stays with it; it just gets a new holder |
+| Peasant unrest | 3c: hunger raises unrest, cutting tax and soldiers; step 5: revolts with rebel armies |
+| Frozen winter routes | Step 5, with the seasons |
+| Neighbours in full detail | The closest realms, and any tied to you through family, marriage or your council |
+| Creating the Grand Duchy | Takes size (enough land) and renown |
+| Simple wars | In 3b, with battles settled automatically |
 | Map look | Terrain drawn, with realm colours tinted over it |
 | Prototype engine | Rewritten in step 3a around the new design |
 | If phones are too slow | Far-away detail gives first |

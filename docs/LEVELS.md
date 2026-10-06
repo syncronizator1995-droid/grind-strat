@@ -30,6 +30,13 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 | Map look | Terrain drawn, realm colours tinted over it |
 | Prototype engine | Rewritten in step 3a around the new design |
 | If phones are too slow | Far-away detail gives first |
+| A built holding changing hands | Your work stays with it; it just gets a new holder |
+| Peasant unrest | 3c: hunger raises unrest, which lowers tax and soldiers. Step 5: very high unrest can become a revolt with rebel armies |
+| Frozen winter routes | Step 5, with the seasons |
+| Neighbours in full detail | The closest realms, and any tied to you through family, marriage or your council |
+| Creating the Grand Duchy | Takes size (enough land) and renown |
+| Sieges and raids of built holdings | Fought on that holding's own layout |
+| Simple wars | In 3b, with battles settled automatically |
 
 ### What each one means in play
 
@@ -55,6 +62,13 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 - **Map look:** forests, marshes, rivers and lakes are drawn, with each realm's colour laid over them.
 - **Prototype engine:** written fresh in 3a around this design. The prototype's ideas, and what its tests checked, are reused on purpose (from HANDOFF's notes: the code and test files weren't uploaded). You don't need to upload anything. **This changes** HANDOFF, which said to move the prototype's rules over and adapt them.
 - **If phones are too slow:** distant holdings and markets run as simple numbers until you look at them.
+- **A built holding changing hands:** if a holding you built passes to a brother under split inheritance, or to anyone else, everything you built stays; only the holder changes.
+- **Peasant unrest:** in 3c a hungry province grows restless, and unrest cuts its tax and soldiers, with the reason shown. From step 5, very high unrest can break out as a peasant revolt with its own rebel army on the map.
+- **Frozen winter routes:** frozen marshes, rivers and lakes opening new paths for armies come in step 5, with supply and the seasons. **This changes** HANDOFF, which listed them in step 3.
+- **Neighbours in full detail:** the realms closest to you, and any tied to you through family, marriage or your council, run with full characters and families. The rest run as a goal and a strength. The list changes as your marriages, council and borders change.
+- **Creating the Grand Duchy:** you need enough land (size) and enough renown, your house's fame. The exact numbers are set in 3a and shown to you first.
+- **Sieges and raids of built holdings:** any holding you built, not only your seat, is fought over on its own layout.
+- **Simple wars:** in 3b you can declare wars, and battles are settled automatically. Supply and seasons come in step 5, and battles you command in step 6.
 
 ### My push-back, for the record
 
@@ -113,11 +127,11 @@ These are the most demanding options, and each has a cost:
 - **Built in:** courtiers in 3a (they're ordinary characters). Council and spymaster in step 4 (**decided**).
 
 ### Holding
-- **Do:** give it to a vassal or take it back. From step 7, enter any holding in your realm and build it by hand, even a vassal's, though he may resent it (**decided**).
+- **Do:** give it to a vassal or take it back. From step 7, enter any holding in your realm and build it by hand, even a vassal's, though he may resent it (**decided**). What you built stays with it when it changes hands (**decided**).
 - **See:** a point on the map at its real site (**decided**). Inside, the town map, with the clock at speed 1 (**decided**).
 - **Feeds:** six things, whether you built it or it runs by itself: gold, soldiers, food, goods, fort strength and approval (how content its people are).
 - **Fed by:** its holder, its buildings, harvests, market prices and raids.
-- **Built in:** sites in step 2; type and level in 3a; food and goods in 3c; building by hand in step 7. Sieges of your seat on your own town map (**decided**) need steps 6 and 7.
+- **Built in:** sites in step 2; type and level in 3a; food and goods in 3c; building by hand in step 7. Sieges and raids of any holding you built are fought on its own layout (**decided**); that needs steps 6 and 7.
 
 ### Province
 - **Do:** grant it or take it back, convert its faith, fight over it.
@@ -136,7 +150,7 @@ Lithuania proper, Deltuva, Nalšia and Samogitia (the list and the borders are T
 - **Note:** a land can have more than one duke. The 1219 treaty names Erdvilas and Vykintas among the Samogitian dukes.
 
 ### Grand Duchy and the crown
-- **Do:** create the Grand Duchy title (what it takes: to be designed); set laws such as clan council or feudal law, and inheritance; set each vassal's terms; declare wars.
+- **Do:** create the Grand Duchy title, which takes size (enough land) and renown, your house's fame (**decided**; numbers set in 3a); set laws such as clan council or feudal law, and inheritance; set each vassal's terms; declare wars.
 - **See:** the Realm tab: your titles, laws, and vassals with their loyalty.
 - **Feeds:** your realm's strength and reputation. Neighbours who fear your growth may form a coalition.
 - **Fed by:** vassals' tax and soldiers, faith, crusade pressure, tribute demands, an offer of baptism and a crown.
@@ -159,7 +173,7 @@ Later: Konrad of Masovia invites the Teutonic Knights in 1226, and they settle i
 - **Feeds:** wars, tribute, crusades, trade, marriages, and coalitions if you grow too fast.
 - **Fed by:** your faith, strength and reputation, and their own goals: the crusading orders push into pagan lands, and Rus' princes demand tribute.
 - **Built in:** 3b. Computer rulers know only what their character would know (**decided**).
-- **Proposal:** full detail first for the Lithuanian and Samogitian dukes, Riga and the Sword Brothers, Masovia and one Rus' principality. The rest run as a goal and a strength until their rulers are sourced.
+- **Full detail (decided):** the realms closest to you, and any tied to you through family, marriage or your council, run with full characters and families. The rest run as a goal and a strength. Where a real ruler isn't sourced yet, an invented one is used and marked invented.
 
 ### Distant powers
 The Golden Horde, and the wider Christian world.
@@ -174,7 +188,7 @@ The Golden Horde, and the wider Christian world.
 - **See:** a top-down field built from the province's terrain, season and weather. Your army starts at the bottom, the enemy at the top.
 - **Feeds:** deaths, wounds, captives for ransom, fame, war score (how well the war is going, from −100 to 100), and a chronicle line.
 - **Fed by:** the armies (fed or hungry), commanders, terrain, season and weather.
-- **Built in:** auto-resolved from 3b (proposed); supply and seasons in step 5; battles you command in step 6; your seat's siege on its own town map in step 7 (**decided**).
+- **Built in:** auto-resolved from 3b (**decided**); supply and seasons in step 5; battles you command in step 6; sieges and raids of any holding you built, on its own layout, in step 7 (**decided**).
 
 ## A typical 10 minutes
 
@@ -213,11 +227,11 @@ Speeds: pause, then 2, 5, 12 and 30 days a second, then as fast as your phone al
 - **Shows up elsewhere:** a marriage alliance brings allies into your wars; a refused tribute demand can start a raid.
 - **In 10 minutes:** perhaps one offer and one answer (guess).
 
-### War (simple wars proposed for 3b, full in step 5)
+### War (simple wars in 3b, full in step 5)
 
 - **Tap:** the War tab: pick a reason for war (a claim, holy war, independence or a title's rightful lands), raise soldiers, and drag an army's banner to a province.
 - **Wait for:** marching days, a siege, the war score climbing. Often at 12 or 30 days a second.
-- **Interrupts:** a battle result card, an enemy army close by. From step 5: hungry troops. Winter freezing the marshes: 3b or step 5, still open (see Smaller questions).
+- **Interrupts:** a battle result card, an enemy army close by. From step 5: hungry troops, a peasant revolt, and winter freezing the marshes into new routes (**decided**).
 - **Shows up elsewhere:** a lost battle can kill or capture a relative. Proposal: raised soldiers stop working the land, so tax and food drop while they march.
 - **In 10 minutes:** perhaps one war and one or two battles (guess).
 
@@ -226,11 +240,11 @@ Speeds: pause, then 2, 5, 12 and 30 days a second, then as fast as your phone al
 - **Tap:** a holding's point on the map, then Enter. Place plots, fields and workplaces, and give families jobs.
 - **Clock:** drops to speed 1, about 3 minutes per game year. Big events still pause it. Leaving brings your old speed back (proposal).
 - **Wait for:** buildings to finish, the autumn harvest.
-- **Interrupts:** a siege of your seat, fought on this same map (**decided**); a raid (whether raids are fought here too: open); a vassal's anger if it's his holding.
+- **Interrupts:** a siege or a raid, fought on this same map (**decided**); a vassal's anger if it's his holding.
 - **Shows up elsewhere:** what you build changes its six outputs (gold, soldiers, food, goods, fort strength, approval), which the realm reads.
 - **In 10 minutes:** about 3 game years at speed 1, so a few buildings and 3 harvests (guess).
 
-### A battle (auto-resolved, proposed for 3b; by hand in step 6)
+### A battle (auto-resolved from 3b; by hand in step 6)
 
 - **Tap:** Fight or Auto-resolve. By hand: drag units, tap formation buttons, pause to think.
 - **Wait for:** messengers carrying orders to distant units. Battle speeds: pause, normal, double and quadruple.
@@ -303,8 +317,8 @@ All names and outcomes are made up. Each link says the step it arrives in. On sc
    - Send the grain: less gold, but his opinion rises and his lands recover sooner.
    - Keep it for your army: your soldiers eat this winter (step 5).
 5. **Faction (3b).** You sell, and hire more soldiers with the silver. A bigger army normally keeps vassals quiet, but Gintautas joins your brother's claimant faction anyway, out of grievance.
-6. **Peasants (proposal, step not decided).** The hungry provinces grow restless, and unrest could become a peasant revolt.
-7. **Neighbour (3b).** A crusading order (the Sword Brothers, in the early years) hears that Samogitia is short of soldiers, through what its ruler could know, such as traders' news. It attacks in winter, when the marshes freeze (frozen routes: 3b or 5, to settle).
+6. **Peasants (3c unrest, step 5 revolt).** The hungry provinces grow restless, which cuts their tax and soldiers again; by spring, unrest breaks out as a peasant revolt.
+7. **Neighbour (3b).** A crusading order (the Sword Brothers, in the early years) hears that Samogitia is short of soldiers, through what its ruler could know, such as traders' news. It attacks in winter, when the marshes freeze (frozen routes arrive in step 5).
 8. **War (5).** Your army marches in, but foraging in starving land finds nothing. The troops go hungry.
 9. **Battle (5 auto-resolved, 6 by hand).** On the frozen marsh your son commands the left wing. Hungry men break first, and your son is captured.
 10. **Family (5).** The order demands a ransom. Your brother's faction calls you weak. You pay with what's left of Riga's silver.
@@ -320,7 +334,7 @@ All names and outcomes are made up. Each link says the step it arrives in. On sc
 
 By the end of 3c these links exist. They become a scripted soak test that sets the situation up on purpose and checks each link happens and shows its reason line:
 1. The harvest fails in chosen provinces (3c).
-2. Their tax and soldiers drop, with the reason "hungry lands" (3c).
+2. Their tax and soldiers drop, with the reason "hungry lands", and their unrest rises (3c).
 3. Grain prices rise in their market, and merchants offer to buy your grain (3c).
 4. The land duke sends a request card (3c).
 5. Choosing "sell" gives gold and shows "−20: left us to starve" on his opinion (3a and 3c).
@@ -350,7 +364,7 @@ ChatGPT saw only the old village prototype (Hamlet), not the current design. Its
 - **Entering counties:** you went further, and every holding in your realm can be built by hand.
 - **A deeper economy:** you chose a full market in 3c. The research points to Victoria 3, where prices move with supply and demand ([Victoria 3 wiki: Market](https://vic3.paradoxwikis.com/Market), *unverified*).
 - **Factions, relationships and vassal contracts:** the claimant faction in 3b, friends, rivals and lovers in step 4, and fine-grained vassal terms in 3b. CK3's sources disagree on how many steps each term has, three or five ([dev diary 17](https://forum.paradoxplaza.com/forum/threads/ck3-dev-diary-17-governments-vassal-management-laws-and-raiding.1352640/), [CK3 wiki: Subjects](https://ck3.paradoxwikis.com/Subjects), both *unverified*).
-- **Peasant revolts, war exhaustion and roads:** listed under Still open.
+- **Peasant revolts:** you decided hunger raises unrest in 3c, and revolts come in step 5. War exhaustion and roads are listed under Still open.
 
 | ChatGPT's ladder | Grind Strat |
 | --- | --- |
@@ -400,10 +414,4 @@ Your call on each. Nothing here is decided.
 
 ### Smaller questions
 
-- When a holding you built by hand passes to someone else, such as a brother under split inheritance, does your work stay with it? Proposal: yes; it just gets a new holder.
-- Peasant unrest and revolts from hunger: which step, if any?
-- Frozen winter routes: step 3, as HANDOFF's list says, or step 5 with the seasons?
-- Which neighbours get full detail first (see the Neighbours card)?
-- What it takes to create the Grand Duchy title.
-- Sieges and raids of your other built holdings: fought on their own layout, or on 3 or 4 templates by holding type?
-- Simple wars and auto-resolved battles: in 3b (proposed), or later?
+All answered on 6 October 2026: see "Your decisions" at the top.

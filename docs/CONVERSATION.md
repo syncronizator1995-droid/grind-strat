@@ -142,6 +142,21 @@ Ignas made the repo public, turned on GitHub Pages, merged it, and tried the gam
 
 > Done and it seems to work perfectly fine
 
+He then answered the smaller questions at the end of docs/LEVELS.md (his words after each question):
+
+> When a holding you built by hand passes to someone else, such as a brother under split inheritance, does your work stay with it? : yes it does.
+> Peasant unrest and revolts from hunger: which step, if any? Idk...
+> Frozen winter routes: step 3, as HANDOFF's list says, or step 5 with the seasons? Step 5.
+> Which neighbours get full detail first (see the Neighbours card)? The clossest or ones having dirrect relations with family or council
+> What it takes to create the Grand Duchy title. Size and renown
+> Sieges and raids of your other built holdings: fought on their own layout, or on 3 or 4 templates by holding type? My own layout.
+> Simple wars and auto-resolved battles: in 3b (proposed), or later? Sure in 3b
+
+For peasant unrest Claude suggested: hunger raises unrest in 3c, cutting tax and soldiers, and
+very high unrest becomes a revolt with rebel armies in step 5.
+
+> Sure i agree
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.

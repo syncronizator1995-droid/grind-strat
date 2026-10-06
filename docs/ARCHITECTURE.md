@@ -198,6 +198,12 @@ events still pause. It is a limit set by the UI: the rules are the same, so resu
 
 - Putting hand-built holdings in Summary is a proposal: Ignas's rule is that far-away detail gives
   first if phones are too slow. Confirm with him in step 7, after measuring.
+- Which realms run in full detail (Ignas, 6 October 2026): the closest to the player, and any tied
+  to the player through family, marriage or council. Re-check the list when those ties or borders
+  change (for example yearly, spread out); a realm moving to Summary keeps its rulers and heirs as
+  characters, but its courtiers stop being simulated in detail.
+- Sieges and raids of any holding the player built are fought on that holding's layout: the
+  generated layout plus the player's edits, stored by holding id (section 4).
 - **Looking never changes the game.** A look-only view uses its own hash and its own throwaway
   generator and writes nothing to the state. A test opens every view and checks that the save is
   byte-for-byte the same.
@@ -324,7 +330,7 @@ Each is designed with Ignas in its own step. Numbers here are invented; game mec
 - **Land cover for drawing:** Ignas chose a drawn terrain look (forests, marshes, rivers, lakes) with
   realm colours tinted over it, so step 2 also delivers those shapes, with sources.
 - **Links** between provinces by river, sea and road, added later for movement, supply and trade.
-  Winter routes over frozen marshes, rivers and lakes need seasonal links too (HANDOFF: steps 3, 5).
+  Winter routes over frozen marshes, rivers and lakes need seasonal links too (step 5, Ignas).
 - **Holding sites only where sourced.** Each holding is a point at a real site. One with no sourced
   site has no point, and is listed in its province panel until research finds it.
 - **Sources for every item** (province, border, holding site, river), by ids from data/sources.md.

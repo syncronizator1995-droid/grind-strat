@@ -293,11 +293,18 @@ plan to move its rules into src/sim and adapt them.
 | Part | What it adds |
 | --- | --- |
 | 3a | The real map from step 2, characters, family, succession and titles, on the rewritten engine |
-| 3b | Diplomacy, vassals with fine-grained terms, faith, one faction type (a relative claiming your throne), the Orders' and the Horde's goals |
-| 3c | Harvests and the full market: goods, prices, merchants, regional markets |
+| 3b | Diplomacy, vassals with fine-grained terms, faith, one faction type (a relative claiming your throne), simple wars with battles settled automatically, the Orders' and the Horde's goals |
+| 3c | Harvests, hunger and unrest (cutting tax and soldiers), and the full market: goods, prices, merchants, regional markets |
 
 Each part is planned with Ignas, passes its tests and soak, and ends with a short note for him:
-what's new, what to try, what's missing. Where simple wars fit (3b is proposed) is to settle with him.
+what's new, what to try, what's missing. Simple wars come in 3b (Ignas, 6 October 2026).
+
+More of Ignas's answers for step 3 (6 October 2026; details in docs/LEVELS.md):
+- Neighbours in full detail: the closest realms, and any tied to the player through family,
+  marriage or council. The rest run as a goal and a strength. Unsourced rulers are invented and
+  marked invented.
+- Creating the Grand Duchy takes size (enough land) and renown; set the numbers in 3a and show them
+  to Ignas.
 
 ### Start date: 1219 (proposal; confirm with Ignas)
 
@@ -370,7 +377,7 @@ crown, with real costs and benefits either way.
 | Titles | County, duchy, kingdom on the generated map | 3a: real lands; the Grand Duchy as a title that can be created (not held in 1219). 3b: the crown as a special, event-driven title, offered with baptism |
 | Vassals, opinion, revolts | Yes | 3b: fine-grained terms per vassal; one faction type, a relative claiming your throne |
 | Economy, soldiers, buildings | Yes | 3c: harvests and the full market. Baltic goods: amber, furs, wax, honey, grain. Replaces "keep it simple" |
-| Claims, wars, armies, sieges, war score | Yes, with battles settled automatically | Add raids (loot and captives, no conquest), crusade wars, winter routes |
+| Claims, wars, armies, sieges, war score | Yes, with battles settled automatically | 3b: simple wars with battles settled automatically; add raids (loot and captives, no conquest) and crusade wars. Winter routes move to step 5 (Ignas) |
 | Computer-run rulers | Yes, simple | 3b: historical goals per realm; how the Orders and the Horde behave. They know only what their character would know |
 | Faith | None | 3b: pagan, Catholic, Orthodox; conversion; being a crusade target |
 | Events | 17 general events | Condition-based historical events; Baltic flavour events |
@@ -499,13 +506,13 @@ Known issues:
 
 4. Intrigue: schemes, secrets and leverage, the council and spymaster, friends, rivals and lovers,
    and stress (test whether it is fun).
-5. War: supply and food from towns, foraging, starvation, seasons and winter routes, raids versus
-   conquest, sieges.
+5. War: supply and food from towns, foraging, starvation, seasons and frozen winter routes, raids
+   versus conquest, sieges, and peasant revolts with rebel armies when unrest runs very high.
 6. Battles: real-time, portrait, formations, morale, messengers, line of sight, weather,
    relatives on the field.
 7. Towns: your seat and any holding in your realm, built by hand and feeding the realm, starting
-   from Hamlet's notes. The clock slows to speed 1 inside a holding, and a siege of your seat is
-   fought on your own town map.
+   from Hamlet's notes. The clock slows to speed 1 inside a holding. Sieges and raids of any holding
+   you built are fought on its own layout, and what you built stays when the holding changes hands.
 8. First hunters: the Far Cry Primal-style action opening on the 10,000 BC map.
 9. Your tribe's story: from the hunters to the crusades, with time jumps and player-made history.
 10 to 12. Country play: the Commonwealth, empires and revolutions (including the fight for freedom
