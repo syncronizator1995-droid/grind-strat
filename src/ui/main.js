@@ -2,11 +2,15 @@
 // The step 1 screen: the date, pause plus five speeds, an empty map, and saves.
 // It reads the game state and calls the sim's functions; all rules live in src/sim.
 
+import testMap from '../data/map/test-map.json';
 import { formatDate } from '../sim/calendar.js';
 import { advanceDay, fromSave, newGame, toSave } from '../sim/game.js';
 import { shouldAutosave } from './autosave.js';
 import { daysForFrame, FASTEST_BUDGET_MS, MAX_DAYS_PER_FRAME } from './clock.js';
 import { setUpInstall } from './install.js';
+import { loadMap } from './map/load.js';
+import { formatResults, runSpeedTest } from './map/speedtest.js';
+import { createMapView } from './map/view.js';
 import { askToKeepStorage, AUTOSAVE_KEY, readText, SAVE_KEY, UNREADABLE_KEY, writeText } from './storage.js';
 
 /**
@@ -29,6 +33,10 @@ const saveButton = $('[data-act="save"]', HTMLButtonElement);
 const loadButton = $('[data-act="load"]', HTMLButtonElement);
 const newButton = $('[data-act="new"]', HTMLButtonElement);
 const installButton = $('[data-act="install"]', HTMLButtonElement);
+const mapNote = $('#mapNote', HTMLElement);
+const speedButton = $('[data-act="speedtest"]', HTMLButtonElement);
+const speedSheet = $('#speedSheet', HTMLElement);
+const speedResults = $('#speedResults', HTMLElement);
 
 let state = startingState();
 let speed = 0;
@@ -194,39 +202,77 @@ function replaceState(next) {
   showDate();
 }
 
-// --- the map (empty until step 2) ---------------------------------------------------------
+// --- the map ------------------------------------------------------------------------------
 
-function drawMap() {
-  const ratio = Math.min(window.devicePixelRatio || 1, 3);
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  if (w === 0 || h === 0) return;
-  canvas.width = Math.round(w * ratio);
-  canvas.height = Math.round(h * ratio);
+/** @type {import('./map/view.js').MapView | null} */
+let mapView = null;
+/** @type {import('./map/speedtest.js').StartupTimes} */
+const startup = {
+  mapOnScreenMs: NaN, scriptStartMs: performance.now(), base64Ms: NaN, inflateMs: NaN, decodeMs: NaN, paintMs: NaN, pathMs: NaN,
+};
+
+/** Shown for the moment before the map is unpacked. */
+function drawLoading() {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(canvas.clientWidth * ratio);
+  canvas.height = Math.round(canvas.clientHeight * ratio);
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  const css = getComputedStyle(document.documentElement);
-  const color = (/** @type {string} */ name) => css.getPropertyValue(name).trim();
-
-  ctx.fillStyle = color('--sea');
-  ctx.fillRect(0, 0, w, h);
-
-  ctx.strokeStyle = color('--wave');
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  const cell = 48;
-  for (let x = (w % cell) / 2; x < w; x += cell) { ctx.moveTo(Math.round(x) + 0.5, 0); ctx.lineTo(Math.round(x) + 0.5, h); }
-  for (let y = (h % cell) / 2; y < h; y += cell) { ctx.moveTo(0, Math.round(y) + 0.5); ctx.lineTo(w, Math.round(y) + 0.5); }
-  ctx.stroke();
-
-  ctx.fillStyle = color('--coast');
+  ctx.fillStyle = '#2f5266';
+  ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  ctx.fillStyle = 'rgba(238, 242, 245, .8)';
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `600 ${w < 360 ? 26 : 30}px ${color('--display')}`;
-  ctx.fillText('The map arrives in step 2', w / 2, h / 2 - 12);
-  ctx.font = '14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-  ctx.fillText('Time, speeds and saves already work.', w / 2, h / 2 + 22);
+  ctx.font = '15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  ctx.fillText('Unpacking the map…', canvas.clientWidth / 2, canvas.clientHeight / 2);
+}
+
+async function showMap() {
+  const { map: data, times } = await loadMap(testMap);
+  Object.assign(startup, times);
+  mapView = createMapView(canvas, data);
+  startup.paintMs = mapView.timings.paintMs;
+  mapView.resize();
+  mapView.prepare();
+  startup.pathMs = mapView.timings.pathMs;
+  mapView.render(true);
+  // performance.now() counts from the moment the page started opening.
+  startup.mapOnScreenMs = performance.now();
+  if (data.invented) {
+    mapNote.textContent = 'Test map: provinces, points and terrain are made up. Coast and rivers are real.';
+    mapNote.hidden = false;
+  }
+}
+
+async function speedTest() {
+  if (!mapView) return;
+  speedButton.disabled = true;
+  speedSheet.hidden = true;
+  tell('Speed test running: keep your fingers off the screen for about 12 seconds.');
+  try {
+    const result = await runSpeedTest(mapView);
+    speedResults.textContent = formatResults(result, startup, mapView.size());
+    speedSheet.hidden = false;
+    tell('Speed test done. Tap Copy and paste the results to Claude.');
+  } finally {
+    speedButton.disabled = false;
+  }
+}
+
+async function copyResults() {
+  const text = speedResults.textContent ?? '';
+  try {
+    await navigator.clipboard.writeText(text);
+    tell('Copied. Paste it into the chat.');
+  } catch {
+    // No clipboard access: select the text so a long press can copy it.
+    const range = document.createRange();
+    range.selectNodeContents(speedResults);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    tell('Couldn\'t copy by itself: the text is selected, so long-press it and choose Copy.');
+  }
 }
 
 // --- wiring -------------------------------------------------------------------------------
@@ -256,9 +302,13 @@ window.addEventListener('pagehide', () => {
   if (unsaved) autosave(performance.now());
 });
 
-new ResizeObserver(drawMap).observe(canvas);
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawMap);
-document.fonts?.load('600 30px "Grenze Gotisch"').then(drawMap, () => {});
+speedButton.addEventListener('click', speedTest);
+$('[data-act="rerun-speed"]', HTMLButtonElement).addEventListener('click', speedTest);
+$('[data-act="close-speed"]', HTMLButtonElement).addEventListener('click', () => { speedSheet.hidden = true; });
+$('[data-act="copy-speed"]', HTMLButtonElement).addEventListener('click', copyResults);
+new ResizeObserver(() => (mapView ? mapView.resize() : drawLoading())).observe(canvas);
+drawLoading();
+showMap().catch((err) => tell(`The map could not be shown: ${err instanceof Error ? err.message : err}`, true));
 
 setUpInstall({ button: installButton, tell });
 askToKeepStorage();

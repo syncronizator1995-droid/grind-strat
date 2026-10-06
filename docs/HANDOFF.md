@@ -1,12 +1,14 @@
 # Grind Strat: handoff for Claude Code
 
 Written on 6 October 2026 by Claude in a claude.ai chat, for Claude Code working with Ignas on his PC.
-Updated 6 October 2026 in Claude Code with Ignas's answers; see docs/LEVELS.md.
+Updated 6 October 2026 in Claude Code with Ignas's answers; see docs/LEVELS.md. Updated again the
+same day with his step 2 answers and the approved step 2a plan.
 
 This file says what to build first and how to know it is right. It covers:
 
 - Step 1: setting up the project.
-- Step 2: map research and the map pipeline, from the ice age to today.
+- Step 2: the map, in two parts: 2a (the map itself, with a time slider) and 2b (the 1219
+  provinces and holdings).
 - Step 3: the Middle Ages, dynasty and realm, on the real map, in three parts (3a, 3b, 3c).
 
 It also explains the prototype code you inherit, what comes after step 3, and the main risks.
@@ -64,7 +66,11 @@ A bad harvest in your town means hungry soldiers, a lost battle, and perhaps a d
 Build order (Ignas can reorder it at any time):
 
 1. Agree the design (done, but it stays open).
-2. Map research and the map pipeline.
+2. The map, in two parts, each ending playable on Ignas's phone:
+   - 2a: the map itself: coasts, rivers, lakes, painted terrain, a time slider, names that change
+     with the time, a Credits screen and a speed test (planned and approved);
+   - 2b: the 1219 provinces and holdings, region by region, starting with a pilot (planned with
+     Ignas after 2a).
 3. Middle Ages: dynasty and realm, in three parts, each ending playable on Ignas's phone:
    - 3a: the real map, characters, family, succession and titles, on a rewritten engine;
    - 3b: diplomacy, vassals with fine-grained terms, faith, one faction type (a relative claiming
@@ -91,7 +97,8 @@ engine itself is rewritten in 3a, and its code and test files weren't uploaded).
 Goal: an empty but working project that builds one offline file and runs tests. No game features yet.
 Show Ignas the folder layout and tool choices in plan mode first, then build it.
 
-Status: built and tested in Claude Code on 6 October 2026; waiting for Ignas to play it on his phone.
+Status: done. Built and tested in Claude Code on 6 October 2026, merged, published on GitHub Pages,
+and Ignas played it on his phone the same day: "it seems to work perfectly fine".
 What was built, beyond the list below:
 - Dev dependencies: esbuild, typescript and playwright, plus @types/node (type definitions only,
   needed so the type check understands the Node scripts in tools/ and test/).
@@ -103,7 +110,8 @@ What was built, beyond the list below:
   share one web address (syncronizator1995-droid.github.io), so they share Cache Storage, and the
   service workers of Campfire (Guitar repo) and Cal Track delete every cache but their own when
   they update. Saves are safe (localStorage keys are separate). Fixing those two apps to delete
-  only their own caches is a one-line change in each; ask Ignas before touching his other repos.
+  only their own caches is a one-line change in each. Ignas said yes, and Claude made the fix in
+  pull requests in his Guitar, cal_track and cal_track.2.0 repos.
 - npm run shots checks, served like GitHub Pages: no signal, weak signal, caches wiped by another
   app, and an update arriving.
 
@@ -151,36 +159,220 @@ installs to his home screen, opens with no signal, and an autosave survives clos
 
 ---
 
-## 2. Step 2: map research and the map pipeline
+## 2. Step 2: the map (2a), then the 1219 lands (2b)
 
 ### Why this comes first
 
 The design promises a historically accurate map from the ice age to today. Every later system sits
-on this map: provinces, armies, supply, towns and the hunter opening. Getting it wrong late is expensive.
+on this map: provinces, armies, supply, towns and the hunter opening. Province ids, neighbours,
+holdings and terrain feed dynasties (3a), wars (5), battles (6) and towns (7). Changing the map
+later breaks saves and history data, so it is done carefully.
 
-### What to produce
+### Ignas's answers for step 2 (6 October 2026)
 
-1. A base map of today's region: coast, main rivers, lakes.
-2. Time slices of land, water and ice from 10,000 BC to today.
-3. A province map for the start of the Middle Ages (around 1219): 150 or more provinces in the
-   Baltic core (Ignas's choice), with their holdings.
-4. A sources list for all of the above, with licences.
-5. A debug map screen in the game file: a time slider through the slices, tap a province to see its
-   name, sources and neighbours. It must run on a phone.
-6. Land cover for drawing (forests, marshes, rivers, lakes), with sources. Ignas chose this map look:
-   terrain drawn, with realm colours tinted over it.
-7. A small terrain grid per province (land cover, water, height), for later battlefields (step 6)
-   and town layouts (step 7).
+Research (six researchers, a draft plan and two reviewers) showed step 2 is too big for one go.
+Ignas answered three rounds of questions, then approved the step 2a plan:
 
-### Area and projection
+| Topic | His choice |
+| --- | --- |
+| Step 2 | Split into 2a (the map) and 2b (the 1219 provinces and holdings) |
+| Lithuania's provinces | Lands and castle districts named in 14th-century sources, each showing the year it was first mentioned |
+| Ice-age maps | Built properly in step 8 (the hunters); 2a gives sourced notes and a rough preview |
+| South edge | 50°N: Volhynia on the map, Galicia just off the edge in less detail |
+| Licences | Free forever, so share-alike data (like OpenStreetMap) is allowed |
+| File size | No limit; the real test is how fast the map opens on his phone |
+| Blocked data | He allows sites, but only when a milestone needs one: Claude stops and asks for that one site |
+| His phone | Android |
+| Terrain grid | A 1 km terrain map for every province now; battle and town maps made finer later |
+| Names on the map | Names of the time, changing with the time slider |
+| Unsure borders | Guessed borders look softer than sourced ones |
 
-- Area: from the Vistula in the south-west to the Gulf of Finland in the north, and far enough east to
-  include Polotsk, Pskov and Novgorod. Neighbours such as Masovia, Galicia–Volhynia and Scandinavia
-  across the sea appear in less detail. Agree the exact box with Ignas.
-- Projection: an equal-area projection for Europe, for example ETRS89-LAEA (EPSG:3035), so province
-  sizes compare fairly. Store game coordinates at a fixed scale; the interface zooms.
-- The region is roughly as wide as it is tall, so on a portrait phone the player pans and zooms.
-  Start views centred on the player's land.
+After the questions he wrote: "The names on the map should chage with the time and ask me to allow
+sites once needed".
+
+**What these change in this section's earlier plan:**
+- Step 2 is two steps, 2a and 2b, each ending playable on his phone.
+- The area is decided (it said "agree the exact box with Ignas").
+- The projection is EPSG:3035's formula centred on the Baltic, not plain EPSG:3035.
+- A 1 km terrain map replaces "a small terrain grid per province, for example 32 by 32".
+- No hard size limit replaces "under about 500 KB of map JSON".
+- The five ice-age slices are done properly in step 8, not in step 2. 2a gives a rough preview.
+- Names of the time, changing with the slider. The research had proposed today's local names.
+- Share-alike data is allowed. The research had recommended avoiding it.
+
+### 2a: the map
+
+Status (6 October 2026): **M1 built.** The speed test runs on a test map, labelled as made up,
+with the real Natural Earth coast, lakes and rivers. Waiting for Ignas's numbers from his Android
+phone before M2. In headless Chrome on a PC, with no GPU: first map in about 0.4 s, full redraw
+about 33 ms, panning 99% of frames on time. With the processor slowed 4×: first map in about
+1.7 s.
+
+**What Ignas sees on his phone at the end of 2a:**
+- **The real map** instead of the empty grid: sea, coasts, rivers, lakes, hill shading, forests
+  and marshes, painted. Pinch to zoom, drag to pan; mouse wheel on a computer.
+- **A time slider:** today, 1219 and 1 AD in full detail. The five ice-age slices (10,000, 9,500,
+  8,500, 7,500 and 5,000 BC) show a rough preview, clearly labelled rough, plus a short sourced
+  note on land, water, ice, plants, animals and people.
+- **Names that change with the time:** 1219 shows the forms used in sources of that age; today
+  shows today's local names. Where no name of the time is sourced, today's local name stands in,
+  and the data says so. Tap a river, lake or sea for all its names and sources.
+- **A Credits screen** listing every data owner, the licence and what we changed.
+- **A Speed test button** that measures his phone, with a Copy button so he can paste the numbers.
+- Light and dark follow the phone, as now. The date, speeds and saves keep working.
+
+**Area and projection:**
+- 12°E to 34°E and 50°N to 61.5°N. That takes in eastern Zealand and Bornholm, Novgorod and Lake
+  Ilmen, Volhynia, the Gulf of Finland and Stockholm.
+- The same equal-area formula as EPSG:3035 (ETRS89-LAEA), but centred on 56°N 23°E, so north
+  points up over Lithuania and leans less than 10° at the edges (about 9.5° at the northern
+  corners). Province sizes compare fairly.
+- Game coordinates are whole numbers in 100 m units, about 15,720 × 13,270 units (about 1,572 by
+  1,327 km). The approved plan's 14,400 was a typo.
+- The formula is checked against the official EPSG:3035 test point.
+- The region is about as wide as it is tall, so on a portrait phone the player pans and zooms.
+
+**Data, layer by layer.** Each source's licence is read on its own site and quoted in
+data/sources.md ("Map data collections (step 2a)") before anything ships. Files with share-alike
+licences (ODbL, CC BY-SA) are kept separate, each with its own licence note, because those two
+licences can't be mixed in one file.
+
+| Layer | Source | Notes |
+| --- | --- | --- |
+| Coast, main rivers, lakes | Natural Earth 1:10m (global layers) | Public domain (licence read at v5.1.2), reachable now. The separate Europe layers carry a JRC clause and are not used |
+| Smaller rivers, with names | OpenStreetMap (ODbL) | Lielupe, Pregolya, Nevėžis, Dubysa, Šešupė, Minija and others. Host blocked here: ask Ignas at M2 |
+| Height and sea depth | GEBCO 2026 | Hill shading, old coasts. Blocked here: ask Ignas at M2. Until then, the hills wait |
+| Forest in 1219 | REVEALS pollen reconstructions | An AD 750–1250 average, marked "estimated from pollen". Ask for PANGAEA when needed |
+| Marsh in 1219 | Peat and wetland maps | Which map is chosen at M2, licence first |
+| Water in 1219 | Today's natural lakes | Modern reservoirs removed |
+
+- Natural Earth's coast is the one base coast for every slice, so the coast doesn't jump when
+  nothing changed.
+- Only Natural Earth's global layers are used. Its separate Europe rivers and lakes come from JRC
+  data under a clause still TO CHECK (data/sources.md, "ne"), so they stay unused until then.
+- Fields and open land arrive with the real holdings in 2b.
+- **1219 and 1 AD coasts:** the base coast plus local fixes, each with a source or marked TO CHECK:
+  the Vistula delta (Żuławy) as marsh; the lagoon mouths; modern reservoirs removed (Kaunas,
+  Pļaviņas, Ķegums, Riga, Narva); the north Estonian coast lower by the land rise, using a few
+  cited rates.
+- **Ice-age previews:** a few cited shore heights and dates per stage, sketched roughly.
+- **Blocked sites:** Claude stops and asks Ignas to allow one site at a time, only when a
+  milestone needs it. M1 needs nothing blocked.
+
+**Names.** Every named place stores its names by era, `{ today, 1219, 1 AD }`, each with a source
+or marked "today's name standing in". Other languages (lt, lv, et, pl, de, ru) go in the panel.
+
+**Tools.** No new dev dependencies. Plain Node scripts written for the project: the projection, a
+GeoJSON reader, a GEBCO text-grid reader and the packers. mapshaper is only an occasional
+cross-check, never part of the project. No computed river tracing (unreliable on flat Baltic
+land): the rivers come from data.
+
+**The pipeline:**
+- `npm run map` fetches the raw data into `data/raw/`, which git ignores. It records each file's
+  link, date, fingerprint and whether its licence was read.
+- It then builds `src/data/map/`, which goes into git. Ignas never has to run it.
+- A shipped file from a source whose licence is still unread fails the build.
+- `.gitattributes` keeps map files byte-identical on Windows.
+
+**Formats, size and drawing** (details in docs/ARCHITECTURE.md, section 9):
+- Lines are whole-number coordinates with shared borders, packed as text. Grids are packed bytes,
+  unpacked by the browser's built-in decompression (Chrome on Android is fine). The road-cost grid
+  and anything rule-made are rebuilt at start-up, never stored.
+- No hard size limit, as Ignas chose. Every build reports the map size, and a test fails if one
+  file suddenly balloons (a sanity check, not a budget). The real test: first map on screen in
+  under 3 seconds on his phone, opened from the saved copy.
+- Terrain is painted once into cached image tiles; pixel density is capped at 2; less detail when
+  zoomed out, and far-away detail drops first. A placeholder fog-of-war layer is in the speed test
+  from the start, so its cost is known.
+
+**Credits.** One credits list builds both the in-game Credits screen and an `ATTRIBUTION.md` in the
+repo: owner, licence and its link, the required notice, and what we changed.
+
+**Sources.** data/sources.md lists collections (for example Natural Earth or GEBCO), each with its
+licence quoted. Records cite `collection:id`. A small machine-readable index lets tests check
+every id.
+
+**Work order** (each pushed so Ignas can look on his phone):
+
+| # | Milestone | What he can try |
+| --- | --- | --- |
+| M1 | Speed test on an invented test map | Tap Speed test, then Copy, and send the numbers |
+| M2 | The real map, 1219 terrain, Credits | Zoom around the real Baltic |
+| M3 | Time slider, names that change | Slide through the ages |
+
+- **M1:** the real drawing code at full map size, on a test map labelled "invented": real Natural
+  Earth coast, lakes and rivers; made-up provinces, 3,000 made-up points, made-up terrain, and the
+  fog layer. Uses only Natural Earth's global layers, so the JRC clause doesn't apply.
+- **M2:** coast, named rivers and lakes, hill shading, 1219 terrain, Credits screen. Ask Ignas to
+  allow GEBCO and OpenStreetMap here.
+- **M3:** today, 1219 and 1 AD in full; the five ice-age previews with notes; names change with
+  the slider. Ask for PANGAEA if still needed.
+- **Open question for Ignas at M2:** the 1219 forest share comes from REVEALS, on PANGAEA. Either
+  M2's 1219 terrain waits for forest until M3, or Claude asks for PANGAEA at M2. He chooses.
+- If M1 shows his phone is too slow, the drawing gets fixed before M2.
+- Each milestone passes npm test, soak, check and shots, and the GitHub run on its pull request,
+  before it reaches him.
+
+**Tests and checks for 2a:**
+- **Projection:** matches the EPSG:3035 test point, and converting there and back returns the same
+  point.
+- **Lines:** no crossings, every coast and lake closed, rivers inside land.
+- **Names and sources:** every named feature has a name per era, or a marked stand-in, plus a
+  source. Every source id exists. Every shipped file's licence was read and is on the Credits screen.
+- **Pipeline:** the committed map files match their recorded fingerprints, and a small sample is
+  rebuilt to prove the same bytes come out.
+- **Speed:** timed unpacking and drawing in Node and in headless Chrome, with the processor slowed
+  down, to catch regressions. His phone's numbers are the real verdict: 95% of frames under
+  16.7 ms while panning; a full redraw under 50 ms; first map in under 3 seconds.
+- **Screenshots** at 390 × 844 in light and dark: the overview, zoomed in, the time slider, a name
+  panel and Credits. Checked for cut-off or overlapping text.
+- **Saves:** looking at the map never changes the save.
+
+### 2b: the 1219 provinces and holdings (planned with Ignas after 2a)
+
+**Provinces:**
+- 150 or more in the Baltic core (Ignas's choice), plus coarser neighbours. This replaced
+  "roughly 80 to 150, decide with Ignas". No province is invented just to reach 150.
+- Each province grows from a sourced seed point over the 1 km terrain, with border rivers named in
+  sources acting as walls.
+- Each border records whether it is sourced or guessed; guessed ones look softer on the map.
+- Modern units are only used to check the result.
+- Lithuania uses the lands and castle districts named in 14th-century sources, each showing the
+  year it was first mentioned.
+
+**Holdings:**
+- A point only at a real, sourced and dated site (Ignas: every holding is a point, at real sites
+  only).
+- Broadly dated sites appear in the panel as "possibly in use".
+- Disputed sites (such as Beverin and Voruta) show their candidate sites, with no point.
+- A holding whose site no source gives has no point, and is listed in its province's panel until
+  research finds it.
+
+**The pilot:** Semigallia plus one Lithuanian land (Upytė or Deltuva), which Ignas reviews first.
+
+**Questions for the 2b plan:**
+- How strict the site dating is.
+- Whether a province with no sourced holding gets an invented seat (marked invented).
+- Which name forms to use in Kaliningrad.
+- The full list of neighbours inside the map: Gotland, Pomerelia, Finland Proper, Votia,
+  Black Ruthenia and others.
+
+**Data per province** (proposal; fixed in the 2b plan):
+{ id, names by era, other-language names (lt, lv, et, pl, de, ru), outline, centre, terrain,
+neighbours, coastal, rivers, historical land, first-mention year, holdings, sources }.
+- Holdings: a list per province of { id, name, type, site (or null), dates, sources }. Type is
+  camp, village, hillfort, castle, chartered town or city.
+- Terrain per province (plains, forest, hills, marsh, lake shore, coast) is worked out from its
+  cells of the 1 km terrain map.
+- Neighbours come from shared borders; river and sea links are added for movement and trade.
+
+**Checks for 2b:**
+- Provinces don't overlap, and they tile the land.
+- Every province has a name and at least one source; neighbour lists are symmetric.
+- Every border is marked sourced or guessed.
+- Every holding with a site has at least one source; holdings with site null are listed in the
+  panel.
+- Ignas reviews the map for historical mistakes. He knows Lithuanian history; ask him.
 
 ### Sources
 
@@ -194,83 +386,34 @@ Verified during the chat (links in data/sources.md):
 - Wikipedia, "History of Lithuania" and "History of Lithuania (1219–1295)": historical dates.
 - Wikipedia, "List of early Lithuanian dukes": the dukes of 1219.
 
-TO CHECK (not verified yet; confirm availability and licence before use):
+Map data (Natural Earth, OpenStreetMap, GEBCO, REVEALS, DATED-1, the Rosentau 2021 database):
+listed in data/sources.md under "Map data collections (step 2a)", each with its licence status.
+Nothing ships until its licence is read.
 
-- Natural Earth (naturalearthdata.com) for today's coast, rivers and lakes. Believed public domain.
-- GEBCO grid for land height and sea depth.
-- DATED-1 (Hughes and others, 2016, Boreas) for the edge of the ice sheet through time.
-- The Rosentau 2021 database for water levels around the Baltic through time.
-- Published maps of the Baltic tribal lands around 1200, and of the Lithuanian lands of the time
-  (Lithuania proper, Deltuva, Nalšia, Samogitia), for province borders.
+TO CHECK for 2b: published maps of the Baltic tribal lands around 1200, and of the Lithuanian
+lands of the time (Lithuania proper, Deltuva, Upytė, Nalšia, Samogitia), to check province borders.
 
-### Method (suggested; agree it with Ignas)
+### The time slices
 
-Two ways to make the time slices:
+| Slice | Why it matters | In 2a |
+| --- | --- | --- |
+| 10,000 BC | Game start: ice sheet in the north, the Baltic Ice Lake | Rough preview |
+| 9,500 BC | Yoldia Sea | Rough preview |
+| 8,500 BC | Ancylus Lake | Rough preview |
+| 7,500 BC | Early Littorina Sea | Rough preview |
+| 5,000 BC | Start of the crafts, farms and amber age | Rough preview |
+| 1 AD | The amber trade with Rome | Full |
+| 1219 AD | Start of the Middle Ages campaign | Full |
+| Today | Reference, and the later ages | Full |
 
-- A. Hand-trace key slices from published reconstructions. Fast, and good enough to start.
-- B. Compute them: take today's land height and sea depth, apply each stage's water level
-  (it differs by area, because the land rose unevenly after the ice), and cut out the ice sheet
-  from DATED-1. More accurate, more work.
-
-Start with A for a playable result, credit the source maps, and keep B as a later upgrade.
-
-Slices to make, each with land, water and ice:
-
-| Slice | Why it matters |
-| --- | --- |
-| 10,000 BC | Game start: ice sheet in the north, the Baltic Ice Lake |
-| 9,500 BC | Yoldia Sea |
-| 8,500 BC | Ancylus Lake |
-| 7,500 BC | Early Littorina Sea |
-| 5,000 BC | Start of the crafts, farms and amber age |
-| 1 AD | The amber trade with Rome |
-| 1219 AD | Start of the Middle Ages campaign |
-| Today | Reference, and the later ages |
-
-The coast changes much less after the Littorina stage than before, but check the spits and lagoons
-(Curonian Spit, Vistula Lagoon) for the historical slices: TO CHECK.
-
-For each slice also research the living land: vegetation (tundra, birch and pine, mixed forest,
-wetland, fields), the main animals (for example reindeer near the ice in the earliest slice: TO CHECK)
-and where people lived.
-
-### Data format (proposal)
-
-src/data/map/
-
-- base.json: projection, bounding box, rivers (named polylines), lakes (polygons).
-- slices/<year>.json: { year, land, water, ice (each a MultiPolygon), notes, sources: [ids] }.
-- provinces-1219.json: a list of
-  { id, name, altNames: { lt, lv, et, pl, de, ru }, polygon, centroid, terrain, neighbours: [ids],
-  coastal, rivers: [names], historicalLand, holdings, sources: [ids] }.
-- holdings: a list per province of { id, name, type, site (or null), sources }. Type is camp, village,
-  hillfort, castle, chartered town or city. Ignas chose: every holding is a point on the map, at
-  real sites only. A holding whose site no source gives has site null: no point on the map, and
-  it is listed in its province's panel until research finds it.
-- Terrain per province, from sources: plains, forest, hills, marsh, lake shore, coast.
-- A small terrain grid per province (for example 32 by 32 cells, an invented size): land cover,
-  water and height. Battlefields and town layouts are cut from it later.
-
-Keep polygons simplified for phone drawing: aim for under about 500 KB of map JSON in total,
-and cache drawn shapes as Path2D objects. Neighbours come from shared borders; river and sea links
-are added later for movement and trade.
-
-### Checks
-
-- Every polygon is valid (no self-crossing); provinces do not overlap and they tile the land.
-- Every province has a name and at least one source.
-- Neighbour lists are symmetric.
-- Every slice loads and draws at 60 fps on a phone.
-- Every holding with a site has at least one source; holdings with site null are listed in the panel.
-- Measure speed on Ignas's phone early in step 2 (150 or more provinces, with terrain drawn) and
-  show him the numbers.
-- Ignas reviews the map for historical mistakes. He knows Lithuanian history; ask him.
-
-### How many provinces
-
-Ignas chose 150 or more for the Baltic core (6 October 2026), plus coarser neighbours. This replaces
-"roughly 80 to 150, decide with Ignas". More provinces mean more detail, more data work and slower
-phones, and real holding sites are a big research job: measure early, as above.
+- The ice-age slices are built properly in step 8, with the hunters. The method is chosen then.
+  The two options from the first handoff stay open: A, hand-trace published reconstructions; or
+  B, compute them from today's heights, each stage's water level and the DATED-1 ice edge.
+- The coast changes much less after the Littorina stage than before, but check the spits and
+  lagoons (Curonian Spit, Vistula Lagoon) for the historical slices: TO CHECK.
+- For each slice also research the living land: vegetation (tundra, birch and pine, mixed forest,
+  wetland, fields), the main animals (for example reindeer near the ice in the earliest slice:
+  TO CHECK) and where people lived.
 
 ---
 
@@ -278,7 +421,7 @@ phones, and real holding sites are a big research job: measure early, as above.
 
 ### Goal
 
-A playable medieval campaign on the real map from step 2. You play a Lithuanian duke or another
+A playable medieval campaign on the real map from step 2 (2a and 2b). You play a Lithuanian duke or another
 Baltic ruler through marriages, births, deaths, inheritance, diplomacy, vassals and simple wars.
 History follows its course unless you change it.
 
@@ -292,11 +435,18 @@ plan to move its rules into src/sim and adapt them.
 | Part | What it adds |
 | --- | --- |
 | 3a | The real map from step 2, characters, family, succession and titles, on the rewritten engine |
-| 3b | Diplomacy, vassals with fine-grained terms, faith, one faction type (a relative claiming your throne), the Orders' and the Horde's goals |
-| 3c | Harvests and the full market: goods, prices, merchants, regional markets |
+| 3b | Diplomacy, vassals with fine-grained terms, faith, one faction type (a relative claiming your throne), simple wars with battles settled automatically, the Orders' and the Horde's goals |
+| 3c | Harvests, hunger and unrest (cutting tax and soldiers), and the full market: goods, prices, merchants, regional markets |
 
 Each part is planned with Ignas, passes its tests and soak, and ends with a short note for him:
-what's new, what to try, what's missing. Where simple wars fit (3b is proposed) is to settle with him.
+what's new, what to try, what's missing. Simple wars come in 3b (Ignas, 6 October 2026).
+
+More of Ignas's answers for step 3 (6 October 2026; details in docs/LEVELS.md):
+- Neighbours in full detail: the closest realms, and any tied to the player through family,
+  marriage or council. The rest run as a goal and a strength. Unsourced rulers are invented and
+  marked invented.
+- Creating the Grand Duchy takes size (enough land) and renown; set the numbers in 3a and show them
+  to Ignas.
 
 ### Start date: 1219 (proposal; confirm with Ignas)
 
@@ -327,6 +477,11 @@ in 1219 Samogitia's dukes included Erdvilas and Vykintas.
 - Polotsk, Pskov, Novgorod and Smolensk: rulers TO CHECK.
 - Denmark's position in northern Estonia around 1219: TO CHECK.
 
+Possible history fix (TO CHECK, found in the step 2 research; the list above stays as it is until
+it is confirmed): by 1219, Jersika and Koknese may no longer have depended on Polotsk. Source to
+read: Henry of Livonia's chronicle (chapter to find); the research saw it only in a search extract
+of the Wikipedia page on Visvaldis.
+
 Background and flavour from before 1219 (verified): Žvelgaitis was killed attacking Riga in 1205;
 the Livonians imprisoned Daugirutis in 1213; Stekšys was killed in 1214; Lithuanians made about
 40 raids on their neighbours between 1201 and 1236; Pskov was burned in 1213.
@@ -351,7 +506,7 @@ situation, the event adapts or does not happen. Verified dates:
 | 1410 | Grunwald: the Polish–Lithuanian army defeats the Teutonic Knights |
 | 1413 | The conversion of Samogitia begins |
 | 1422 | Treaty of Melno: Samogitia recovered for good |
-| 1569 | Union of Lublin: the end of dynasty play; the game hands over to country play in a later step |
+| 1569 | Union of Lublin. Dynasty play carries on (Ignas, 6 October 2026): the player can try to save the dynasty and change history. When play turns to the country is planned with the later ages |
 
 Build these as goals for computer-run realms (the crusading Orders want pagan land; the Horde raids),
 plus events with conditions. For example, a ruler in Mindaugas's position may be offered baptism and a
@@ -369,7 +524,7 @@ crown, with real costs and benefits either way.
 | Titles | County, duchy, kingdom on the generated map | 3a: real lands; the Grand Duchy as a title that can be created (not held in 1219). 3b: the crown as a special, event-driven title, offered with baptism |
 | Vassals, opinion, revolts | Yes | 3b: fine-grained terms per vassal; one faction type, a relative claiming your throne |
 | Economy, soldiers, buildings | Yes | 3c: harvests and the full market. Baltic goods: amber, furs, wax, honey, grain. Replaces "keep it simple" |
-| Claims, wars, armies, sieges, war score | Yes, with battles settled automatically | Add raids (loot and captives, no conquest), crusade wars, winter routes |
+| Claims, wars, armies, sieges, war score | Yes, with battles settled automatically | 3b: simple wars with battles settled automatically; add raids (loot and captives, no conquest) and crusade wars. Winter routes move to step 5 (Ignas) |
 | Computer-run rulers | Yes, simple | 3b: historical goals per realm; how the Orders and the Horde behave. They know only what their character would know |
 | Faith | None | 3b: pagan, Catholic, Orthodox; conversion; being a crusade target |
 | Events | 17 general events | Condition-based historical events; Baltic flavour events |
@@ -498,14 +653,16 @@ Known issues:
 
 4. Intrigue: schemes, secrets and leverage, the council and spymaster, friends, rivals and lovers,
    and stress (test whether it is fun).
-5. War: supply and food from towns, foraging, starvation, seasons and winter routes, raids versus
-   conquest, sieges.
+5. War: supply and food from towns, foraging, starvation, seasons and frozen winter routes, raids
+   versus conquest, sieges, peasant revolts with rebel armies when unrest runs very high, and war
+   exhaustion that lowers armies' effectiveness the longer a war lasts.
 6. Battles: real-time, portrait, formations, morale, messengers, line of sight, weather,
    relatives on the field.
 7. Towns: your seat and any holding in your realm, built by hand and feeding the realm, starting
-   from Hamlet's notes. The clock slows to speed 1 inside a holding, and a siege of your seat is
-   fought on your own town map.
-8. First hunters: the Far Cry Primal-style action opening on the 10,000 BC map.
+   from Hamlet's notes. The clock slows to speed 1 inside a holding. Sieges and raids of any holding
+   you built are fought on its own layout, and what you built stays when the holding changes hands.
+8. First hunters: the Far Cry Primal-style action opening on the 10,000 BC map. The five ice-age
+   map slices are built properly here (Ignas, 6 October 2026); step 2a gives only a rough preview.
 9. Your tribe's story: from the hunters to the crusades, with time jumps and player-made history.
 10 to 12. Country play: the Commonwealth, empires and revolutions (including the fight for freedom
    when an empire holds the land), and the world wars to today.
@@ -517,9 +674,18 @@ Known issues:
 - Scope: the game is huge. Keep each step small, playable and tested. Don't add features in the middle
   of a step; write ideas into docs/DESIGN.md for later.
 - History errors: source every fact, mark doubts TO CHECK, and have Ignas review.
-- Map data: some reconstructions may be paywalled or not licensed for reuse. Prefer public-domain or
-  openly licensed data; otherwise hand-trace, credit the source, and note it.
-- Phone performance: measure early on a real phone; keep polygon counts and daily work within budget.
+- Map data: some reconstructions may be paywalled or not licensed for reuse. Read each licence on
+  its owner's site and quote it in data/sources.md before anything ships; credit every owner on the
+  Credits screen. Share-alike data is allowed (Ignas: "free forever"), kept in separate files with
+  their own licence note. If the game were ever sold, those layers would need replacing.
+- Blocked sites: most map data hosts are blocked in the cloud session. Milestones M2 and M3 of 2a
+  wait for Ignas to allow them, one site at a time, asked only when needed. M1 needs nothing blocked.
+- Old coasts: on flat shores they are approximate, and marked so.
+- Names of the time: many features have no sourced 1219 form, so today's name will often stand in
+  at first, marked as a stand-in.
+- Phone performance: measure early on his Android phone (2a, M1: the Speed test button); keep
+  drawing and daily work within budget. There is no hard size limit; the test is first map on
+  screen in under 3 seconds.
 - Save size over centuries: remove characters who no longer matter, keep logs capped, avoid repeating
   long strings.
 - Sensitive history: plan how the later ages handle occupation, deportation and the Holocaust with
@@ -533,6 +699,10 @@ Known issues:
 - Soak run: letting the computer play many long games to find errors.
 - Invariant: something that must always be true, checked automatically.
 - Time slice: a snapshot of the map at one moment, for example 9,500 BC.
+- Projection: the formula that lays the round Earth flat on the screen.
+- Share-alike: a data licence that says anything made from the data must be shared under the same
+  licence (OpenStreetMap's ODbL is one).
+- Stand-in name: today's local name, shown where no name of the time is sourced, and marked so.
 - Province: a piece of land on the map that someone holds.
 - Liege: the ruler someone serves.
 - War score: how well a war is going, from -100 to 100.

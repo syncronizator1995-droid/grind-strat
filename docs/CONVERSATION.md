@@ -137,6 +137,68 @@ Ignas approved the plan. His answers change five earlier decisions:
 - 150 or more provinces. This replaces "roughly 80 to 150, decide with Ignas".
 - The prototype engine is rewritten in 3a, instead of being moved over and adapted.
 
+Claude built step 1, had it reviewed, fixed what the review found, and opened a pull request.
+Ignas made the repo public, turned on GitHub Pages, merged it, and tried the game on his phone:
+
+> Done and it seems to work perfectly fine
+
+He then answered the smaller questions at the end of docs/LEVELS.md (his words after each question):
+
+> When a holding you built by hand passes to someone else, such as a brother under split inheritance, does your work stay with it? : yes it does.
+> Peasant unrest and revolts from hunger: which step, if any? Idk...
+> Frozen winter routes: step 3, as HANDOFF's list says, or step 5 with the seasons? Step 5.
+> Which neighbours get full detail first (see the Neighbours card)? The clossest or ones having dirrect relations with family or council
+> What it takes to create the Grand Duchy title. Size and renown
+> Sieges and raids of your other built holdings: fought on their own layout, or on 3 or 4 templates by holding type? My own layout.
+> Simple wars and auto-resolved battles: in 3b (proposed), or later? Sure in 3b
+
+For peasant unrest Claude suggested: hunger raises unrest in 3c, cutting tax and soldiers, and
+very high unrest becomes a revolt with rebel armies in step 5.
+
+> Sure i agree
+
+Then the rest of the open questions in docs/LEVELS.md:
+
+> Yes dynasty carries on and one can try to save it and change history. Holding nobody is building should have very slow development in comparison. Yes you can look at other lands if they are neighbors but it should be limited and function as a fog of war and could be seen inside if there are direct relationship like trips hunting or mail. War exaustion directly impacts effectiveness what about the other questions if they even are questions about roads and screen limits.... And yes you can fix the cal track and campfire and yes you can start planning step two
+
+Claude explained that roads was a real but small question and the screen limits only its own
+working rule. Ignas:
+
+> Sure on the screens and the roads should be developed or build automatically if they are needed in a spot and now continue with step 2
+
+### Step 2: the map
+
+Claude fixed Campfire and Cal Track, as he had said yes: pull requests in his Guitar,
+cal_track and cal_track.2.0 repos, so each app deletes only its own caches when it updates.
+
+Then Claude researched step 2: six researchers (today's base map, coasts through time, the lands
+of 1219, holding sites, tools and phone speed, land cover), a draft plan, and two reviewers who
+looked for its faults. Most data sites were blocked where Claude works, so many licences were seen
+only in search results. The research showed step 2 was too big for one go. Claude asked three
+rounds of questions. The options he picked (labels written by Claude, topic names added):
+
+> Split step 2: "Split: 2a then 2b (Recommended)". Lithuania: "Later real units, dated (Recommended)". Ice-age maps: "Step 8, rough preview now (Recommended)". South edge: "50°N (Recommended)".
+
+> Licences: "Never: free forever". File size: "No limit". Blocked data: "I'll allow the sites (Recommended)". Your phone: "Android phone".
+
+> Terrain grid: "1 km map, finer later (Recommended)". Map names: "Names of the time". Unsure borders: "Guessed ones look softer (Recommended)".
+
+Then he added:
+
+> The names on the map should chage with the time and ask me to allow sites once needed
+
+Claude read it as: the names change with the time slider, and he allows a blocked site only when
+a milestone needs it, asked one site at a time. Claude wrote the step 2a plan with these answers,
+and he approved it. His answers change these earlier plans:
+
+- Step 2 is split into 2a (the map) and 2b (the 1219 provinces and holdings).
+- A 1 km terrain map replaces the small 32 by 32 grid per province.
+- No hard size limit replaces "under about 500 KB of map JSON"; the test is how fast the map
+  opens on his phone.
+- The five ice-age slices are built properly in step 8; 2a gives a rough preview.
+- Names of the time, changing with the slider. The research had proposed today's local names.
+- Share-alike data is allowed. The research had recommended avoiding it.
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.

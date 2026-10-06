@@ -3,8 +3,9 @@
 A snapshot of Ignas's living plan, 6 October 2026. If Ignas says something different now, he wins:
 update this file. Everything here stays open to change.
 
-Updated on 6 October 2026 in Claude Code with Ignas's answers to a questionnaire. Each answer is a row
-in "Decisions so far" at the end; docs/LEVELS.md explains what each one means in play.
+Updated on 6 October 2026 in Claude Code with Ignas's answers to a questionnaire, and again the same
+day with his answers for step 2 (the map). Each answer is a row in "Decisions so far" at the end;
+docs/LEVELS.md explains what each one means in play.
 
 ## The game
 
@@ -222,6 +223,8 @@ Faith:
 Titles and realm:
 
 - Land dukes, the grand duke, and a possible crown: Mindaugas was crowned king in 1253.
+- Creating the Grand Duchy takes size (enough land) and renown, your house's fame. The numbers are
+  set in step 3a.
 - Vassals with loyalty, taxes, soldiers and revolts.
 
 Starting point (proposed): 1219, when 21 Lithuanian dukes signed a treaty with Galicia–Volhynia.
@@ -247,7 +250,7 @@ History's path after 1219, followed unless the player changes it:
 | 1385 to 1387 | Union of Krewo with Poland, then conversion |
 | 1410 | Grunwald: the Polish–Lithuanian army defeats the Knights |
 | 1422 | Treaty of Melno: Samogitia recovered for good |
-| 1569 | Union of Lublin creates the Commonwealth; dynasty play hands over to country play |
+| 1569 | Union of Lublin creates the Commonwealth. Your dynasty carries on (Ignas, 6 October 2026): you can try to save it and change history |
 
 ## Realm and diplomacy
 
@@ -275,14 +278,21 @@ History's path after 1219, followed unless the player changes it:
 - Army makeup by age: hunters and warbands; tribal warriors and mounted raiders; levies, retinues,
   knights and crossbowmen; pikes, muskets and cannon; line infantry and artillery; rifles,
   machine guns, tanks and aircraft.
+- Roads develop by themselves where traffic needs them (Ignas, 6 October 2026); rivers and the sea
+  are routes from the start.
 - Supply: food comes from provinces and towns. Armies carry little, forage the land, and starve in
   poor or plundered country.
 - Seasons: winter freezes marshes, rivers and lakes and opens routes closed in summer, and the thaw
   turns roads to mud. The Battle of Karuse in 1270 was fought on the ice near Saaremaa.
 - Raids or conquest: tribal war is mostly raiding for loot and captives, as early Lithuanian war bands
   did. Conquest needs forts and sieges.
+- Simple wars come first, in step 3b, with battles settled automatically. Supply, seasons and
+  frozen winter routes come in step 5.
+- Hunger and unrest: from step 3c, hunger raises a province's unrest, which cuts its tax and
+  soldiers. From step 5, very high unrest can become a peasant revolt with rebel armies.
 - Sieges: walls slow them, starving a fort works, and storming one is bloody.
 - War score and peace: battles and occupation build a score that decides the peace terms.
+- War exhaustion: the longer a war drags on, the worse your armies fight (step 5).
 - Commanders are characters with traits and skills: they can die, defect or win fame.
 - Fronts: from the age of revolutions, front lines and battle plans like Hearts of Iron 4, with
   factories and supply lines.
@@ -314,21 +324,37 @@ History's path after 1219, followed unless the player changes it:
   vassals may resent it. (Ignas, 6 October 2026. This replaces the earlier "Other holdings: run
   from the realm map with build menus".)
 - While you are inside a holding, the realm clock slows to speed 1; big events still pause it.
-- A siege of your seat is fought on your own town map.
-- Still open: do holdings nobody is building grow by themselves?
+- Sieges and raids of any holding you built, your seat included, are fought on its own layout.
+- A holding you built keeps your work when it changes hands, for example to a brother under split
+  inheritance; only the holder changes.
+- Holdings nobody is building still grow, but very slowly compared with built ones.
+- You can look at neighbouring lands only partly, like fog of war; you see inside a holding through
+  a direct tie such as a visit, a hunt together or letters.
 - Far future: a Stellaris-style age beyond today is a maybe.
 
 ## The map through time
 
-The map covers the Vistula to the Gulf of Finland, with neighbouring powers in less detail.
-Coasts, rivers, lakes and ice must match research for each period, with every source recorded.
-The main goal is a polished, error-free Lithuanian playthrough that holds together however the
-player changes history.
+The map covers 12°E to 34°E and 50°N to 61.5°N (south edge chosen by Ignas on 6 October 2026; the
+rest from the approved 2a plan): from eastern Zealand and Bornholm to Novgorod and Lake Ilmen, and
+from Volhynia to the Gulf of Finland and Stockholm. Galicia lies just off the south edge, in less
+detail, like the other neighbouring powers. Coasts, rivers,
+lakes and ice must match research for each period, with every source recorded. The main goal is a
+polished, error-free Lithuanian playthrough that holds together however the player changes history.
 
-- Provinces: 150 or more in the Baltic core in 1219.
+- Provinces: 150 or more in the Baltic core in 1219. Lithuania's are the lands and castle
+  districts named in 14th-century sources, each showing the year it was first mentioned.
+- Borders: a border a source gives is drawn firmly; a border guessed by a rule looks softer.
 - Holdings: every holding is a point on the map, at its real, sourced site only. A holding with no
   sourced site is listed in its province's panel until research finds the site.
 - The look: terrain is drawn (forests, marshes, rivers, lakes), with realm colours tinted over it.
+- Names: names of the time. Moving the time slider changes them: 1219 shows the forms used in
+  sources of that age, today shows today's local names. Where no name of the time is sourced,
+  today's name stands in, marked so. Tap a place for all its names and sources.
+- Terrain: one 1 km terrain map covers every province. Battle maps (step 6) and town maps (step 7)
+  are made finer from it later.
+- Time slices: today, 1219 and 1 AD in full from step 2a. The five ice-age slices get a rough
+  preview and sourced notes in 2a, and are built properly in step 8, with the hunters.
+- Credits: a Credits screen lists every data owner, the licence and what we changed.
 
 The Baltic basin changed shape after the ice:
 
@@ -387,20 +413,26 @@ already covers much of them (as ideas, and what its tests checked: the engine it
 in 3a, and its code and test files weren't uploaded).
 
 1. Agree this design.
-2. Map research: the real Baltic map and how it changed from the ice age to today, with sources for every stage.
+2. The map, with sources for every stage, in two parts, each ending playable on Ignas's phone:
+   - 2a: the map itself: coasts, rivers, lakes, painted terrain, a time slider (today, 1219 and
+     1 AD in full; a rough ice-age preview), names that change with the time, a Credits screen and
+     a speed test on his phone.
+   - 2b: the 1219 provinces and holdings, region by region, starting with a pilot he checks.
 3. Middle Ages, dynasty and realm: from about 1200, as the crusades begin, with real rulers, families,
    marriages, succession, diplomacy and events. Split into three parts, each ending playable on
    Ignas's phone:
    - 3a: the real map, characters, family, succession and titles. The prototype engine is rewritten.
    - 3b: diplomacy, vassals with fine-grained terms, faith, one faction type (a relative claiming
-     your throne), and the goals of the crusading Orders and the Golden Horde.
-   - 3c: harvests and the full market.
+     your throne), simple wars with battles settled automatically, and the goals of the
+     crusading Orders and the Golden Horde.
+   - 3c: harvests, hunger and unrest, and the full market.
 4. Middle Ages, intrigue: schemes, secrets, the council and spymaster, friends, rivals and lovers,
    and stress as an idea to test (faith itself arrives in 3b; secret pagan worship comes here).
 5. Middle Ages, war: armies, supply, seasons and sieges, with battles settled automatically.
 6. Middle Ages, battles: real-time battles you command.
 7. Middle Ages, towns: your seat, and any holding in your realm, built by hand and feeding the realm.
-8. The first hunters: top-down action in 10,000 BC on the ice-age map, like Far Cry Primal.
+8. The first hunters: top-down action in 10,000 BC on the ice-age map, like Far Cry Primal. The
+   ice-age map slices are built properly here.
 9. Your tribe's story: shaping your people from the hunters to the crusades as the land changes.
    With step 8, this becomes the game's opening.
 10. Commonwealth and gunpowder, playing the country.
@@ -409,12 +441,13 @@ in 3a, and its code and test files weren't uploaded).
 
 ## Decisions so far (all open to change)
 
-The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Code.
+The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Code. The rows from
+Step 2 split down are his step 2 answers, later the same day.
 
 | Question | Decision |
 | --- | --- |
 | Start date | 10,000 BC, the first hunters after the ice; prehistory moves in jumps until the tribes |
-| Who you play over time | A hunter band, then your tribe, then a dynasty in the Middle Ages, then the country from 1569 |
+| Who you play over time | A hunter band, then your tribe, then a dynasty in the Middle Ages, then the country. Updated 6 October 2026: the dynasty carries on past 1569, and you can try to save it and change history; when play turns to the country is planned with those ages |
 | Tribal history | Written by the player; outsiders only trade and raid until the crusades around 1200 |
 | Playable realms | Baltic realms, Lithuania first; the powers that shaped them, up to the Golden Horde, are on the map too |
 | Main goal | A polished, error-free Lithuanian playthrough, however history changes |
@@ -444,11 +477,35 @@ The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Cod
 | Entering land | Every holding in your realm can be built by hand, even a vassal's (replaces "build menus") |
 | Clock inside a holding | Slows to speed 1; big events still pause |
 | Seat sieges | Fought on your own town map |
+| Sieges and raids of built holdings | Fought on that holding's own layout |
+| A built holding changing hands | Your work stays with it; it just gets a new holder |
+| Peasant unrest | 3c: hunger raises unrest, cutting tax and soldiers; step 5: revolts with rebel armies |
+| Frozen winter routes | Step 5, with the seasons |
+| Neighbours in full detail | The closest realms, and any tied to you through family, marriage or your council |
+| Creating the Grand Duchy | Takes size (enough land) and renown |
+| Simple wars | In 3b, with battles settled automatically |
+| After 1569 | Your dynasty carries on; you can try to save it and change history |
+| Holdings nobody is building | Grow very slowly compared with built ones |
+| Looking at other lands | Neighbours only, limited, like fog of war; see inside through direct ties such as visits, hunts or letters |
+| War exhaustion | Long wars directly lower your armies' effectiveness (step 5) |
+| Roads | Develop by themselves where they are needed; rivers and the sea are routes from the start |
+| Phone screen rule | At most 5 bottom tabs, 4 map modes in step 3, 2 buttons per list row |
 | Map look | Terrain drawn, with realm colours tinted over it |
 | Prototype engine | Rewritten in step 3a around the new design |
 | If phones are too slow | Far-away detail gives first |
 | Repo public on GitHub Pages | Yes, so the game opens on Ignas's phone from a link |
 | Font with extended Latin letters | Yes: Grenze Gotisch, so letters such as Ž, ė, ą, ł, ā and õ show |
+| Step 2 split | 2a, the map; then 2b, the 1219 provinces and holdings |
+| Lithuania's provinces | Lands and castle districts named in 14th-century sources, each showing the year it was first mentioned |
+| Ice-age maps | Built properly in step 8 (the hunters); step 2a gives sourced notes and a rough preview |
+| South edge | 50°N: Volhynia on the map, Galicia just off the edge in less detail (the full box, 12°E to 34°E and 50°N to 61.5°N, is from the approved 2a plan) |
+| Licences | Free forever, so share-alike data (like OpenStreetMap) is allowed |
+| File size | No limit; the real test is how fast the map opens on his phone |
+| Blocked data | Ignas allows sites, but only when a milestone needs one: Claude stops and asks for that one site |
+| Ignas's phone | Android |
+| Terrain grid | A 1 km terrain map for every province; battle and town maps made finer later (replaces the small 32 by 32 grid per province) |
+| Names on the map | Names of the time, changing with the time slider; today's name stands in, marked, where none is sourced |
+| Unsure borders | Guessed borders look softer than sourced ones |
 
 ## Treating real history with care
 

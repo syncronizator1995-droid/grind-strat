@@ -87,7 +87,9 @@ export function findNetworkUses(html, js) {
   for (const [pattern, name] of /** @type {[RegExp, string][]} */ (calls)) {
     if (pattern.test(js)) problems.push(`the script uses ${name}`);
   }
-  for (const m of js.matchAll(/["'`](https?:)?\/\/[^"'`\s]*/g)) {
+  // Web addresses in strings: "https://…", or "//host.name/…". A host needs a dot, which base64
+  // text (map data) never has, so packed data that happens to start with "//" is not flagged.
+  for (const m of js.matchAll(/["'`](?:https?:\/\/|\/\/[\w-]+\.[\w.-]+)[^"'`\s]*/g)) {
     // XML namespace names look like links but are never loaded.
     if (!/^["'`]https?:\/\/www\.w3\.org\//.test(m[0])) problems.push(`the script contains the address ${m[0].slice(1, 81)}`);
   }

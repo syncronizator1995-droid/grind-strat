@@ -1,0 +1,35 @@
+{
+  "about": "Raw map data that tools/map/fetch.mjs downloads into data/raw/ (not stored in git). licenceStatus is 'read' only once the licence was read on the owner's own site and quoted in data/sources.md; a shipped map file built from an 'unverified' source fails the build.",
+  "sources": [
+    {
+      "id": "ne-land",
+      "collection": "ne",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_land.geojson",
+      "file": "ne/ne_10m_land.geojson",
+      "what": "Natural Earth 1:10m land polygons, v5.1.2",
+      "licence": "Public domain (Natural Earth terms of use)",
+      "licenceUrl": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/LICENSE.md",
+      "licenceStatus": "read"
+    },
+    {
+      "id": "ne-rivers",
+      "collection": "ne",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_rivers_lake_centerlines.geojson",
+      "file": "ne/ne_10m_rivers_lake_centerlines.geojson",
+      "what": "Natural Earth 1:10m rivers and lake centre-lines, v5.1.2",
+      "licence": "Public domain (Natural Earth terms of use)",
+      "licenceUrl": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/LICENSE.md",
+      "licenceStatus": "read"
+    },
+    {
+      "id": "ne-lakes",
+      "collection": "ne",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_lakes.geojson",
+      "file": "ne/ne_10m_lakes.geojson",
+      "what": "Natural Earth 1:10m lakes and reservoirs, v5.1.2",
+      "licence": "Public domain (Natural Earth terms of use)",
+      "licenceUrl": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/LICENSE.md",
+      "licenceStatus": "read"
+    }
+  ]
+}

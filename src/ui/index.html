@@ -31,7 +31,22 @@
     </div>
   </header>
   <main id="stage">
-    <canvas id="map" role="img" aria-label="The map. It arrives in step 2."></canvas>
+    <canvas id="map" role="img" aria-label="The map. Drag to move, pinch or use the mouse wheel to zoom."></canvas>
+    <p class="map-note" id="mapNote" hidden></p>
+    <div class="map-tools">
+      <button type="button" class="chip" data-act="speedtest">Speed test</button>
+    </div>
+    <section class="sheet" id="speedSheet" hidden aria-labelledby="speedTitle">
+      <div class="sheet-head">
+        <h2 id="speedTitle">Speed test</h2>
+        <button type="button" class="btn" data-act="close-speed">Close</button>
+      </div>
+      <pre class="results" id="speedResults"></pre>
+      <div class="row-btns">
+        <button type="button" class="btn primary" data-act="copy-speed">Copy</button>
+        <button type="button" class="btn" data-act="rerun-speed">Run again</button>
+      </div>
+    </section>
   </main>
   <footer class="bar">
     <p class="status" id="status" role="status" aria-live="polite"></p>

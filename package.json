@@ -13,7 +13,8 @@
     "test": "node --test \"test/*.test.js\"",
     "soak": "node test/soak.mjs",
     "check": "tsc -p tsconfig.json",
-    "shots": "node tools/build.mjs && node test/shots.mjs"
+    "shots": "node tools/build.mjs && node test/shots.mjs",
+    "map": "node tools/map/fetch.mjs && node tools/map/build-test-map.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

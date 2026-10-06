@@ -60,6 +60,18 @@ async function blockOutside(context, label, allowed) {
 
 /** @param {import('playwright').Page} page */
 const dateText = (page) => page.locator('#date').innerText();
+
+/**
+ * Waits for the map to be unpacked and drawn (the test map shows its "made up" note).
+ * @param {import('playwright').Page} page @param {string} label
+ */
+async function mapShown(page, label) {
+  try {
+    await page.locator('#mapNote').waitFor({ state: 'visible', timeout: 20000 });
+  } catch {
+    failures.push(`${label}: the map did not appear`);
+  }
+}
 /** @param {import('playwright').Page} page */
 const statusText = (page) => page.locator('#status').innerText();
 
@@ -72,13 +84,13 @@ function layoutProblems(page) {
     const problems = [];
     if (document.documentElement.scrollWidth > window.innerWidth) problems.push('the page scrolls sideways');
     for (const el of document.querySelectorAll('.brand, .date, .speed button, .btn, .status')) {
-      if (!(el instanceof HTMLElement) || el.hidden) continue;
+      if (!(el instanceof HTMLElement) || el.closest('[hidden]')) continue;
       if (el.scrollWidth > el.clientWidth + 1) problems.push(`text does not fit in ${el.className || el.tagName}: "${el.innerText}"`);
       const r = el.getBoundingClientRect();
       if (r.right > window.innerWidth + 0.5 || r.left < -0.5) problems.push(`${el.className || el.tagName} sticks out of the screen`);
     }
     for (const b of document.querySelectorAll('button')) {
-      if (b.hidden) continue;
+      if (b.closest('[hidden]')) continue; // not on screen, e.g. inside a closed panel
       const r = b.getBoundingClientRect();
       if (r.height < 40 || r.width < 40) problems.push(`button "${b.innerText || b.getAttribute('aria-label')}" is too small to tap (${Math.round(r.width)}x${Math.round(r.height)})`);
     }
@@ -101,6 +113,7 @@ async function playAsFile(browser, scheme) {
   const fileUrl = pathToFileURL(join(DIST, 'grind-strat.html')).href;
   await page.goto(fileUrl);
   await page.evaluate(() => document.fonts.ready);
+  await mapShown(page, label);
   check((await dateText(page)) === '1 January 1219', `${label}: does not start on 1 January 1219`);
   check(await page.locator('[data-speed="0"]').getAttribute('aria-pressed') === 'true', `${label}: does not start paused`);
   check(await page.locator('[data-act="install"]').isHidden(), `${label}: Install shows when opened as a plain file`);
@@ -159,6 +172,23 @@ async function playAsFile(browser, scheme) {
   await page.waitForTimeout(100);
   for (const p of await layoutProblems(page)) failures.push(`${label} at 360 px: ${p}`);
   await page.screenshot({ path: join(SHOTS, `${scheme}-4-narrow-360.png`) });
+
+  // The map: drag and pinch-free zoom with the wheel, then the speed test (dark run only).
+  await page.setViewportSize(PHONE);
+  await page.mouse.move(195, 400);
+  await page.mouse.wheel(0, -900);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-5-map-zoomed.png`) });
+  if (scheme === 'dark') {
+    await page.tap('[data-act="speedtest"]');
+    await page.locator('#speedSheet').waitFor({ state: 'visible', timeout: 60000 });
+    const results = await page.locator('#speedResults').innerText();
+    check(/First map on screen: [\d.]+ ms/.test(results) && /Full redraw: median [\d.]+ ms/.test(results) && /frames, \d+% on time/.test(results),
+      `${label}: the speed test results are incomplete:\n${results}`);
+    for (const p of await layoutProblems(page)) failures.push(`${label} speed test: ${p}`);
+    await page.screenshot({ path: join(SHOTS, `${scheme}-6-speed-test.png`) });
+    console.log(`speed test in headless Chrome (software drawing, not a phone):\n${results}`);
+  }
   await context.close();
 }
 
@@ -281,7 +311,10 @@ async function playAsWebsite(browser) {
 
     // 1. No signal at all: the server cuts every connection.
     server.set('down');
-    if (await expectGameOpens(page, `${label}/no signal`)) await page.screenshot({ path: join(SHOTS, 'web-offline.png') });
+    if (await expectGameOpens(page, `${label}/no signal`)) {
+      await mapShown(page, `${label}/no signal`);
+      await page.screenshot({ path: join(SHOTS, 'web-offline.png') });
+    }
 
     // 2. A signal too weak to answer: the saved copy opens after a few seconds.
     server.set('hang');

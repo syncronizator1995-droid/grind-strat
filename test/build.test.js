@@ -47,6 +47,13 @@ describe('build safety checks', () => {
     }
   });
 
+  it('does not mistake packed map data for a web address', () => {
+    const js = 'const bundle = "//8AAP7+/wAB"; const other = "ab//cd==";';
+    assert.deepEqual(findNetworkUses(page('', js), js), []);
+    const bad = 'load("//cdn.example.com/x.js")';
+    assert.ok(findNetworkUses(page('', bad), bad).length);
+  });
+
   it('allows the install files and XML namespace names', () => {
     const js = 'reg("sw.js"); link("manifest.webmanifest"); link("icon-192.png"); document.createElementNS("http://www.w3.org/2000/svg","svg")';
     assert.deepEqual(findNetworkUses(page('', js), js), []);
