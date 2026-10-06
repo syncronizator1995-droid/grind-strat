@@ -1,0 +1,77 @@
+/* The look comes from the prototype (prototype/realm/style.css): woad blue frames, madder red and
+   weld yellow accents, and the blackletter display font Grenze Gotisch. Colours follow the phone's
+   light or dark setting (Ignas, 6 Oct 2026). */
+@font-face {
+  font-family: 'Grenze Gotisch';
+  src: url(data:font/woff2;base64,{{FONT}}) format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  --frame: #17212c; --frame-2: #1f2c3a; --frame-text: #eef2f5; --frame-muted: #9fb0c1;
+  --weld: #d4a72c; --weld-ink: #2a2006; --madder: #a8342a; --verdigris: #3f7f63;
+  --bg: #e9edf1; --panel: #f6f8fa; --panel-2: #e2e7ed; --text: #18222d; --muted: #566575; --line: rgba(24, 34, 45, .14);
+  --bad: #a8342a; --good: #2b6e52;
+  --sea: #9db4c2; --wave: rgba(255, 255, 255, .38); --coast: rgba(28, 42, 55, .7);
+  --display: 'Grenze Gotisch', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111920; --panel: #1a2531; --panel-2: #243241; --text: #e8edf2; --muted: #9fb0c1; --line: rgba(232, 237, 242, .12);
+    --bad: #ef8a7c; --good: #7cc4a3; --sea: #1b303e; --wave: rgba(160, 200, 220, .15); --coast: rgba(150, 190, 210, .55);
+    color-scheme: dark;
+  }
+}
+[hidden] { display: none !important; }
+*, *::before, *::after { box-sizing: border-box; }
+html { height: 100%; background: var(--frame); }
+body {
+  height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; background: var(--bg); color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--weld); outline-offset: 2px; }
+#app { height: 100%; display: flex; flex-direction: column; }
+
+/* top bar: always the dark frame, in light and dark mode */
+.top {
+  background: var(--frame); color: var(--frame-text); display: grid; gap: 6px;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 12px) 8px calc(env(safe-area-inset-left, 0px) + 12px);
+}
+.row1 { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.brand { margin: 0; font: 600 26px/1.05 var(--display); white-space: nowrap; }
+.date { font: 600 19px/1.1 var(--display); white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+.speed { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; background: rgba(255, 255, 255, .06); border-radius: 10px; padding: 3px; }
+.speed button {
+  min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--frame-muted);
+  font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; display: grid; place-items: center;
+}
+.speed button svg { fill: currentColor; }
+.speed button[aria-pressed="true"] { background: var(--frame-text); color: var(--frame); }
+.speed button[data-speed="0"][aria-pressed="true"] { background: var(--weld); color: var(--weld-ink); }
+
+/* map area */
+#stage { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--sea); }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* bottom bar */
+.bar {
+  background: var(--panel); border-top: 1px solid var(--line); display: grid; gap: 6px;
+  padding: 10px calc(env(safe-area-inset-right, 0px) + 12px) calc(env(safe-area-inset-bottom, 0px) + 10px) calc(env(safe-area-inset-left, 0px) + 12px);
+}
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2);
+  font-weight: 650; font-size: 15px; line-height: 1.2;
+}
+.btn.primary { background: var(--weld); color: var(--weld-ink); border-color: transparent; }
+.btn.armed { background: var(--madder); color: #fff; border-color: transparent; }
+.status { margin: 0; min-height: 1.45em; color: var(--muted); font-size: 14px; }
+.status.bad { color: var(--bad); font-weight: 600; }
+
+@media (max-width: 359px) {
+  .brand { font-size: 22px; }
+  .date { font-size: 17px; }
+  .btn { padding: 8px 12px; }
+}

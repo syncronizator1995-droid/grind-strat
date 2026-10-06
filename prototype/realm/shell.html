@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17212c">
+<title>Kin &amp; Crown</title>
+<style>{{CSS}}</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><clipPath id="shieldclip"><path d="M6 5 H58 V27 C58 44 46 54 32 60 C18 54 6 44 6 27 Z"/></clipPath></defs></svg>
+<div id="app">
+  <header class="top">
+    <div class="row1">
+      <button class="me" data-act="me" aria-label="Open your character">
+        <span id="mePortrait"></span>
+        <span class="me-txt"><b id="meName"></b><small id="meTitle"></small></span>
+      </button>
+      <div class="date" id="date"></div>
+    </div>
+    <div class="row2">
+      <div class="stats">
+        <button class="stat" data-act="tab" data-tab="realm" aria-label="Gold and income"><span aria-hidden="true">💰</span><b id="sGold"></b><small id="sInc"></small></button>
+        <button class="stat" data-act="tab" data-tab="realm" aria-label="Prestige"><span aria-hidden="true">⭐</span><b id="sPres"></b></button>
+        <button class="stat" data-act="tab" data-tab="war" aria-label="Soldiers"><span aria-hidden="true">⚔️</span><b id="sLevy"></b></button>
+      </div>
+      <div class="speed" role="group" aria-label="Game speed">
+        <button data-act="speed" data-v="0" aria-label="Pause">❚❚</button>
+        <button data-act="speed" data-v="1" aria-label="Normal speed">▶</button>
+        <button data-act="speed" data-v="2" aria-label="Fast">▶▶</button>
+        <button data-act="speed" data-v="3" aria-label="Fastest">▶▶▶</button>
+      </div>
+    </div>
+  </header>
+  <main id="stage">
+    <canvas id="map" aria-label="Map of the realms"></canvas>
+    <button class="locate" data-act="locate" aria-label="Show your realm">⌖</button>
+    <div class="modes" role="group" aria-label="Map mode">
+      <button data-act="mode" data-v="realm" aria-pressed="true">Realms</button>
+      <button data-act="mode" data-v="duchy" aria-pressed="false">Duchies</button>
+      <button data-act="mode" data-v="opinion" aria-pressed="false">Opinion</button>
+    </div>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+    <div class="armybar" id="armybar" hidden></div>
+    <section class="sheet" id="sheet" hidden aria-labelledby="sheetTitle">
+      <div class="sheet-head"><button class="back" data-act="back" aria-label="Back" hidden>‹</button><h2 id="sheetTitle"></h2><button class="x" data-act="close" aria-label="Close">✕</button></div>
+      <div class="sheet-body" id="sheetBody"></div>
+    </section>
+  </main>
+  <nav class="tabs" aria-label="Panels">
+    <button data-act="tab" data-tab="realm"><span aria-hidden="true">🏰</span>Realm</button>
+    <button data-act="tab" data-tab="family"><span aria-hidden="true">👪</span>Family</button>
+    <button data-act="tab" data-tab="rulers"><span aria-hidden="true">🤝</span>Rulers</button>
+    <button data-act="tab" data-tab="war"><span aria-hidden="true">⚔️</span>War</button>
+    <button data-act="tab" data-tab="chronicle"><span aria-hidden="true">📜</span>Chronicle</button>
+  </nav>
+  <div class="modal" id="modal" hidden></div>
+</div>
+<script>{{REALM}}</script>
+<script>{{UI}}</script>
+</body>
+</html>
