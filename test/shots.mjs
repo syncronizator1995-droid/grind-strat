@@ -1,6 +1,9 @@
 // @ts-check
-// Phone screenshots and a scripted play session in headless Chrome (npm run shots builds first).
-//  1. As a plain file, in light and dark: fresh start, top speed, save and load, new game, reload.
+// Phone screenshots and a scripted play session in headless Chrome. It builds the game first:
+//   npm run shots                        the release build (refuses interim data, as CI does)
+//   npm run shots -- --allow-interim     a local preview while some map data is a stand-in
+//  1. As a plain file, in light and dark: fresh start, the map zoomed out and over Lithuania with
+//     river and lake names, the Credits sheet, top speed, save and load, new game, reload.
 //  2. Served like the website (under /grind-strat/, as GitHub Pages does): the manifest loads, the
 //     service worker takes over, and the game still opens with the server switched off, with a
 //     signal too weak to answer, after another app on the same address wipes the caches, and
@@ -17,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
+import { build } from '../tools/build.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DIST = join(ROOT, 'dist');
@@ -62,16 +66,20 @@ async function blockOutside(context, label, allowed) {
 const dateText = (page) => page.locator('#date').innerText();
 
 /**
- * Waits for the map to be unpacked and drawn (the test map shows its "made up" note).
+ * Waits for the map to be unpacked and drawn, rivers, lakes and their names included (the game
+ * marks the page when they are on screen).
  * @param {import('playwright').Page} page @param {string} label
  */
 async function mapShown(page, label) {
   try {
-    await page.locator('#mapNote').waitFor({ state: 'visible', timeout: 20000 });
+    await page.waitForFunction(() => document.documentElement.dataset.waterOnScreenMs, undefined, { timeout: 20000 });
   } catch {
     failures.push(`${label}: the map did not appear`);
   }
 }
+
+/** Lets a redraw after a zoom settle (the sharp frame comes 140 ms after the last move). */
+const settle = (/** @type {import('playwright').Page} */ page) => page.waitForTimeout(500);
 /** @param {import('playwright').Page} page */
 const statusText = (page) => page.locator('#status').innerText();
 
@@ -83,7 +91,7 @@ function layoutProblems(page) {
   return page.evaluate(() => {
     const problems = [];
     if (document.documentElement.scrollWidth > window.innerWidth) problems.push('the page scrolls sideways');
-    for (const el of document.querySelectorAll('.brand, .date, .speed button, .btn, .status')) {
+    for (const el of document.querySelectorAll('.brand, .date, .speed button, .btn, .status, .chip, .map-credit span, .credits h3')) {
       if (!(el instanceof HTMLElement) || el.closest('[hidden]')) continue;
       if (el.scrollWidth > el.clientWidth + 1) problems.push(`text does not fit in ${el.className || el.tagName}: "${el.innerText}"`);
       const r = el.getBoundingClientRect();
@@ -94,6 +102,29 @@ function layoutProblems(page) {
       const r = b.getBoundingClientRect();
       if (r.height < 40 || r.width < 40) problems.push(`button "${b.innerText || b.getAttribute('aria-label')}" is too small to tap (${Math.round(r.width)}x${Math.round(r.height)})`);
     }
+    // Tiny text: nothing on screen smaller than 11 CSS px (the map's names are held to that too).
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const host = n.parentElement;
+      if (!host || !n.textContent?.trim() || host.closest('[hidden], script, style')) continue;
+      const size = parseFloat(getComputedStyle(host).fontSize);
+      if (size < 11) problems.push(`text is too small (${size} px): "${n.textContent.trim().slice(0, 40)}"`);
+    }
+    // Overlap: the map's credit line, the map chips and the bottom bar never cover each other.
+    const box = (/** @type {string} */ sel) => {
+      const e = document.querySelector(sel);
+      return e instanceof HTMLElement && !e.closest('[hidden]') ? e.getBoundingClientRect() : null;
+    };
+    /** @type {[string, DOMRect | null][]} */
+    const parts = [['the map credit line', box('.map-credit span')], ['the map chips', box('.map-tools')], ['the bottom bar', box('.bar')], ['the top bar', box('.top')]];
+    for (let i = 0; i < parts.length; i++) {
+      for (let j = i + 1; j < parts.length; j++) {
+        const [an, a] = parts[i]; const [bn, b] = parts[j];
+        if (a && b && a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5) problems.push(`${an} overlaps ${bn}`);
+      }
+    }
+    const credit = box('.map-credit span');
+    if (credit && (credit.right > window.innerWidth || credit.left < 0)) problems.push('the map credit line sticks out of the screen');
     return problems;
   });
 }
@@ -119,6 +150,11 @@ async function playAsFile(browser, scheme) {
   check(await page.locator('[data-act="install"]').isHidden(), `${label}: Install shows when opened as a plain file`);
   for (const p of await layoutProblems(page)) failures.push(`${label}: ${p}`);
   await page.screenshot({ path: join(SHOTS, `${scheme}-1-start.png`) });
+  check((await page.locator('#mapNote').count()) === 0, `${label}: the M1 "test map" note is still there`);
+  const creditLine = await page.locator('#mapCreditText').innerText();
+  check(/GEBCO/.test(creditLine) && /more$/.test(creditLine), `${label}: the map credit line is wrong: "${creditLine}"`);
+  await mapViews(page, label, scheme);
+  await creditsSheet(page, label, scheme);
 
   // Top speed for a moment: years pass, and autosaves happen on the first of a month.
   await page.tap('[data-speed="5"]');
@@ -183,13 +219,61 @@ async function playAsFile(browser, scheme) {
     await page.tap('[data-act="speedtest"]');
     await page.locator('#speedSheet').waitFor({ state: 'visible', timeout: 60000 });
     const results = await page.locator('#speedResults').innerText();
-    check(/First map on screen: [\d.]+ ms/.test(results) && /Full redraw: median [\d.]+ ms/.test(results) && /frames, \d+% on time/.test(results),
+    check(/step 2a, M2/.test(results) && /First map on screen: [\d.]+ ms/.test(results) && /Full redraw: median [\d.]+ ms/.test(results)
+      && /frames, \d+% on time/.test(results) && /Names \(rivers and lakes\): median [\d.]+ ms/.test(results),
       `${label}: the speed test results are incomplete:\n${results}`);
     for (const p of await layoutProblems(page)) failures.push(`${label} speed test: ${p}`);
     await page.screenshot({ path: join(SHOTS, `${scheme}-6-speed-test.png`) });
     console.log(`speed test in headless Chrome (software drawing, not a phone):\n${results}`);
   }
   await context.close();
+}
+
+/**
+ * The map zoomed all the way out, and over Lithuania with river and lake names; then back.
+ * @param {import('playwright').Page} page @param {string} label @param {string} scheme
+ */
+async function mapViews(page, label, scheme) {
+  const map = await page.locator('#map').boundingBox();
+  if (!map) return failures.push(`${label}: no map on screen`);
+  await page.mouse.move(map.x + map.width / 2, map.y + map.height / 2);
+  await page.mouse.wheel(0, 3000);
+  await settle(page);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-map-overview.png`) });
+  await page.reload();
+  await mapShown(page, label);
+  // Lithuania lies a little right of and below the starting centre; zoom in there (about 2x).
+  await page.mouse.move(map.x + map.width / 2 + 22, map.y + map.height / 2 + 90);
+  await page.mouse.wheel(0, -500);
+  await settle(page);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-map-lithuania.png`) });
+  for (const p of await layoutProblems(page)) failures.push(`${label} zoomed in: ${p}`);
+  await page.reload();
+  await mapShown(page, label);
+}
+
+/**
+ * The Credits sheet: opens from the chip and from the map's credit line, reads, scrolls, closes.
+ * @param {import('playwright').Page} page @param {string} label @param {string} scheme
+ */
+async function creditsSheet(page, label, scheme) {
+  await page.tap('.map-tools [data-act="credits"]');
+  const sheet = page.locator('#creditsSheet');
+  check(await sheet.isVisible(), `${label}: the Credits chip did not open the Credits sheet`);
+  const text = await page.locator('#creditsBody').innerText();
+  for (const must of ['About this map', 'GEBCO', 'ESA WorldCover', 'SpatioCompo', 'creativecommons.org/licenses/by-sa/4.0/', 'Grenze Gotisch', 'Not for navigation']) {
+    check(text.includes(must), `${label}: the Credits sheet does not mention "${must}"`);
+  }
+  check(!/https?:\/\//.test(text), `${label}: the Credits sheet shows a web address with "https://"`);
+  for (const p of await layoutProblems(page)) failures.push(`${label} credits: ${p}`);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-credits.png`) });
+  await page.locator('#creditsBody').evaluate((e) => { e.scrollTop = e.scrollHeight; });
+  await page.screenshot({ path: join(SHOTS, `${scheme}-credits-end.png`) });
+  await page.tap('[data-act="close-credits"]');
+  check(await sheet.isHidden(), `${label}: Close did not close the Credits sheet`);
+  await page.tap('#mapCredit');
+  check(await sheet.isVisible(), `${label}: the map's credit line did not open the Credits sheet`);
+  await page.tap('[data-act="close-credits"]');
 }
 
 /**
@@ -364,6 +448,13 @@ async function playAsWebsite(browser) {
 }
 
 await mkdir(SHOTS, { recursive: true });
+try {
+  const built = await build({ allowInterim: process.argv.includes('--allow-interim') });
+  console.log(`built ${built.file} (${(built.bytes / 1024).toFixed(1)} KB)${built.blocks.some((b) => b.interim) ? ' with INTERIM data: a preview only' : ''}`);
+} catch (err) {
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+}
 const browser = await chromium.launch();
 try {
   await playAsFile(browser, 'light');

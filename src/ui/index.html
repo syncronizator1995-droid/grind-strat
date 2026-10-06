@@ -32,10 +32,11 @@
   </header>
   <main id="stage">
     <canvas id="map" role="img" aria-label="The map. Drag to move, pinch or use the mouse wheel to zoom."></canvas>
-    <p class="map-note" id="mapNote" hidden></p>
     <div class="map-tools">
+      <button type="button" class="chip" data-act="credits">Credits</button>
       <button type="button" class="chip" data-act="speedtest">Speed test</button>
     </div>
+    <button type="button" class="map-credit" data-act="credits" id="mapCredit"><span id="mapCreditText"></span></button>
     <section class="sheet" id="speedSheet" hidden aria-labelledby="speedTitle">
       <div class="sheet-head">
         <h2 id="speedTitle">Speed test</h2>
@@ -46,6 +47,13 @@
         <button type="button" class="btn primary" data-act="copy-speed">Copy</button>
         <button type="button" class="btn" data-act="rerun-speed">Run again</button>
       </div>
+    </section>
+    <section class="sheet" id="creditsSheet" hidden aria-labelledby="creditsTitle">
+      <div class="sheet-head">
+        <h2 id="creditsTitle">Credits</h2>
+        <button type="button" class="btn" data-act="close-credits">Close</button>
+      </div>
+      <div class="credits" id="creditsBody"></div>
     </section>
   </main>
   <footer class="bar">
@@ -58,6 +66,7 @@
     </div>
   </footer>
 </div>
+{{DATA}}
 <script>{{SCRIPT}}</script>
 </body>
 </html>

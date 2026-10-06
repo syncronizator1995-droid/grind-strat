@@ -56,16 +56,31 @@ button:focus-visible { outline: 2px solid var(--weld); outline-offset: 2px; }
 #map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 
 /* map overlays */
-.map-note {
-  position: absolute; left: 10px; top: 10px; right: 128px; margin: 0; padding: 6px 10px; border-radius: 10px;
-  background: rgba(16, 23, 31, .82); color: #eef2f5; font-size: 13px; line-height: 1.35; pointer-events: none;
-}
 .map-tools { position: absolute; right: 10px; top: 10px; display: flex; gap: 6px; }
 .chip {
   min-height: 40px; padding: 6px 12px; border-radius: 10px; border: 0; background: rgba(16, 23, 31, .82);
   color: #eef2f5; font-weight: 650; font-size: 14px;
 }
 .chip:disabled { opacity: .55; }
+/* The map's credit line: small, always there, bottom left; the whole strip is the tap target. */
+.map-credit {
+  position: absolute; left: 0; bottom: 0; max-width: calc(100% - 8px); min-height: 40px; margin: 0; padding: 0 0 6px 8px;
+  border: 0; background: transparent; display: flex; align-items: flex-end; text-align: left;
+}
+.map-credit span {
+  display: block; padding: 2px 6px; border-radius: 6px; background: rgba(246, 248, 250, .78); color: #2a3642;
+  font-size: 11px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+@media (prefers-color-scheme: dark) {
+  .map-credit span { background: rgba(16, 23, 31, .78); color: #c9d4de; }
+}
+.credits { overflow: auto; overscroll-behavior: contain; display: grid; gap: 4px; padding-bottom: 4px; }
+.credits h3 { margin: 10px 0 0; font-size: 16px; line-height: 1.3; }
+.credits h3:first-child { margin-top: 0; }
+.credits p, .credits li { margin: 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.credits ul { margin: 0; padding-left: 20px; }
+.credits .small { color: var(--muted); font-size: 13px; }
+.credits .interim { color: var(--bad); font-weight: 600; }
 .sheet {
   position: absolute; left: 0; right: 0; bottom: 0; max-height: 78%; display: flex; flex-direction: column; gap: 8px;
   padding: 12px 12px 14px; background: var(--panel); color: var(--text); border-radius: 16px 16px 0 0;

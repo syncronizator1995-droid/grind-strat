@@ -1,8 +1,8 @@
 // @ts-check
-// The speed test (step 2a, M1): drives the map through a fixed pan-and-zoom route and measures
+// The speed test (step 2a, from M1): drives the map through a fixed pan-and-zoom route and measures
 // how the phone copes. The numbers are shown as plain text with a Copy button, so Ignas can paste
 // them back. Targets from the plan: 95% of frames under 16.7 ms while panning, a full redraw under
-// 50 ms, and the first map on screen in under 3 seconds.
+// 50 ms, the first map on screen in under 3 seconds, and river and lake names under 5 ms a redraw.
 
 /** @param {number[]} values @param {number} q 0..1 */
 export function quantile(values, q) {
@@ -17,6 +17,8 @@ export function quantile(values, q) {
  * @property {number} scriptStartMs when the game's code began running
  * @property {number} base64Ms @property {number} inflateMs @property {number} decodeMs
  * @property {number} paintMs @property {number} pathMs
+ * @property {number} waterMs unpacking the rivers and lakes and drawing them, just after the first map
+ * @property {number} waterOnScreenMs since the page started opening
  */
 
 /**
@@ -24,6 +26,7 @@ export function quantile(values, q) {
  * @property {number[]} redrawMs full redraws, back to back
  * @property {number[]} frameMs time between frames while moving
  * @property {number[]} renderMs time spent drawing each moving frame
+ * @property {number[]} labelMs placing and drawing the names, per full redraw, at three zooms
  */
 
 /**
@@ -55,7 +58,20 @@ export async function runSpeedTest(view) {
     requestAnimationFrame(step);
   });
 
-  // 2. A route of camera moves, one per frame, like a finger panning and pinching.
+  // 2. Names: full redraws at three zooms over Lithuania, timing only the names.
+  /** @type {number[]} */
+  const labelMs = [];
+  for (const scale of [overview, 0.12, 0.5]) {
+    cam.cx = 9300; cam.cy = 5600; cam.scale = scale;
+    view.clampCamera();
+    for (let i = 0; i < 6; i++) {
+      view.render(true);
+      if (Number.isFinite(view.labelMs())) labelMs.push(view.labelMs());
+      await new Promise((done) => requestAnimationFrame(() => done(undefined)));
+    }
+  }
+
+  // 3. A route of camera moves, one per frame, like a finger panning and pinching.
   const legs = [
     { ms: 2000, from: { cx: 8000, cy: 6000, scale: overview * 1.4 }, to: { cx: 11000, cy: 8500, scale: overview * 1.4 } },
     { ms: 1500, from: { cx: 11000, cy: 8500, scale: overview * 1.4 }, to: { cx: 9300, cy: 5250, scale: 0.12 } },
@@ -90,7 +106,7 @@ export async function runSpeedTest(view) {
     });
   }
   view.requestRender();
-  return { redrawMs, frameMs, renderMs };
+  return { redrawMs, frameMs, renderMs, labelMs };
 }
 
 /**
@@ -107,15 +123,17 @@ export function formatResults(r, startup, size) {
   const nav = /** @type {any} */ (navigator);
   const verdict = (/** @type {boolean} */ ok) => (ok ? 'OK' : 'TOO SLOW');
   return [
-    'Grind Strat speed test (step 2a, M1, test map)',
+    'Grind Strat speed test (step 2a, M2)',
     `Phone: ${navigator.userAgent}`,
     `Screen: ${size.cssW}x${size.cssH} at ${size.dpr}x (${(size.pixels / 1e6).toFixed(2)} MP drawn), cores ${nav.hardwareConcurrency ?? '?'}, memory ${nav.deviceMemory ?? '?'} GB`,
     '',
     `First map on screen: ${fmt(startup.mapOnScreenMs)} ms after opening (target under 3000): ${verdict(startup.mapOnScreenMs < 3000)}`,
     `  page and code ready ${fmt(startup.scriptStartMs)} ms; then text to bytes ${fmt(startup.base64Ms)} ms, unpacking ${fmt(startup.inflateMs)} ms, reading shapes ${fmt(startup.decodeMs)} ms, painting terrain ${fmt(startup.paintMs)} ms, preparing shapes ${fmt(startup.pathMs)} ms`,
+    `  rivers and lakes on screen ${fmt(startup.waterOnScreenMs)} ms after opening (unpacking and drawing them took ${fmt(startup.waterMs)} ms)`,
     `Full redraw: median ${fmt(redraw)} ms, worst ${fmt(Math.max(...r.redrawMs))} ms (target under 50): ${verdict(redraw < 50)}`,
     `Panning and zooming: ${r.frameMs.length} frames, ${Math.round(onTime * 100)}% on time`,
     `  frame time median ${fmt(quantile(r.frameMs, 0.5))} ms, 95% under ${fmt(p95frame)} ms (target 16.7): ${verdict(p95frame <= 17.7)}`,
     `  drawing per frame median ${fmt(quantile(r.renderMs, 0.5))} ms, 95% under ${fmt(quantile(r.renderMs, 0.95))} ms`,
+    `Names (rivers and lakes): median ${fmt(quantile(r.labelMs, 0.5))} ms, worst ${fmt(r.labelMs.length ? Math.max(...r.labelMs) : NaN)} ms per redraw (target under 5): ${verdict(quantile(r.labelMs, 0.5) < 5)}`,
   ].join('\n');
 }
