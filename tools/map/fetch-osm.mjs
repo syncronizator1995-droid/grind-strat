@@ -46,8 +46,13 @@ const QUERY_TIMEOUT = 120;
 const QUERY_MAXSIZE = 256 * 1024 * 1024;
 /** Pause between two requests, in ms, on top of waiting for a free slot. */
 const GAP_MS = 1500;
-/** Tile size in degrees for the per-tile queries. */
-const TILE_DEG = 2;
+/**
+ * Tile sizes in degrees. The tunnel from this container to overpass-api.de drops for minutes at a
+ * time (6 October 2026: one request in two waited 1 to 9 minutes), so fewer, bigger requests win:
+ * 4° tiles for river ways (a dense 2° tile in Germany was 6.7 MB) and 6° tiles for the lake
+ * candidates (bounding boxes and tags only, small). A tile that is too big is split anyway.
+ */
+export const TILE_DEG = { rivers: 4, lakes: 6 };
 
 /** @typedef {{ south: number, west: number, north: number, east: number }} BBox */
 
@@ -90,13 +95,13 @@ export function tileTouchesMap(t) {
   return false;
 }
 
-/** The window cut into tiles of TILE_DEG degrees, keeping those that touch the map. @param {BBox} w */
-export function tilesOf(w) {
+/** The window cut into tiles of deg degrees, keeping those that touch the map. @param {BBox} w @param {number} deg */
+export function tilesOf(w, deg) {
   /** @type {BBox[]} */
   const out = [];
-  for (let south = w.south; south < w.north - 1e-9; south += TILE_DEG) {
-    for (let west = w.west; west < w.east - 1e-9; west += TILE_DEG) {
-      const t = { south: +south.toFixed(4), west: +west.toFixed(4), north: +Math.min(w.north, south + TILE_DEG).toFixed(4), east: +Math.min(w.east, west + TILE_DEG).toFixed(4) };
+  for (let south = w.south; south < w.north - 1e-9; south += deg) {
+    for (let west = w.west; west < w.east - 1e-9; west += deg) {
+      const t = { south: +south.toFixed(4), west: +west.toFixed(4), north: +Math.min(w.north, south + deg).toFixed(4), east: +Math.min(w.east, west + deg).toFixed(4) };
       if (tileTouchesMap(t)) out.push(t);
     }
   }
@@ -427,13 +432,18 @@ async function reviewedDropIds() {
 async function main() {
   ensureProxy();
   const window = osmWindow();
-  const tiles = tilesOf(window);
-  console.log(`window ${bboxText(window)}: ${tiles.length} tiles of ${TILE_DEG}°`);
+  const tiles = tilesOf(window, TILE_DEG.rivers);
+  const lakeTiles = tilesOf(window, TILE_DEG.lakes);
+  console.log(`window ${bboxText(window)}: ${tiles.length} river tiles of ${TILE_DEG.rivers}°, ${lakeTiles.length} lake tiles of ${TILE_DEG.lakes}°`);
   /** @type {RunFiles} */
   const files = { riverRelations: [], riverWays: [], memberWays: [], lakeBoxes: [], lakeGeometry: [], reservoirs: [], reservoirGeometry: [] };
 
   console.log('river relations');
   files.riverRelations = await tiled('river relations', window, QUERIES.riverRelations);
+  // The reservoir list early: it is one small query, and the review can start while the rest
+  // downloads.
+  console.log('reservoirs');
+  files.reservoirs = await tiled('reservoirs', window, QUERIES.reservoirs);
   console.log('river ways');
   for (const t of tiles) files.riverWays.push(...(await tiled('river ways', t, QUERIES.riverWays)));
 
@@ -448,7 +458,7 @@ async function main() {
   files.memberWays = await batched('member ways', missing, 1000, (ids) => QUERIES.memberWays(window, ids));
 
   console.log('lake candidates');
-  for (const t of tiles) files.lakeBoxes.push(...(await tiled('lake boxes', t, QUERIES.lakeBoxes)));
+  for (const t of lakeTiles) files.lakeBoxes.push(...(await tiled('lake boxes', t, QUERIES.lakeBoxes)));
   /** @type {{ way: Set<number>, relation: Set<number> }} */
   const lakeIds = { way: new Set(), relation: new Set() };
   let seen = 0;
@@ -459,10 +469,9 @@ async function main() {
   console.log(`lake candidates: ${seen} answers, fetching ${lakeIds.way.size} ways and ${lakeIds.relation.size} relations`);
   const sortIds = (/** @type {Set<number>} */ s) => [...s].sort((a, b) => a - b);
   files.lakeGeometry.push(...(await batched('lake ways', sortIds(lakeIds.way), 500, (ids) => QUERIES.geometry('way', ids))));
-  files.lakeGeometry.push(...(await batched('lake relations', sortIds(lakeIds.relation), 40, (ids) => QUERIES.geometry('relation', ids))));
+  files.lakeGeometry.push(...(await batched('lake relations', sortIds(lakeIds.relation), 100, (ids) => QUERIES.geometry('relation', ids))));
 
-  console.log('reservoirs');
-  files.reservoirs = await tiled('reservoirs', window, QUERIES.reservoirs);
+  console.log('reviewed reservoirs');
   const drops = await reviewedDropIds();
   files.reservoirGeometry.push(...(await batched('reviewed reservoir ways', drops.way, 200, (ids) => QUERIES.geometry('way', ids))));
   files.reservoirGeometry.push(...(await batched('reviewed reservoir relations', drops.relation, 20, (ids) => QUERIES.geometry('relation', ids))));

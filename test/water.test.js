@@ -218,9 +218,9 @@ describe('Overpass queries', () => {
     for (const [ux, uy] of [[0, 0], [MAP.width, 0], [0, MAP.height], [MAP.width, MAP.height]]) {
       const [lon, lat] = MAP.toDegrees(ux, uy);
       assert.ok(lon > w.west && lon < w.east && lat > w.south && lat < w.north);
-      assert.ok(tilesOf(w).some((t) => lon >= t.west && lon <= t.east && lat >= t.south && lat <= t.north), `corner ${ux},${uy}`);
+      assert.ok(tilesOf(w, 4).some((t) => lon >= t.west && lon <= t.east && lat >= t.south && lat <= t.north), `corner ${ux},${uy}`);
     }
-    assert.ok(tilesOf(w).length < 120);
+    assert.ok(tilesOf(w, 4).length < 120);
   });
 
   it('ask only for what the build uses, and never for reservoirs as lakes', () => {
