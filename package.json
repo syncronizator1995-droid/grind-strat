@@ -14,7 +14,9 @@
     "soak": "node test/soak.mjs",
     "check": "tsc -p tsconfig.json",
     "shots": "node tools/build.mjs && node test/shots.mjs",
-    "map": "node tools/map/fetch.mjs && node tools/map/build-test-map.mjs"
+    "map": "node tools/map/fetch.mjs && node tools/map/build-grids.mjs && node tools/map/build-test-map.mjs",
+    "map:grids": "node tools/map/build-grids.mjs",
+    "map:previews": "node tools/map/preview-grids.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
