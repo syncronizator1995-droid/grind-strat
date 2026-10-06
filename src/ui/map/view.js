@@ -15,7 +15,7 @@ import { paintSea, paintTerrain } from './terrain.js';
 
 /** @typedef {import('./load.js').WaterData} WaterData */
 
-/** Province tint colours (realms come in step 3; the test map uses these). */
+/** Province tint colours (provinces return in step 2b, realms in step 3). */
 const TINTS = ['#c0392b', '#2e86c1', '#d4ac0d', '#7d3c98', '#17a589', '#ca6f1e', '#5d6d7e', '#a93226', '#1f618d', '#b7950b', '#6c3483', '#148f77'];
 const SEA = '#2f5266';
 const OUTSIDE = '#26414f';
