@@ -25,7 +25,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  * @property {string} id @property {string} collection @property {string} url @property {string} file
  * @property {string} what @property {string} licence @property {string} licenceUrl
  * @property {'read' | 'unverified'} licenceStatus
- * @property {'whole' | 'range'} [access]
+ * @property {'whole' | 'range' | 'overpass'} [access] 'overpass': OpenStreetMap through tools/map/fetch-osm.mjs
  * @property {{ name: string, url: string, file: string }[]} [files]
  * @property {string} [licenceReadAt] @property {string | null} [licenceQuote]
  * @property {string | null} [unofficialCopy] @property {string[]} [toCheck]
@@ -66,6 +66,7 @@ async function main() {
   const sources = (await rawSources()).filter((s) => !wanted.length || wanted.includes(s.id));
   if (wanted.length && sources.length !== wanted.length) throw new Error(`unknown source id in: ${wanted.join(', ')}`);
   for (const s of sources) {
+    if (s.access === 'overpass') { console.log(`skip  ${s.id}: fetched by npm run map:osm`); continue; }
     if (s.access !== 'range') await fetchWhole(s.id, s.url, s.file);
     for (const f of s.files ?? []) await fetchWhole(`${s.id}/${f.name}`, f.url, f.file);
     console.log(`have  ${s.id} (licence ${s.licenceStatus})`);
