@@ -41,8 +41,10 @@ const REVIEW_FILE = fileURLToPath(new URL('./reservoirs-1219.json', import.meta.
  * What each query promises the server: run time in seconds and memory in bytes. The server only
  * admits a query when it promises at most half of what is still free (504 otherwise), so modest
  * promises get in sooner; a query that needs more fails with a "runtime error" and is split.
+ * 120 s was too short on a busy evening (6 October 2026: the reservoir list timed out even on an
+ * eighth of the window), so promise 300 s.
  */
-const QUERY_TIMEOUT = 120;
+const QUERY_TIMEOUT = 300;
 const QUERY_MAXSIZE = 256 * 1024 * 1024;
 /** Pause between two requests, in ms, on top of waiting for a free slot. */
 const GAP_MS = 1500;
@@ -277,6 +279,8 @@ async function loadRecord() {
 async function saveRecord() {
   if (!record) return;
   await mkdir(OSM_DIR, { recursive: true });
+  // Forget files that are gone (renamed or deleted by hand), so the record matches the folder.
+  for (const name of Object.keys(record.files)) if (!existsSync(join(OSM_DIR, name))) delete record.files[name];
   await writeFile(`${INDEX}.tmp`, `${JSON.stringify(record, null, 1)}\n`);
   await rename(`${INDEX}.tmp`, INDEX);
   /** @type {Record<string, unknown>} */
@@ -288,8 +292,12 @@ async function saveRecord() {
   await rename(`${MANIFEST}.osm.tmp`, MANIFEST);
 }
 
-/** The cache file name of a query. @param {string} query */
-export const cacheName = (query) => `${sha256(Buffer.from(query, 'utf8')).slice(0, 20)}.json`;
+/**
+ * The cache file name of a query: a hash of the query without its run-time and memory settings,
+ * which change how long the server may work, not what it answers.
+ * @param {string} query
+ */
+export const cacheName = (query) => `${sha256(Buffer.from(query.replace(/\[timeout:\d+\]\[maxsize:\d+\]/, ''), 'utf8')).slice(0, 20)}.json`;
 
 /**
  * Reads a cached answer, checking its fingerprint; null when missing or changed.
