@@ -158,3 +158,36 @@ describe('packing the OpenStreetMap water', () => {
     assert.ok(x > 2000 && x < 2100 && y > 2000 && y < 2100 && !(x > 2040 && x < 2060 && y > 2040 && y < 2060), 'the name sits on the water, not on the island');
   });
 });
+
+describe('making the credits', () => {
+  const credit = (/** @type {string} */ short, /** @type {boolean} */ onMap) => ({
+    owner: 'Someone', version: '1', short, onMap, line: `${short} line`, citation: `${short} citation`, changes: 'Reprojected.',
+    licenceName: 'CC BY 4.0', licenceUri: 'creativecommons.org/licenses/by/4.0/',
+  });
+  const source = (/** @type {string} */ id, /** @type {string} */ collection, /** @type {any} */ c) => ({
+    id, collection, url: `https://example.org/${id}`, file: id, what: id, licence: 'x', licenceUrl: 'x', licenceStatus: /** @type {'read'} */ ('read'), credit: c,
+  });
+  const ofl = 'Copyright 2020 The Grenze Gotisch Project Authors (https://github.com/Omnibus-Type/Grenze-Gotisch)\n';
+
+  it('puts OpenStreetMap first on the map line and offers its data', () => {
+    const { credits, markdown } = makeAttribution({
+      sources: [source('g', 'gebco', credit('GEBCO', true)), source('o', 'osm', credit('© OpenStreetMap contributors', true))],
+      blocks: [{ kind: 'base', path: 'src/data/map/base.json', block: { sources: ['g'], licence: 'public-domain', notice: 'n' } },
+        { kind: 'water', path: 'src/data/odbl/water.json', block: { sources: ['o'], licence: 'ODbL-1.0', notice: 'n' } }],
+      ofl,
+    });
+    assert.equal(credits.mapLine, '© OpenStreetMap contributors · GEBCO · more');
+    assert.match(credits.odblOffer ?? '', /grind-strat, folder src\/data\/odbl\//);
+    assert.ok(!JSON.stringify(credits).includes('https://'), 'the font line loses its scheme');
+    assert.match(markdown, /### OpenStreetMap contributors/);
+  });
+
+  it('says exactly which credit fields a newly shipped source still needs', () => {
+    const bare = { line: 'l', citation: 'c', changes: 'x', licenceName: 'ODbL', licenceUri: 'opendatacommons.org/licenses/odbl/1-0/' };
+    assert.throws(() => makeAttribution({
+      sources: [source('osm-water', 'osm', bare)],
+      blocks: [{ kind: 'water', path: 'src/data/odbl/water.json', block: { sources: ['osm-water'], licence: 'ODbL-1.0', notice: 'n' } }],
+      ofl,
+    }), /osm-water: credit\.owner[\s\S]*osm-water: credit\.version[\s\S]*osm-water: credit\.short/);
+  });
+});
