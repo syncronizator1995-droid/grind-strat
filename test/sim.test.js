@@ -54,6 +54,40 @@ describe('calendar', () => {
 });
 
 describe('random numbers', () => {
+  // Known answers pin the generator: any change to it would change every seeded world, and how
+  // existing saves continue, so it must never change by accident.
+  it('gives the known numbers for known seeds', () => {
+    const one = seedRng(1);
+    assert.deepEqual(one, [2459862799, 1621824973, 3310820794, 2041432051]);
+    assert.deepEqual([nextU32(one), nextU32(one), nextU32(one), nextU32(one)], [1828152527, 3394835397, 2967886022, 2251045104]);
+    const max = seedRng(0xffffffff);
+    assert.deepEqual([nextU32(max), nextU32(max), nextU32(max)], [1413747962, 91561161, 3282502067]);
+    const raw = [1, 2, 3, 4];
+    assert.deepEqual([nextU32(raw), nextU32(raw), nextU32(raw), nextU32(raw)], [7, 34, 56623200, 188882296]);
+  });
+
+  it('matches a plain big-number version of sfc32', () => {
+    /** sfc32 written with BigInt and no bit tricks, as an independent check. @param {number[]} s */
+    const reference = (s) => {
+      let [a, b, c, d] = s.map(BigInt);
+      const M = 0xffffffffn;
+      return () => {
+        const t = (a + b + d) & M;
+        d = (d + 1n) & M;
+        a = b ^ (b >> 9n);
+        b = (c + (c << 3n)) & M;
+        c = ((c << 21n) & M) | (c >> 11n);
+        c = (c + t) & M;
+        return Number(t);
+      };
+    };
+    for (const seed of [0, 1, 42, 0x7fffffff, 0xffffffff]) {
+      const ours = seedRng(seed);
+      const ref = reference(ours);
+      for (let i = 0; i < 2000; i++) assert.equal(nextU32(ours), ref(), `seed ${seed}, number ${i}`);
+    }
+  });
+
   it('gives the same numbers for the same seed', () => {
     const a = seedRng(42);
     const b = seedRng(42);
@@ -184,6 +218,10 @@ describe('invariants', () => {
 
   it('catches a bad day, seed or random state', () => {
     assert.ok(checkInvariants({ ...newGame(3), day: 2.5 }).includes('day is not a whole number'));
+    for (const day of [1e20, -1e18, 2 ** 53, dayFromDate(-10001, 12, 31), dayFromDate(10000, 1, 1)]) {
+      assert.ok(checkInvariants({ ...newGame(3), day }).some((e) => e.includes('is outside 10,000 BC to 9999 AD')), `day ${day}`);
+    }
+    assert.deepEqual(checkInvariants({ ...newGame(3), day: dayFromDate(-10000, 1, 1) }), []);
     assert.ok(checkInvariants({ ...newGame(3), seed: -1 }).includes('seed is not a 32-bit whole number'));
     assert.ok(checkInvariants({ ...newGame(3), rng: [1, 2, 3] }).includes('rng is not a list of four numbers'));
     assert.ok(checkInvariants({ ...newGame(3), rng: [1, 2, 3, 2 ** 32] }).some((e) => e.startsWith('rng holds')));

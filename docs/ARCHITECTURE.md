@@ -27,12 +27,16 @@ game mechanic read only from search-result extracts (the Paradox and Manor Lords
 
 - prototype/ is for reference only. Copy ideas on purpose; never import from it.
 - The game ships as one self-contained offline file, dist/grind-strat.html, with no network at
-  runtime and zero runtime dependencies. Dev tools: esbuild, typescript, playwright.
+  runtime and zero runtime dependencies. Dev tools: esbuild, typescript, playwright, and
+  @types/node (type definitions only, for checking the Node scripts).
 - GitHub Pages also serves a web manifest, a service worker and icons with a blackletter "G", so it
   installs like an app. The game adds these only on the website; as a plain file it plays the same.
 - Step 1 files: src/sim/game.js (new game, advance a day, save and load), random.js, calendar.js,
   invariants.js; src/ui/main.js (screen and buttons), clock.js (speeds), storage.js (wrapped
   localStorage), autosave.js (when to autosave), install.js and sw.js (install like an app).
+- The service worker keeps the game page in its own cache and a second copy in IndexedDB, because
+  Ignas's other apps on the same github.io address delete every cache but their own when they
+  update. It loads the page network first and falls back to a saved copy after 3 seconds.
 
 **Ignas's answers of 6 October that change earlier plans:**
 - Every holding in your realm can be built by hand, even a vassal's (vassals may resent it).
@@ -109,8 +113,11 @@ game mechanic read only from search-result extracts (the Paradox and Manor Lords
 **Autosave** on the first day of every game month and when the app is hidden or closed, plus
 Save, Load and New game buttons. Saves happen only between days. Storage is localStorage and every
 access is wrapped, so blocked or full storage shows a message such as "Couldn't save: this browser
-blocks storage" instead of crashing. At high speeds, month-start autosaves are kept at least
-2 real seconds apart, so not every month start saves.
+blocks storage" instead of crashing. Pausing, Load and New game also autosave. At high speeds
+autosaves are kept at least 2 real seconds apart; a month that passes inside that gap is saved as
+soon as the gap ends, so the stored game is never more than about 2 seconds behind. An autosave
+the game can't read (say, from a newer version) is copied to `grind-strat/autosave-unreadable`
+before a new game starts, so it is never overwritten.
 
 **Spreading the monthly and yearly work:**
 - Each thing with monthly work (a province, a character, a computer ruler, a market) runs it on
@@ -326,7 +333,8 @@ Each is designed with Ignas in its own step. Numbers here are invented; game mec
 
 Checked every game year in soak runs; tests feed them broken states to prove they catch errors.
 From HANDOFF and step 1:
-- No NaN or Infinity anywhere; the day is a whole number; `rng` holds 4 whole numbers.
+- No NaN or Infinity anywhere, and only plain JSON values; the day is a whole number between
+  10,000 BC and 9999 AD; `rng` holds 4 unsigned 32-bit whole numbers, not all zero.
 - Every province has a living holder; every title has a living holder or none.
 - Nobody is their own liege, liege chains have no loops, and every liege holds land.
 - Every army belongs to an independent ruler and has a positive size.

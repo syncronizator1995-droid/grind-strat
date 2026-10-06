@@ -113,12 +113,12 @@ function fill(text, name, value) {
 }
 
 /**
- * @param {{ dev?: boolean, out?: string }} [options]
+ * @param {{ dev?: boolean, out?: string, entry?: string }} [options] `entry` is for tests
  * @returns {Promise<{ file: string, bytes: number, build: string }>}
  */
-export async function build({ dev = false, out = join(ROOT, 'dist') } = {}) {
+export async function build({ dev = false, out = join(ROOT, 'dist'), entry = join(UI, 'main.js') } = {}) {
   const bundle = await esbuild.build({
-    entryPoints: [join(UI, 'main.js')],
+    entryPoints: [entry],
     bundle: true,
     format: 'iife',
     target: ['chrome90', 'firefox90', 'safari15'],
@@ -142,8 +142,13 @@ export async function build({ dev = false, out = join(ROOT, 'dist') } = {}) {
   const problems = [...findScriptBreakers(js), ...findNetworkUses(html, js)];
   if (problems.length) throw new Error(`build stopped:\n- ${problems.join('\n- ')}`);
 
-  const buildId = createHash('sha256').update(html).digest('hex').slice(0, 12);
+  // The build id names the offline cache, so it must change whenever ANY published file changes:
+  // otherwise phones keep an old manifest or icon forever.
+  const manifest = `${JSON.stringify(MANIFEST, null, 2)}\n`;
   const swSource = await readFile(join(UI, 'sw.js'), 'utf8');
+  const hash = createHash('sha256').update(html).update(manifest).update(swSource);
+  for (const name of ICONS) hash.update(await readFile(join(UI, 'icons', name)));
+  const buildId = hash.digest('hex').slice(0, 12);
   const marker = "const BUILD = '__BUILD__';";
   if (!swSource.includes(marker)) throw new Error(`sw.js must contain: ${marker}`);
   const sw = swSource.replace(marker, () => `const BUILD = '${buildId}';`);
@@ -152,7 +157,7 @@ export async function build({ dev = false, out = join(ROOT, 'dist') } = {}) {
   const file = join(out, 'grind-strat.html');
   await writeFile(file, html);
   await writeFile(join(out, 'index.html'), html);
-  await writeFile(join(out, 'manifest.webmanifest'), `${JSON.stringify(MANIFEST, null, 2)}\n`);
+  await writeFile(join(out, 'manifest.webmanifest'), manifest);
   await writeFile(join(out, 'sw.js'), sw);
   await writeFile(join(out, '.nojekyll'), '');
   for (const name of ICONS) await copyFile(join(UI, 'icons', name), join(out, name));

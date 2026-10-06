@@ -39,6 +39,8 @@ let frameRequest = null;
 let lastFrameMs = 0;
 let lastAutosaveDay = state.day;
 let lastAutosaveMs = -Infinity;
+/** The game has changed since the last autosave. */
+let unsaved = false;
 let shownDay = NaN;
 
 /** Continues the autosave if there is one, otherwise starts a new game. */
@@ -69,7 +71,7 @@ function randomSeed() {
 }
 
 /**
- * Shows a message in the status line under the buttons.
+ * Shows a message in the status line above the buttons.
  * @param {string} message
  * @param {boolean} [bad]
  */
@@ -82,6 +84,8 @@ function tell(message, bad = false) {
 
 /** @param {number} next 0 is pause, 1 to 5 are the speeds */
 function setSpeed(next) {
+  // Pausing is a natural moment to keep the game safe.
+  if (next === 0 && unsaved) autosave(performance.now());
   speed = next;
   if (next > 0) lastRunningSpeed = next;
   for (const b of speedButtons) b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === speed));
@@ -113,6 +117,7 @@ function frame(nowMs) {
 
 function runDay() {
   advanceDay(state);
+  unsaved = true;
   const nowMs = performance.now();
   if (shouldAutosave(state.day, lastAutosaveDay, nowMs, lastAutosaveMs)) autosave(nowMs);
 }
@@ -129,6 +134,7 @@ function showDate() {
 function autosave(nowMs) {
   lastAutosaveDay = state.day;
   lastAutosaveMs = nowMs;
+  unsaved = false;
   const written = writeText(AUTOSAVE_KEY, toSave(state));
   if (written.ok) tell(`Autosaved: ${formatDate(state.day)}.`);
   else tell(`Couldn't autosave: ${written.error}.`, true);
@@ -146,17 +152,22 @@ function load() {
   if (read.text === null) return tell('No save yet. Tap Save first.');
   const loaded = fromSave(read.text);
   if (!loaded.ok) return tell(loaded.error, true);
-  replaceState(loaded.state);
+  replaceState(loaded.state); // this autosaves, so leaving now still keeps the loaded game
   tell(`Loaded: ${formatDate(state.day)}. Paused.`);
 }
 
+/** The second tap must come at least this long after the first, so a double tap isn't two. */
+const NEW_GAME_MIN_GAP_MS = 400;
+let newArmedAt = 0;
 let newArmedUntil = 0;
 /** @type {ReturnType<typeof setTimeout> | undefined} */
 let newDisarm;
-/** New game needs two taps, so one slip doesn't throw a game away. */
+/** New game needs two separate taps, so one slip doesn't throw a game away. */
 function startNewGame() {
   const now = performance.now();
+  if (now - newArmedAt < NEW_GAME_MIN_GAP_MS) return; // the second half of a double tap
   if (now > newArmedUntil) {
+    newArmedAt = now;
     newArmedUntil = now + 3000;
     newButton.textContent = 'Tap again';
     newButton.classList.add('armed');
@@ -165,8 +176,7 @@ function startNewGame() {
     return;
   }
   disarmNew();
-  replaceState(newGame(randomSeed()));
-  autosave(performance.now());
+  replaceState(newGame(randomSeed())); // this autosaves the new game
   tell(`New game: ${formatDate(state.day)}. Paused.`);
 }
 
@@ -179,7 +189,7 @@ function disarmNew() {
 /** @param {import('../sim/game.js').GameState} next */
 function replaceState(next) {
   state = next;
-  lastAutosaveDay = state.day;
+  unsaved = true;
   setSpeed(0);
   showDate();
 }
@@ -240,10 +250,10 @@ window.addEventListener('keydown', (e) => {
 
 // Leaving the app (switching away, locking the phone, closing the tab) always autosaves.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && state.day !== lastAutosaveDay) autosave(performance.now());
+  if (document.visibilityState === 'hidden' && unsaved) autosave(performance.now());
 });
 window.addEventListener('pagehide', () => {
-  if (state.day !== lastAutosaveDay) autosave(performance.now());
+  if (unsaved) autosave(performance.now());
 });
 
 new ResizeObserver(drawMap).observe(canvas);

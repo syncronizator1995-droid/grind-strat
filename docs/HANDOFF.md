@@ -91,7 +91,21 @@ engine itself is rewritten in 3a, and its code and test files weren't uploaded).
 Goal: an empty but working project that builds one offline file and runs tests. No game features yet.
 Show Ignas the folder layout and tool choices in plan mode first, then build it.
 
-Status: in progress (Claude Code, 6 October 2026).
+Status: built and tested in Claude Code on 6 October 2026; waiting for Ignas to play it on his phone.
+What was built, beyond the list below:
+- Dev dependencies: esbuild, typescript and playwright, plus @types/node (type definitions only,
+  needed so the type check understands the Node scripts in tools/ and test/).
+- Pausing autosaves, and so do Load and New game. At the top speeds autosaves are at most one every
+  2 real seconds, but a month that passes inside that gap is saved as soon as it ends.
+- New game needs two separate taps (a double tap counts as one).
+- The offline copy: the service worker loads the page network first, opens the saved copy after
+  3 seconds of weak signal, and keeps a second copy in IndexedDB. All of Ignas's GitHub Pages apps
+  share one web address (syncronizator1995-droid.github.io), so they share Cache Storage, and the
+  service workers of Campfire (Guitar repo) and Cal Track delete every cache but their own when
+  they update. Saves are safe (localStorage keys are separate). Fixing those two apps to delete
+  only their own caches is a one-line change in each; ask Ignas before touching his other repos.
+- npm run shots checks, served like GitHub Pages: no signal, weak signal, caches wiped by another
+  app, and an update arriving.
 
 1. Create the folders from CLAUDE.md: src/sim, src/ui, src/data, tools, test, prototype, docs, dist.
 2. package.json with the scripts build, test, soak, check, shots. Keep dev dependencies few:

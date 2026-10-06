@@ -59,8 +59,10 @@ export function setUpInstall({ button, tell }) {
       const shown = offer;
       offer = null;
       await shown.prompt();
-      const choice = await shown.userChoice;
-      if (choice.outcome === 'accepted') button.hidden = true;
+      await shown.userChoice;
+      // Accepted or dismissed, this offer is used up. If the browser offers again,
+      // beforeinstallprompt shows the button again.
+      button.hidden = true;
     } else if (ios) {
       tell('To install on iPhone or iPad: tap Share, then Add to Home Screen.');
     }

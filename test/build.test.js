@@ -1,11 +1,11 @@
 // @ts-check
 // Tests for the build: its safety checks, and a real build into a temporary folder.
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { build, findNetworkUses, findScriptBreakers, ICONS } from '../tools/build.mjs';
+import { build, findNetworkUses, findScriptBreakers, ICONS, MANIFEST } from '../tools/build.mjs';
 
 describe('build safety checks', () => {
   it('stops a script that contains </script', () => {
@@ -54,6 +54,39 @@ describe('build safety checks', () => {
 });
 
 describe('build', () => {
+  // esbuild already escapes "</script" inside strings, so a bundle can't contain one; the
+  // findScriptBreakers test above covers that backstop.
+  it('refuses to build a game that would load from the network', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'grind-strat-bad-'));
+    try {
+      for (const [name, code] of [
+        ['fetches.js', 'fetch("data.json").then(console.log);'],
+        ['socket.js', 'new WebSocket("wss://example.com/live");'],
+        ['image.js', 'const i = new Image(); i.src = "https://example.com/x.png";'],
+      ]) {
+        const entry = join(dir, name);
+        await writeFile(entry, code);
+        await assert.rejects(build({ entry, out: join(dir, 'out') }), /build stopped/, name);
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('gives a new build id when only the manifest changes, so phones get the update', async () => {
+    const out = await mkdtemp(join(tmpdir(), 'grind-strat-id-'));
+    const name = MANIFEST.name;
+    try {
+      const first = await build({ out });
+      MANIFEST.name = `${name} (test)`;
+      const second = await build({ out });
+      assert.notEqual(first.build, second.build);
+    } finally {
+      MANIFEST.name = name;
+      await rm(out, { recursive: true, force: true });
+    }
+  });
+
   it('makes one self-contained game file plus the install files', async () => {
     const out = await mkdtemp(join(tmpdir(), 'grind-strat-build-'));
     try {

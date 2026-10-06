@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { dayFromDate } from '../src/sim/calendar.js';
-import { AUTOSAVE_MIN_GAP_MS, shouldAutosave } from '../src/ui/autosave.js';
+import { AUTOSAVE_MIN_GAP_MS, monthStartedSince, shouldAutosave } from '../src/ui/autosave.js';
 import { daysForFrame, MAX_DAYS_PER_FRAME, MAX_FRAME_SECONDS, SPEEDS } from '../src/ui/clock.js';
 
 describe('clock', () => {
@@ -53,10 +53,34 @@ describe('clock', () => {
 describe('autosave', () => {
   const firstOfMarch = dayFromDate(1219, 3, 1);
 
-  it('saves on the first day of each month', () => {
+  it('saves when a new month begins, not within the same month', () => {
     assert.equal(shouldAutosave(firstOfMarch, firstOfMarch - 28, 10_000, 0), true);
-    assert.equal(shouldAutosave(firstOfMarch + 1, firstOfMarch - 28, 10_000, 0), false);
-    assert.equal(shouldAutosave(firstOfMarch + 14, firstOfMarch - 28, 10_000, 0), false);
+    assert.equal(shouldAutosave(firstOfMarch + 1, firstOfMarch, 10_000, 0), false);
+    assert.equal(shouldAutosave(firstOfMarch + 30, firstOfMarch, 10_000, 0), false);
+    assert.equal(monthStartedSince(firstOfMarch + 31, firstOfMarch), true);
+  });
+
+  it('catches up on a month that passed inside the gap, instead of skipping it', () => {
+    // Speed 5: 1 March arrives only 1 second after the last autosave...
+    assert.equal(shouldAutosave(firstOfMarch, firstOfMarch - 28, 1000, 0), false);
+    // ...so the save happens a few days later, as soon as the gap is over.
+    assert.equal(shouldAutosave(firstOfMarch + 5, firstOfMarch - 28, AUTOSAVE_MIN_GAP_MS, 0), true);
+  });
+
+  it('never leaves the stored game more than a gap behind, even at top speed', () => {
+    let lastDay = dayFromDate(1219, 1, 1);
+    let lastMs = 0;
+    let longest = 0;
+    for (let frameNo = 1; frameNo <= 60 * 20; frameNo++) {
+      const nowMs = frameNo * (1000 / 60); // 60 frames a second
+      const day = dayFromDate(1219, 1, 1) + frameNo * 30; // 30 days a frame
+      if (shouldAutosave(day, lastDay, nowMs, lastMs)) {
+        longest = Math.max(longest, nowMs - lastMs);
+        lastDay = day;
+        lastMs = nowMs;
+      }
+    }
+    assert.ok(longest <= AUTOSAVE_MIN_GAP_MS + 1000 / 60 + 1, `longest gap ${longest} ms`);
   });
 
   it('fires once a month over a year at normal speed', () => {
@@ -76,6 +100,7 @@ describe('autosave', () => {
 
   it('does not save the same day twice, or too often in real time', () => {
     assert.equal(shouldAutosave(firstOfMarch, firstOfMarch, 10_000, 0), false);
+    assert.equal(shouldAutosave(firstOfMarch, firstOfMarch - 28, AUTOSAVE_MIN_GAP_MS, 0), true);
     assert.equal(shouldAutosave(firstOfMarch, firstOfMarch - 28, AUTOSAVE_MIN_GAP_MS - 1, 0), false);
   });
 });

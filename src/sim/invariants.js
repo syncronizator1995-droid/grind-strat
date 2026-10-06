@@ -3,6 +3,12 @@
 // and loading a save checks them too. Each system adds its own checks as it is built
 // (HANDOFF section 3 lists the ones planned for the Middle Ages).
 
+import { dayFromDate } from './calendar.js';
+
+/** The game runs from 10,000 BC to today; anything far outside that is a broken day count. */
+export const FIRST_DAY = dayFromDate(-10000, 1, 1);
+export const LAST_DAY = dayFromDate(9999, 12, 31);
+
 /**
  * Returns a list of problems; an empty list means the state is sound.
  * @param {any} state
@@ -18,6 +24,7 @@ export function checkInvariants(state) {
   if (!Number.isInteger(state.version) || state.version < 1) errors.push('version is not a whole number of 1 or more');
   if (!Number.isInteger(state.seed) || state.seed < 0 || state.seed > 0xffffffff) errors.push('seed is not a 32-bit whole number');
   if (!Number.isInteger(state.day)) errors.push('day is not a whole number');
+  else if (state.day < FIRST_DAY || state.day > LAST_DAY) errors.push(`day ${state.day} is outside 10,000 BC to 9999 AD`);
   checkRng(state.rng, errors);
   return errors;
 }

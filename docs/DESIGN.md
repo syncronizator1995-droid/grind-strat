@@ -362,7 +362,8 @@ Real people appear where records exist; made-up people fill the gaps, and no one
 - Text stays large enough to read, and nothing important needs two hands.
 - It works offline and saves on the phone automatically.
 - It installs like an app: a home-screen icon with a blackletter "G", and it opens with no signal.
-- It autosaves on the first day of every game month and when you leave the app, and has Save,
+- It autosaves on the first day of every game month, when you pause and when you leave the app
+  (at the top speeds, at most once every 2 seconds), and has Save,
   Load and New game buttons.
 - Colours follow the phone's light or dark setting.
 - Years have 365 days, with no leap days.
