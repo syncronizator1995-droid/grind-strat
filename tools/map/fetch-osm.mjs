@@ -46,6 +46,8 @@ const REVIEW_FILE = fileURLToPath(new URL('./reservoirs-1219.json', import.meta.
  */
 const QUERY_TIMEOUT = 300;
 const QUERY_MAXSIZE = 256 * 1024 * 1024;
+/** How long one request may keep failing at the network level before the run stops, in ms. */
+const NETWORK_PATIENCE_MS = 4 * 3600_000;
 /** Pause between two requests, in ms, on top of waiting for a free slot. */
 const GAP_MS = 1500;
 /**
@@ -192,19 +194,21 @@ let lastRequest = 0;
  * @returns {Promise<{ ok: boolean, status: number, text: string }>}
  */
 async function exchange(url, init) {
-  // The tunnel to overpass-api.de from this container drops now and then for minutes at a
-  // time, so be patient: up to 10 tries, waiting 2 s, 4 s, ... up to 2 minutes between them.
+  // The tunnel to overpass-api.de from this container drops for minutes, sometimes more than
+  // half an hour, at a time (6 October 2026), so be patient: wait 2 s, 4 s, ... up to 5 minutes
+  // between tries, and give up only after NETWORK_PATIENCE_MS without one answer.
   let wait = 2000;
+  const since = Date.now();
   for (let attempt = 1; ; attempt++) {
     try {
       const res = await fetch(url, init);
       return { ok: res.ok, status: res.status, text: await res.text() };
     } catch (err) {
-      if (attempt >= 10) throw err;
+      if (Date.now() - since > NETWORK_PATIENCE_MS) throw err;
       const why = err instanceof Error ? `${err.message}${/** @type {any} */ (err).cause?.code ? ` ${/** @type {any} */ (err).cause.code}` : ''}` : err;
-      console.log(`  network error (${why}): waiting ${wait / 1000} s`);
+      console.log(`  network error (${why}) at ${new Date().toISOString().slice(11, 19)}: waiting ${wait / 1000} s`);
       await sleep(wait);
-      wait = Math.min(wait * 2, 120_000);
+      wait = Math.min(wait * 2, 300_000);
     }
   }
 }
