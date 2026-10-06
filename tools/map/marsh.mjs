@@ -4,12 +4,12 @@
 // GLWD v2 smears a thin 1-10% of peat classes over most of the land, which would make every
 // field look a little boggy; and it misses some famous open bogs (Soomaa, the Great Kemeri Bog).
 // So: drop the thin background, stretch the rest so real bog cores read as mostly marsh, and
-// take the larger of that and today's open wetland from ESA WorldCover (herbaceous wetland and
-// moss), because a bog that is still open today certainly was in 1219.
+// take the larger of that and today's open wetland from ESA WorldCover (herbaceous wetland,
+// class 90), because a bog that is still open today certainly was in 1219.
 //
-// Open question for Ignas: on this map WorldCover's moss and lichen (class 100) is almost all
-// mountain tundra in Norway and Sweden, not bog, so it turns high fells into "marsh". Leaving it
-// out, or counting it only below about 300 m, would fix that and change no Baltic bog.
+// WorldCover's moss and lichen (class 100) is left out (lead's decision, 6 October 2026): on this
+// map it is almost all mountain tundra in Norway and Sweden, not Baltic bog, and counting it
+// turned high fells into "marsh". No Baltic bog depends on it.
 
 /** GLWD v2 classes that count as marsh or bog (see the legend, GLWD_Legend_v2_0.csv). */
 export const MARSH_CLASSES = Object.freeze([
@@ -21,6 +21,12 @@ export const MARSH_CLASSES = Object.freeze([
 ]);
 // Left out: 1-7 open water (comes from the lake and river layers), 20-21 ephemeral wetland (dry
 // most years), 26-28 tropical, 32 salt pans, 33 rice paddies.
+
+/**
+ * The WorldCover planes (see COVER_PLANES in grid-cover.mjs) that count as today's open
+ * wetland: herbaceous wetland only. Not "moss" (class 100, mountain tundra here).
+ */
+export const MARSH_COVER_PLANES = Object.freeze(['wetland']);
 
 /**
  * The tuned numbers. floor: GLWD shares at or below this are background, read as 0. full: the
@@ -41,7 +47,7 @@ export function stretchMarsh(raw, p = MARSH_PARAMS) {
 /**
  * The marsh share of a cell in 1219, 0-100.
  * @param {number} raw GLWD marsh share, 0-100
- * @param {number} openWetland today's open wetland share from WorldCover (classes 90 and 100), 0-100
+ * @param {number} openWetland today's open wetland share from WorldCover (MARSH_COVER_PLANES), 0-100
  * @param {{ floor: number, full: number }} [p]
  */
 export function marshShare(raw, openWetland, p = MARSH_PARAMS) {

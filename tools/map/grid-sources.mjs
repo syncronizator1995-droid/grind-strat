@@ -22,9 +22,10 @@ export async function sourceEntry(id) {
 /**
  * Opens a remote GeoTIFF read by range, or null if the host has no such file.
  * @param {string} key manifest key @param {string} url
+ * @param {{ maxChunk?: number }} [opts] passed on to rangeSource (the largest single request)
  */
-export async function openRemoteTiff(key, url) {
-  const source = await rangeSource(key, url);
+export async function openRemoteTiff(key, url, opts) {
+  const source = await rangeSource(key, url, opts);
   if (!source) return null;
   return { key, url, tiff: await openTiff(source) };
 }
@@ -45,6 +46,18 @@ export async function readBox(tiff, image, box, pad = 2) {
   const y1 = Math.min(image.height, Math.ceil((g.north - box.south) / dy) + pad);
   const values = await tiff.readWindow(image, x0, y0, x1 - x0, y1 - y0);
   return { values, width: x1 - x0, height: y1 - y0, west: g.west + x0 * g.dx, north: g.north - y0 * dy, dx: g.dx, dy, noData: image.noData };
+}
+
+/**
+ * SHA-256 of int16 samples as little-endian bytes (the same on any machine), so a pixel window
+ * read from two differently packed files (tiled and compressed, or plain strips) can be compared.
+ * @param {Int16Array} v
+ */
+export function int16Hash(v) {
+  const bytes = new Uint8Array(v.length * 2);
+  const view = new DataView(bytes.buffer);
+  for (let i = 0; i < v.length; i++) view.setInt16(i * 2, v[i], true);
+  return createHash('sha256').update(bytes).digest('hex');
 }
 
 /**

@@ -26,6 +26,9 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  * @property {string} what @property {string} licence @property {string} licenceUrl
  * @property {'read' | 'unverified'} licenceStatus
  * @property {'whole' | 'range'} [access]
+ * @property {number} [maxRangeBytes] the largest single range request this host takes well
+ * @property {{ url: string, what: string, maxRangeBytes?: number }} [fallback] a second copy of the same
+ *   file, used only if the main url is gone; tools/map/compare-gebco.mjs checks they agree
  * @property {{ name: string, url: string, file: string }[]} [files]
  * @property {string} [licenceReadAt] @property {string | null} [licenceQuote]
  * @property {string | null} [unofficialCopy] @property {string[]} [toCheck]

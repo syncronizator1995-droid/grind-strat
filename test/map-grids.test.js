@@ -6,10 +6,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { inflateSync } from 'node:zlib';
+import { compareRasters } from '../tools/map/compare-gebco.mjs';
 import { checkRangeAnswer, mergeRanges } from '../tools/map/fetch-grids.mjs';
-import { coverTileName } from '../tools/map/grid-cover.mjs';
+import { int16Hash } from '../tools/map/grid-sources.mjs';
+import { COVER_PLANES, coverTileName, openWetland } from '../tools/map/grid-cover.mjs';
 import { parsePollenCsv } from '../tools/map/build-grids.mjs';
-import { MARSH_CLASSES, marshShare, stretchMarsh } from '../tools/map/marsh.mjs';
+import { MARSH_CLASSES, MARSH_COVER_PLANES, MARSH_PARAMS, marshShare, stretchMarsh } from '../tools/map/marsh.mjs';
 import { crc32, encodePng } from '../tools/map/png.mjs';
 import { MAP } from '../tools/map/projection.mjs';
 import { areaAverage, bilinear, cornerLattice, countsToPercent, forEachSample, GRID_1KM, GRID_2KM, mapWindow, nearest } from '../tools/map/resample.mjs';
@@ -96,6 +98,10 @@ describe('class shares', () => {
 });
 
 describe('marsh: bogs stand out', () => {
+  it('keeps the agreed numbers: floor 15, full 55', () => {
+    assert.deepEqual({ ...MARSH_PARAMS }, { floor: 15, full: 55 });
+  });
+
   it('drops the thin background and stretches the rest towards 100', () => {
     assert.equal(stretchMarsh(0), 0);
     assert.equal(stretchMarsh(15), 0); // the floor itself is still background
@@ -113,6 +119,19 @@ describe('marsh: bogs stand out', () => {
     assert.equal(marshShare(12, 0), 0);
     assert.equal(marshShare(35, 60), 60);
     assert.equal(marshShare(0, 140), 100);
+  });
+
+  it('counts WorldCover herbaceous wetland (class 90) as open wetland, but not moss and lichen (100)', () => {
+    assert.deepEqual([...MARSH_COVER_PLANES], ['wetland']);
+    assert.ok(COVER_PLANES.find((p) => p.name === 'wetland')?.classes.includes(90));
+    // Two cells: one all moss and lichen (a Swedish fell), one 40% wetland and 30% moss.
+    const cells = 2;
+    const cover = new Uint8Array(COVER_PLANES.length * cells);
+    const plane = (/** @type {string} */ name) => COVER_PLANES.findIndex((p) => p.name === name);
+    cover[plane('moss') * cells + 0] = 100;
+    cover[plane('wetland') * cells + 1] = 40;
+    cover[plane('moss') * cells + 1] = 30;
+    assert.deepEqual([...openWetland(cover, cells)], [0, 40]);
   });
 
   it('uses the agreed GLWD classes and leaves out open water and ephemeral wetland', () => {
@@ -138,6 +157,22 @@ describe('fetching', () => {
     assert.throws(() => checkRangeAnswer('u', r, 'bytes 100-129/1000', 30), /got 30/);
     assert.throws(() => checkRangeAnswer('u', r, 'bytes 0-49/1000', 50), /asked for 50 bytes at 100/);
     assert.throws(() => checkRangeAnswer('u', r, null, 50), /Content-Range/);
+  });
+
+  it('compares two copies of a raster cell by cell, matched by lon/lat', () => {
+    // a: 4 x 2 pixels from 10E; b: the same land, 2 x 2 pixels from 11E (one pixel = 0.5 degree).
+    const a = { values: Int16Array.from([1, 2, 3, 4, 5, 6, 7, 8]), width: 4, height: 2, west: 10, north: 60, dx: 0.5, dy: 0.5 };
+    const same = { values: Int16Array.from([3, 4, 7, 8]), width: 2, height: 2, west: 11, north: 60, dx: 0.5, dy: 0.5 };
+    assert.deepEqual({ ...compareRasters(a, same), byDiff: [], examples: [] }, { compared: 4, differing: 0, maxDiff: 0, byDiff: [], examples: [], offset: { ox: 2, oy: 0 } });
+    const off = { ...same, values: Int16Array.from([3, 4, 9, 5]) };
+    const r = compareRasters(a, off);
+    assert.equal(r.differing, 2);
+    assert.equal(r.maxDiff, 3);
+    assert.deepEqual(r.byDiff, [[2, 1], [3, 1]]);
+    assert.deepEqual(r.examples[0], { x: 2, y: 1, a: 7, b: 9 });
+    // The pixel hash depends only on the values, not on how a file packed them.
+    assert.equal(int16Hash(Int16Array.from([3, 4])), int16Hash(a.values.subarray(2, 4)));
+    assert.notEqual(int16Hash(Int16Array.from([3, 4])), int16Hash(Int16Array.from([4, 3])));
   });
 
   it('reads the pollen CSV by its column names', () => {
@@ -182,6 +217,8 @@ describe('sources.json', () => {
       assert.ok(['whole', 'range', undefined].includes(s.access), `${s.id}.access`);
       for (const f of s.files ?? []) assert.ok(f.name && f.url.startsWith('https://') && f.file, `${s.id} extra file`);
       assert.ok(s.url.startsWith('https://'), `${s.id}.url`);
+      if (s.fallback) assert.ok(s.fallback.url.startsWith('https://') && s.fallback.what.length > 20, `${s.id}.fallback needs a url and a description`);
+      for (const m of [s.maxRangeBytes, s.fallback?.maxRangeBytes]) assert.ok(m === undefined || (Number.isInteger(m) && m >= 65536), `${s.id}: maxRangeBytes`);
     });
 
     it(`entry ${s.id} has a full credit for the Credits screen`, () => {

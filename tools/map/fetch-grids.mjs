@@ -25,7 +25,8 @@ const CONCURRENCY = 6;
 const RETRIES = 6;
 /** Nearby blocks closer than this are fetched in one request (the gap is wasted, but cheap). */
 const MERGE_GAP = 256 * 1024;
-/** No single request bigger than this, so a retry never repeats much. */
+/** No single request bigger than this, so a retry never repeats much. A host that drops long
+ * transfers (CEDA) is given a smaller limit through rangeSource's maxChunk. */
 const MAX_CHUNK = 16 * 1024 * 1024;
 
 /**
@@ -59,6 +60,8 @@ export const sha256 = (data) => createHash('sha256').update(data).digest('hex');
  * @property {string} [sha256]     for files downloaded whole
  * @property {string} fetched      when first fetched (ISO date)
  * @property {Record<string, string>} [windows] "offset+length" to SHA-256, for files read by range
+ * @property {Record<string, string>} [pixelWindows] "x<col>+y<row> <width>x<height>" to the SHA-256
+ *   of that block of decoded samples (written by compare-gebco.mjs)
  */
 
 /** @type {Record<string, ManifestEntry> | null} */
@@ -215,9 +218,11 @@ function s3Version(h) {
  * denial or a passing AccessDenied), throws.
  * @param {string} key manifest key, e.g. "gebco-2026/GEBCO_2026.tif"
  * @param {string} url
+ * @param {{ maxChunk?: number }} [opts] maxChunk: the largest single request, in bytes
  * @returns {Promise<import('./tiff.mjs').ByteSource & { key: string } | null>}
  */
-export async function rangeSource(key, url) {
+export async function rangeSource(key, url, opts = {}) {
+  const maxChunk = opts.maxChunk ?? MAX_CHUNK;
   const m = await loadManifest();
   const dir = join(CACHE, ...key.split('/'));
   if (m[key]?.url !== url) m[key] = { url, fetched: new Date().toISOString(), windows: {} };
@@ -278,7 +283,7 @@ export async function rangeSource(key, url) {
       return inMemory(offset, length) ?? (await load(offset, length));
     },
     async prefetch(ranges) {
-      const todo = mergeRanges(ranges.filter((r) => !inMemory(r.offset, r.length)), MERGE_GAP, MAX_CHUNK);
+      const todo = mergeRanges(ranges.filter((r) => !inMemory(r.offset, r.length)), MERGE_GAP, maxChunk);
       await Promise.all(todo.map((r) => load(r.offset, r.length)));
       await saveManifest();
     },

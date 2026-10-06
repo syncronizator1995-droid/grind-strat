@@ -6,7 +6,7 @@
 
 import { bestBlock, blockMean, discMean, fmtPlace, table } from './grid-checks.mjs';
 import { inputRecord, openRemoteTiff, readBox, sourceEntry } from './grid-sources.mjs';
-import { MARSH_CLASSES, MARSH_PARAMS, marshShare } from './marsh.mjs';
+import { MARSH_CLASSES, MARSH_COVER_PLANES, MARSH_PARAMS, marshShare } from './marsh.mjs';
 import { areaAverage, bilinear, cellsCovering, countsToPercent, forEachSample, writeGrid } from './resample.mjs';
 
 /** WorldCover planes, in file order, and the WorldCover classes that go into each. */
@@ -20,7 +20,8 @@ export const COVER_PLANES = Object.freeze([
   { name: 'water', classes: [80] },
   { name: 'wetland', classes: [90, 95] }, // herbaceous wetland (mangrove folded in; none here)
   // Moss and lichen. Not Baltic bog: on this map it is almost all mountain tundra in Norway and
-  // Sweden (82% of it above 900 m, almost none below 300 m). Baltic open bogs come in as class 90.
+  // Sweden (82% of it above 900 m, almost none below 300 m), so the marsh rule leaves it out.
+  // Baltic open bogs come in as class 90.
   { name: 'moss', classes: [100] },
 ]);
 
@@ -125,6 +126,21 @@ async function countTile(L, tiff, tile, window, counts, planeOf) {
 }
 
 /**
+ * Today's open wetland share of every cell, as the marsh rule counts it: the sum of the
+ * MARSH_COVER_PLANES (herbaceous wetland only; moss and lichen is mountain tundra here).
+ * @param {Uint8Array} cover worldcover-1km planes @param {number} cells cells per plane
+ */
+export function openWetland(cover, cells) {
+  const out = new Uint8Array(cells);
+  for (const name of MARSH_COVER_PLANES) {
+    const p = COVER_PLANES.findIndex((q) => q.name === name);
+    if (p < 0) throw new Error(`marsh: no WorldCover plane called ${name}`);
+    for (let i = 0; i < cells; i++) out[i] = Math.min(100, out[i] + cover[p * cells + i]);
+  }
+  return out;
+}
+
+/**
  * Builds marsh-raw-1km.u8 (GLWD) and marsh-1km.u8 (the 1219 rule).
  * @param {import('./resample.mjs').Lattice} L the 1 km lattice @param {import('./grid-sources.mjs').Box} window
  * @param {Uint8Array} cover worldcover-1km planes
@@ -161,10 +177,9 @@ export async function buildMarsh(L, window, cover) {
   const raw = new Uint8Array(cells);
   for (let i = 0; i < cells; i++) raw[i] = Math.round(avg[i] === avg[i] ? avg[i] : 0);
 
-  const wetland = COVER_PLANES.findIndex((p) => p.name === 'wetland');
-  const moss = COVER_PLANES.findIndex((p) => p.name === 'moss');
+  const open = openWetland(cover, cells);
   const marsh = new Uint8Array(cells);
-  for (let i = 0; i < cells; i++) marsh[i] = marshShare(raw[i], cover[wetland * cells + i] + cover[moss * cells + i]);
+  for (let i = 0; i < cells; i++) marsh[i] = marshShare(raw[i], open[i]);
 
   const inputs = await Promise.all(keys.map((k) => inputRecord(k)));
   const base = { cols, rows, cell, rowOrder: 'south-first', type: 'uint8', unit: 'percent of the cell' };
@@ -174,9 +189,9 @@ export async function buildMarsh(L, window, cover) {
     notes: 'GLWD v2 share of each 15 arc-second cell in the listed classes, added up and capped at 100, then averaged over each 1 km cell. GLWD no data (255, the sea) counts as 0. Derived data only: raw GLWD is never committed.',
   });
   await writeGrid('marsh-1km.u8', marsh, {
-    ...base, sources: ['glwd-v2', 'worldcover-2021'], inputs: [...inputs, { derivedFrom: 'worldcover-1km.u8 (planes wetland + moss)' }],
-    params: { rule: 'max(stretch(marshRaw), worldcoverWetland + worldcoverMoss)', stretch: 'raw <= floor: 0; else min(100, (raw - floor) / (full - floor) * 100)', ...MARSH_PARAMS },
-    notes: '"Bogs stand out" (Ignas, 6 October 2026): the thin GLWD background is dropped, bog cores stretched towards 100, and today\'s open wetland from WorldCover (which certainly existed in 1219) is kept wherever it is larger.',
+    ...base, sources: ['glwd-v2', 'worldcover-2021'], inputs: [...inputs, { derivedFrom: `worldcover-1km.u8 (plane ${MARSH_COVER_PLANES.join(' + ')}: WorldCover class 90)` }],
+    params: { rule: 'max(stretch(marshRaw), worldcoverWetland)', worldcoverPlanes: MARSH_COVER_PLANES, worldcoverLeftOut: 'moss (class 100): mountain tundra on this map, not bog', stretch: 'raw <= floor: 0; else min(100, (raw - floor) / (full - floor) * 100)', ...MARSH_PARAMS },
+    notes: '"Bogs stand out" (Ignas, 6 October 2026): the thin GLWD background is dropped, bog cores stretched towards 100, and today\'s open herbaceous wetland from WorldCover (class 90, which certainly existed in 1219) is kept wherever it is larger. WorldCover moss and lichen (class 100) is left out: here it is mountain tundra, not bog.',
   });
   return { raw, marsh };
 }
@@ -206,10 +221,7 @@ const FARMLAND = /** @type {const} */ ([
  */
 export function marshChecks(grid, raw, marsh, cover) {
   const cells = grid.cols * grid.rows;
-  const wetland = COVER_PLANES.findIndex((p) => p.name === 'wetland');
-  const moss = COVER_PLANES.findIndex((p) => p.name === 'moss');
-  const open = new Uint8Array(cells);
-  for (let i = 0; i < cells; i++) open[i] = cover[wetland * cells + i] + cover[moss * cells + i];
+  const open = openWetland(cover, cells);
   const at = (/** @type {Uint8Array} */ v, /** @type {{ c: number, r: number }} */ b) => Math.round(blockMean(grid, v, b.c, b.r, 3));
   const rows = [];
   let pass = true;
@@ -226,7 +238,7 @@ export function marshChecks(grid, raw, marsh, cover) {
     pass &&= ok;
     rows.push([name, fmtPlace(lat, lon), `on the point; 10 km disc mean ${disc.toFixed(1)}`, at(raw, b), at(open, b), Math.round(b.value), ok ? 'ok (near 0)' : 'HIGH', '']);
   }
-  console.log(`\nMarsh checks (1 km cells; bogs: the best 3 x 3 km block within 10 km of the given point; farmland: the 3 x 3 km block on the point, and the mean of all cells within 10 km):\n${table(['place', 'given at', 'block used', 'GLWD raw %', 'WorldCover open wetland %', 'marsh %', 'check', 'note'], rows)}`);
+  console.log(`\nMarsh checks (1 km cells; bogs: the best 3 x 3 km block within 10 km of the given point; farmland: the 3 x 3 km block on the point, and the mean of all cells within 10 km):\n${table(['place', 'given at', 'block used', 'GLWD raw %', 'WorldCover wetland (class 90) %', 'marsh %', 'check', 'note'], rows)}`);
   return pass;
 }
 
