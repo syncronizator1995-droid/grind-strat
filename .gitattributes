@@ -1,0 +1,2 @@
+# Built map data must stay byte-identical on every computer (fingerprints are checked).
+src/data/map/** -text
