@@ -277,6 +277,8 @@ History's path after 1219, followed unless the player changes it:
 - Army makeup by age: hunters and warbands; tribal warriors and mounted raiders; levies, retinues,
   knights and crossbowmen; pikes, muskets and cannon; line infantry and artillery; rifles,
   machine guns, tanks and aircraft.
+- Roads develop by themselves where traffic needs them (Ignas, 6 October 2026); rivers and the sea
+  are routes from the start.
 - Supply: food comes from provinces and towns. Armies carry little, forage the land, and starve in
   poor or plundered country.
 - Seasons: winter freezes marshes, rivers and lakes and opens routes closed in summer, and the thaw
@@ -467,6 +469,8 @@ The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Cod
 | Holdings nobody is building | Grow very slowly compared with built ones |
 | Looking at other lands | Neighbours only, limited, like fog of war; see inside through direct ties such as visits, hunts or letters |
 | War exhaustion | Long wars directly lower your armies' effectiveness (step 5) |
+| Roads | Develop by themselves where they are needed; rivers and the sea are routes from the start |
+| Phone screen rule | At most 5 bottom tabs, 4 map modes in step 3, 2 buttons per list row |
 | Map look | Terrain drawn, with realm colours tinted over it |
 | Prototype engine | Rewritten in step 3a around the new design |
 | If phones are too slow | Far-away detail gives first |

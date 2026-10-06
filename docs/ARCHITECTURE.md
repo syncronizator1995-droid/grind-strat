@@ -336,6 +336,8 @@ Each is designed with Ignas in its own step. Numbers here are invented; game mec
   realm colours tinted over it, so step 2 also delivers those shapes, with sources.
 - **Links** between provinces by river, sea and road, added later for movement, supply and trade.
   Winter routes over frozen marshes, rivers and lakes need seasonal links too (step 5, Ignas).
+  Roads are not drawn by hand: they develop by themselves between busy places (Ignas), so the map
+  only needs to say where a road could run (terrain cost); rivers and sea links come with step 2.
 - **Holding sites only where sourced.** Each holding is a point at a real site. One with no sourced
   site has no point, and is listed in its province panel until research finds it.
 - **Sources for every item** (province, border, holding site, river), by ids from data/sources.md.

@@ -161,6 +161,11 @@ Then the rest of the open questions in docs/LEVELS.md:
 
 > Yes dynasty carries on and one can try to save it and change history. Holding nobody is building should have very slow development in comparison. Yes you can look at other lands if they are neighbors but it should be limited and function as a fog of war and could be seen inside if there are direct relationship like trips hunting or mail. War exaustion directly impacts effectiveness what about the other questions if they even are questions about roads and screen limits.... And yes you can fix the cal track and campfire and yes you can start planning step two
 
+Claude explained that roads was a real but small question and the screen limits only its own
+working rule. Ignas:
+
+> Sure on the screens and the roads should be developed or build automatically if they are needed in a spot and now continue with step 2
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.

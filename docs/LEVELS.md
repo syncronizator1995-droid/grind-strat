@@ -41,6 +41,8 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 | Holdings nobody is building | Grow very slowly compared with built ones |
 | Looking at other lands | Neighbours only, limited, like fog of war; see inside through direct ties such as visits, hunts or letters |
 | War exhaustion | Long wars directly lower your armies' effectiveness |
+| Roads | Develop by themselves where they are needed; rivers and the sea are routes from the start |
+| Phone screen rule | At most 5 tabs, 4 map modes in step 3, 2 buttons per list row |
 
 ### What each one means in play
 
@@ -403,9 +405,9 @@ ChatGPT saw only the old village prototype (Hamlet), not the current design. Its
 
 ## Still open
 
-1. **Roads and river routes.** For armies' supply and for merchants. HANDOFF adds river and sea links later. Do they come with the market (3c) or with war (step 5)? To settle while planning step 2, since the map data carries the links.
-
-**A working rule, not a question:** to keep the phone screen readable, at most 5 bottom tabs (step 3 has Realm, Family, Rulers, War, Chronicle), at most 4 map modes in step 3 (realms, lands, opinion of you, faith), at most 2 buttons per list row, and vassal terms on the vassal's own panel. Claude follows it unless you say otherwise.
+Nothing big. Your answers of 6 October settled the rest:
+- **Roads (decided):** roads develop by themselves where they are needed, between busy places, with no building by hand. Rivers and the sea are routes from the start, as part of the map. When roads first appear (with merchants in 3c, or with armies in step 5) is planned with step 3.
+- **Phone screen rule (agreed):** at most 5 bottom tabs (step 3 has Realm, Family, Rulers, War, Chronicle), at most 4 map modes in step 3 (realms, lands, opinion of you, faith), at most 2 buttons per list row, and vassal terms on the vassal's own panel.
 
 ### Smaller questions
 
