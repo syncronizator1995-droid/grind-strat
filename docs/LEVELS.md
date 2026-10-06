@@ -43,6 +43,17 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 | War exhaustion | Long wars directly lower your armies' effectiveness |
 | Roads | Develop by themselves where they are needed; rivers and the sea are routes from the start |
 | Phone screen rule | At most 5 tabs, 4 map modes in step 3, 2 buttons per list row |
+| Step 2 | Split into 2a (the map) and 2b (the 1219 provinces and holdings) |
+| Lithuania's provinces | Lands and castle districts named in 14th-century sources, each showing the year it was first mentioned |
+| Ice-age maps | Built properly in step 8 (the hunters); 2a gives sourced notes and a rough preview |
+| South edge | 50°N: Volhynia on the map, Galicia just off the edge in less detail |
+| Licences | Free forever, so share-alike data (like OpenStreetMap) is allowed |
+| File size | No limit; the real test is how fast the map opens on your phone |
+| Blocked data | You allow sites, but only when a milestone needs one: I stop and ask for that one site |
+| Your phone | Android |
+| Terrain grid | A 1 km terrain map for every province; battle and town maps made finer later |
+| Names on the map | Names of the time, changing with the time slider; today's name stands in, marked, where none is sourced |
+| Unsure borders | Guessed borders look softer than sourced ones |
 
 ### What each one means in play
 
@@ -79,14 +90,26 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 - **Holdings nobody is building:** they still grow, but very slowly compared with ones you or a computer ruler build.
 - **Looking at other lands:** you can look at your neighbours' lands, but only partly, like fog of war in strategy games. You see inside a holding only through a direct tie: a visit, a hunt together, letters. Far-off realms stay hidden. This matches the rule that computer rulers know only what their character would know.
 - **War exhaustion:** the longer a war drags on, the worse your armies fight. Comes with war in step 5.
+- **Step 2:** two playable versions. 2a is the map itself, with a time slider, a Credits screen and a speed test. 2b adds the 1219 provinces and holdings, starting with a pilot you check (Semigallia plus Upytė or Deltuva). **This changes** the build plan, where step 2 was a single step.
+- **Lithuania's provinces:** your heartland is split into the lands and castle districts that 14th-century sources name. Each one's panel shows the year it was first mentioned, so you can see how far after 1219 the name is recorded.
+- **Ice-age maps:** in 2a, sliding to 10,000, 9,500, 8,500, 7,500 or 5,000 BC shows a rough sketch, labelled rough, with a short sourced note on land, water, ice, plants, animals and people. The real ice-age maps come in step 8, where you play on them. **This changes** HANDOFF, which built all eight time slices in step 2.
+- **South edge:** the map runs from 50°N to 61.5°N and from 12°E to 34°E. Volhynia, one half of Galicia–Volhynia (the 1219 treaty partner), is on it; Galicia lies just off the edge.
+- **Licences:** the game stays free, so map data that must be shared alike (like OpenStreetMap) can be used. Those files stay separate, each with its own licence note, and a Credits screen names every data owner.
+- **File size:** no limit. What counts is that the first map is on your screen in under 3 seconds when you open the game from its saved copy. **This changes** HANDOFF's "under about 500 KB of map JSON".
+- **Blocked data:** some data sites are blocked where I work. You allow them, but I ask only when a milestone needs one, one site at a time. Until then, that layer waits (the hills wait for GEBCO, for example).
+- **Your phone:** Android, so the speed test is judged on your phone's Chrome. The game still has to work on computers and other phones. You send me the Speed test numbers with its Copy button.
+- **Terrain grid:** one 1 km terrain map covers the whole map, so every province has its own cells of forest, marsh, water and height. Battles (step 6) and towns (step 7) get finer maps made from it. **This changes** HANDOFF's small terrain grid per province ("for example 32 by 32 cells").
+- **Names on the map:** 1219 shows the names used in sources of that age, often Latin or German forms (such as Düna for the Daugava: TO CHECK). Where no name of the time is sourced, today's local name stands in, and the data says so. Tap a river, lake or sea for all its names and sources.
+- **Names change with the time:** move the time slider and the names change with the age.
+- **Unsure borders:** a border a source gives is drawn firmly. One drawn by a rule, because no source gives it, looks softer, so you can see at a glance what's known and what's guessed.
 
 ### My push-back, for the record
 
 These are the most demanding options, and each has a cost:
-- **150+ provinces with real holding sites:** a big research job in step 2.
+- **150+ provinces with real holding sites:** a big research job in step 2 (now 2b).
 - **Every holding buildable:** step 7 grows a lot.
 - **A full market:** 3c is the biggest of the three parts.
-- **To keep saves small,** an untouched holding's layout is made from its id, and the save keeps only your changes. I'll measure speed on your phone early in step 2 and show you the numbers.
+- **To keep saves small,** an untouched holding's layout is made from its id, and the save keeps only your changes. I'll measure speed on your phone early in step 2a (the Speed test button) and show you the numbers.
 
 ## The ladder of levels, 1219 to 1569
 
@@ -141,14 +164,15 @@ These are the most demanding options, and each has a cost:
 - **See:** a point on the map at its real site (**decided**). Inside, the town map, with the clock at speed 1 (**decided**).
 - **Feeds:** six things, whether you built it or it runs by itself: gold, soldiers, food, goods, fort strength and approval (how content its people are).
 - **Fed by:** its holder, its buildings, harvests, market prices and raids.
-- **Built in:** sites in step 2; type and level in 3a; food and goods in 3c; building by hand in step 7. Sieges and raids of any holding you built are fought on its own layout (**decided**); that needs steps 6 and 7.
+- **Built in:** sites in step 2b; type and level in 3a; food and goods in 3c; building by hand in step 7. Sieges and raids of any holding you built are fought on its own layout (**decided**); that needs steps 6 and 7.
 
 ### Province
 - **Do:** grant it or take it back, convert its faith, fight over it.
-- **See:** its shape on the drawn terrain, tinted in its realm's colour (**decided**). Its panel: terrain, wealth, people, culture, faith, fort, holder and holdings.
+- **See:** its shape on the drawn terrain, tinted in its realm's colour (**decided**). Sourced borders are drawn firmly, guessed ones softer (**decided**). Its name is the name of the time (**decided**). Its panel: terrain, wealth, people, culture, faith, fort, holder, holdings, and the year it was first mentioned.
 - **Feeds:** the sum of its holdings, and its terrain for supply and battlefields.
 - **Fed by:** its holder, laws, harvests, events, and armies passing through and foraging.
-- **Built in:** shapes and terrain in step 2 (150 or more in the Baltic core, **decided**); holder and numbers in 3a; harvests in 3c; supply in step 5; battlefields from its small terrain grid in step 6.
+- **Built in:** terrain in step 2a, as its cells of the 1 km terrain map (**decided**); shapes in step 2b, 150 or more in the Baltic core (**decided**); holder and numbers in 3a; harvests in 3c; supply in step 5; battlefields made finer from its terrain cells in step 6.
+- **Note:** in Lithuania the provinces are the lands and castle districts named in 14th-century sources, each with its first-mention year (**decided**). No province is invented just to reach 150.
 
 ### Land
 Lithuania proper, Deltuva, Nalšia and Samogitia (the list and the borders are TO CHECK).
@@ -156,7 +180,7 @@ Lithuania proper, Deltuva, Nalšia and Samogitia (the list and the borders are T
 - **See:** the "lands" map mode, and each duke's portrait.
 - **Feeds:** the dukes' tax and soldiers if they serve you; rivalry if they don't.
 - **Fed by:** your diplomacy, marriages and wars, and their grievances.
-- **Built in:** borders in step 2; titles in 3a; vassal terms and the claimant faction in 3b.
+- **Built in:** borders in step 2b; titles in 3a; vassal terms and the claimant faction in 3b.
 - **Note:** a land can have more than one duke. The 1219 treaty names Erdvilas and Vykintas among the Samogitian dukes.
 
 ### Grand Duchy and the crown
@@ -195,7 +219,7 @@ The Golden Horde, and the wider Christian world.
 
 ### Battle
 - **Do:** fight by hand or auto-resolve. By hand: tap a unit and drag to move or turn it, use formation buttons, pause anytime.
-- **See:** a top-down field built from the province's terrain, season and weather. Your army starts at the bottom, the enemy at the top.
+- **See:** a top-down field built from the province's terrain (made finer from its 1 km terrain map), season and weather. Your army starts at the bottom, the enemy at the top.
 - **Feeds:** deaths, wounds, captives for ransom, fame, war score (how well the war is going, from −100 to 100), and a chronicle line.
 - **Fed by:** the armies (fed or hungry), commanders, terrain, season and weather.
 - **Built in:** auto-resolved from 3b (**decided**); supply and seasons in step 5; battles you command in step 6; sieges and raids of any holding you built, on its own layout, in step 7 (**decided**).

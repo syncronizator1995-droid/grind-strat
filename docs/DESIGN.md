@@ -3,8 +3,9 @@
 A snapshot of Ignas's living plan, 6 October 2026. If Ignas says something different now, he wins:
 update this file. Everything here stays open to change.
 
-Updated on 6 October 2026 in Claude Code with Ignas's answers to a questionnaire. Each answer is a row
-in "Decisions so far" at the end; docs/LEVELS.md explains what each one means in play.
+Updated on 6 October 2026 in Claude Code with Ignas's answers to a questionnaire, and again the same
+day with his answers for step 2 (the map). Each answer is a row in "Decisions so far" at the end;
+docs/LEVELS.md explains what each one means in play.
 
 ## The game
 
@@ -333,15 +334,27 @@ History's path after 1219, followed unless the player changes it:
 
 ## The map through time
 
-The map covers the Vistula to the Gulf of Finland, with neighbouring powers in less detail.
-Coasts, rivers, lakes and ice must match research for each period, with every source recorded.
-The main goal is a polished, error-free Lithuanian playthrough that holds together however the
-player changes history.
+The map covers 12°E to 34°E and 50°N to 61.5°N (south edge chosen by Ignas on 6 October 2026; the
+rest from the approved 2a plan): from eastern Zealand and Bornholm to Novgorod and Lake Ilmen, and
+from Volhynia to the Gulf of Finland and Stockholm. Galicia lies just off the south edge, in less
+detail, like the other neighbouring powers. Coasts, rivers,
+lakes and ice must match research for each period, with every source recorded. The main goal is a
+polished, error-free Lithuanian playthrough that holds together however the player changes history.
 
-- Provinces: 150 or more in the Baltic core in 1219.
+- Provinces: 150 or more in the Baltic core in 1219. Lithuania's are the lands and castle
+  districts named in 14th-century sources, each showing the year it was first mentioned.
+- Borders: a border a source gives is drawn firmly; a border guessed by a rule looks softer.
 - Holdings: every holding is a point on the map, at its real, sourced site only. A holding with no
   sourced site is listed in its province's panel until research finds the site.
 - The look: terrain is drawn (forests, marshes, rivers, lakes), with realm colours tinted over it.
+- Names: names of the time. Moving the time slider changes them: 1219 shows the forms used in
+  sources of that age, today shows today's local names. Where no name of the time is sourced,
+  today's name stands in, marked so. Tap a place for all its names and sources.
+- Terrain: one 1 km terrain map covers every province. Battle maps (step 6) and town maps (step 7)
+  are made finer from it later.
+- Time slices: today, 1219 and 1 AD in full from step 2a. The five ice-age slices get a rough
+  preview and sourced notes in 2a, and are built properly in step 8, with the hunters.
+- Credits: a Credits screen lists every data owner, the licence and what we changed.
 
 The Baltic basin changed shape after the ice:
 
@@ -400,7 +413,11 @@ already covers much of them (as ideas, and what its tests checked: the engine it
 in 3a, and its code and test files weren't uploaded).
 
 1. Agree this design.
-2. Map research: the real Baltic map and how it changed from the ice age to today, with sources for every stage.
+2. The map, with sources for every stage, in two parts, each ending playable on Ignas's phone:
+   - 2a: the map itself: coasts, rivers, lakes, painted terrain, a time slider (today, 1219 and
+     1 AD in full; a rough ice-age preview), names that change with the time, a Credits screen and
+     a speed test on his phone.
+   - 2b: the 1219 provinces and holdings, region by region, starting with a pilot he checks.
 3. Middle Ages, dynasty and realm: from about 1200, as the crusades begin, with real rulers, families,
    marriages, succession, diplomacy and events. Split into three parts, each ending playable on
    Ignas's phone:
@@ -414,7 +431,8 @@ in 3a, and its code and test files weren't uploaded).
 5. Middle Ages, war: armies, supply, seasons and sieges, with battles settled automatically.
 6. Middle Ages, battles: real-time battles you command.
 7. Middle Ages, towns: your seat, and any holding in your realm, built by hand and feeding the realm.
-8. The first hunters: top-down action in 10,000 BC on the ice-age map, like Far Cry Primal.
+8. The first hunters: top-down action in 10,000 BC on the ice-age map, like Far Cry Primal. The
+   ice-age map slices are built properly here.
 9. Your tribe's story: shaping your people from the hunters to the crusades as the land changes.
    With step 8, this becomes the game's opening.
 10. Commonwealth and gunpowder, playing the country.
@@ -423,7 +441,8 @@ in 3a, and its code and test files weren't uploaded).
 
 ## Decisions so far (all open to change)
 
-The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Code.
+The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Code. The rows from
+Step 2 split down are his step 2 answers, later the same day.
 
 | Question | Decision |
 | --- | --- |
@@ -476,6 +495,17 @@ The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Cod
 | If phones are too slow | Far-away detail gives first |
 | Repo public on GitHub Pages | Yes, so the game opens on Ignas's phone from a link |
 | Font with extended Latin letters | Yes: Grenze Gotisch, so letters such as Ž, ė, ą, ł, ā and õ show |
+| Step 2 split | 2a, the map; then 2b, the 1219 provinces and holdings |
+| Lithuania's provinces | Lands and castle districts named in 14th-century sources, each showing the year it was first mentioned |
+| Ice-age maps | Built properly in step 8 (the hunters); step 2a gives sourced notes and a rough preview |
+| South edge | 50°N: Volhynia on the map, Galicia just off the edge in less detail (the full box, 12°E to 34°E and 50°N to 61.5°N, is from the approved 2a plan) |
+| Licences | Free forever, so share-alike data (like OpenStreetMap) is allowed |
+| File size | No limit; the real test is how fast the map opens on his phone |
+| Blocked data | Ignas allows sites, but only when a milestone needs one: Claude stops and asks for that one site |
+| Ignas's phone | Android |
+| Terrain grid | A 1 km terrain map for every province; battle and town maps made finer later (replaces the small 32 by 32 grid per province) |
+| Names on the map | Names of the time, changing with the time slider; today's name stands in, marked, where none is sourced |
+| Unsure borders | Guessed borders look softer than sourced ones |
 
 ## Treating real history with care
 

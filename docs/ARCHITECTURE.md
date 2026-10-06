@@ -2,6 +2,7 @@
 
 The technical rules that stop the parts of the game from breaking each other. For Claude Code and any
 developer. Written on 6 October 2026 from the approved step-1 plan and Ignas's answers of that day.
+Section 9 updated the same day with his step 2 answers.
 Like every doc here it stays open: if Ignas says something different, he wins, and this file changes.
 
 Plain words used below:
@@ -52,7 +53,7 @@ game mechanic read only from search-result extracts (the Paradox and Manor Lords
 
 | System | Owns | Step |
 | --- | --- | --- |
-| World | Map shapes; fixed province facts (terrain, rivers, coast, neighbours, sources); terrain grids; holding sites | 2; links later |
+| World | Map shapes; fixed province facts (terrain, rivers, coast, neighbours, sources); the 1 km terrain map; names by era; holding sites | 2a, 2b; links later |
 | Settlements and holdings | Holdings: type, level, buildings, outputs; your edits to hand-built layouts | 3a summary; 7 hand-built |
 | Characters and dynasty | People, houses, family links, skills, traits, faith, culture, memories; later friends, rivals, lovers, secrets, court and council | 3a; 4 |
 | Feudal politics | Titles, who holds what, who serves whom, laws, claims, vassal contracts, factions, alliances, truces; province control, faith, culture | 3a titles; 3b |
@@ -216,8 +217,9 @@ events still pause. It is a limit set by the UI: the rules are the same, so resu
   at 60 frames a second; start-up under 3 s; a save under 2 MB.
 - Starting split of one game day (invented until measured): armies and sieges 1 ms; spread province
   updates 1 ms; spread character updates 1.5 ms; events and computer rulers 1 ms; spare 0.5 ms.
-- Speed is measured on Ignas's phone early in step 2. The prototype's 0.2 to 2.6 s per 150 game
-  years (52 provinces, monthly and yearly updates) says little about daily armies on the real map.
+- Speed is measured on Ignas's Android phone early in step 2a (milestone M1, the Speed test
+  button). The prototype's 0.2 to 2.6 s per 150 game years (52 provinces, monthly and yearly
+  updates) says little about daily armies on the real map.
 - **Ignas's rule: far-away detail gives first.** If phones are too slow, distant holdings and
   markets run as simple numbers until you look. What gives after that is his call.
 
@@ -323,24 +325,124 @@ Each is designed with Ignas in its own step. Numbers here are invented; game mec
 - Historical events list their source ids (such as `hist-lt-1219`) and fire only while their
   conditions hold, so a changed history stays consistent. Made-up events say `"invented": true`.
 
-## 9. Map data step 2 must provide for later steps
+## 9. Map data (step 2: 2a, then 2b)
 
-- **Per province** (HANDOFF's format): id, name, other-language names, outline, centre, terrain
-  (plains, forest, hills, marsh, lake shore, coast), neighbours, coast, rivers, historical land,
-  sources. 150 or more in the Baltic core.
+Step 2 is split (Ignas, 6 October 2026): **2a** is the map itself; **2b** is the 1219 provinces
+and holdings, planned with him after 2a. The approved 2a plan is in docs/HANDOFF.md, section 2.
+
+**Ignas's step 2 answers that change earlier plans:**
+- A 1 km terrain map replaces "a small terrain grid per province (for example 32 by 32 cells)".
+- No hard size limit replaces "map JSON under about 500 KB"; the test is first map on screen in
+  under 3 s on his phone.
+- Names of the time, changing with the time slider (the research had proposed today's names).
+- Share-alike data is allowed ("free forever"), in separate files.
+- The five ice-age slices are built properly in step 8; 2a gives a rough preview.
+
+**Area, projection and units:**
+- Area: 12°E to 34°E, 50°N to 61.5°N.
+- Projection: Lambert azimuthal equal-area, the same formula as EPSG:3035 (ETRS89-LAEA), but
+  centred on 56°N 23°E instead of 52°N 10°E. North is up over Lithuania and leans less than 10°
+  at the edges (about 9.5° at the northern corners); areas compare fairly.
+- Game coordinates are whole numbers in 100 m units, about 15,720 × 13,270 units (about 1,572 by
+  1,327 km). Whole numbers keep the geometry maths exact on every device (section 4).
+- Tests: the formula matches the official EPSG:3035 test point (run with EPSG:3035's own centre),
+  and converting there and back returns the same point.
+
+**Files and pipeline:**
+- `npm run map` fetches raw data into `data/raw/` (git ignores it). For each raw file it records
+  the link, date, fingerprint, collection id and licence status (read or not yet read).
+- A collection whose host is blocked waits. Claude asks Ignas to allow that one host only when a
+  milestone needs it (Ignas, 6 October 2026).
+- `npm run map` then builds `src/data/map/`, which goes into git, so nobody needs to run the
+  pipeline to build the game. A shipped file from a source whose licence is not yet read fails
+  the build.
+- Files with share-alike licences (ODbL, CC BY-SA) are kept separate from the rest, each with its
+  own licence note, because ODbL and CC BY-SA can't be mixed in one file.
+- `.gitattributes` keeps map files byte-identical on Windows. Tests check the committed files
+  against their recorded fingerprints, and rebuild a small sample to prove the same bytes come out.
+- Tools are plain Node scripts written for the project (projection, GeoJSON reader, GEBCO
+  text-grid reader, packers). No new dev dependencies. Rivers come from data, never traced by
+  computer.
+
+**Formats:**
+- Lines (coasts, rivers, lakes, later province borders): whole-number coordinates, shared borders
+  stored once, packed as text.
+- Grids (terrain, height): packed bytes, unpacked in the browser by its built-in
+  `DecompressionStream` (fine on Chrome for Android, Ignas's phone).
+- Rule-made data (the road-cost grid, anything worked out by a rule) is rebuilt at start-up as
+  derived data, never stored in the map files or the save.
+- Size: no hard limit. Every build reports the map size, and a test fails if one file suddenly
+  balloons (a sanity check, not a budget).
+
+**The 1 km terrain map** (replaces the 32 by 32 grid per province):
+- One grid for the whole map at 1 km cells: land cover (forest, marsh, open land, water and so
+  on), water and height. A province's terrain is its own cells, worked out at load as derived data.
+- Every province shares one cell size, so battlefields compare fairly.
+- Battle maps (step 6) and town maps (step 7) are generated finer from these cells plus the
+  holding's site, by hash, like untouched holding layouts (section 4). Looking at one never
+  changes the save (section 5).
+- 1219 forest share is estimated from pollen (REVEALS, an AD 750–1250 average) and labelled so.
+
+**Time slices:** today, 1219 and 1 AD in full. The five ice-age slices (10,000, 9,500, 8,500,
+7,500 and 5,000 BC) are a rough preview, labelled rough, each with a sourced note; built properly
+in step 8. One base coast (Natural Earth) is used by every slice, so the coast doesn't jump where
+nothing changed; 1219 and 1 AD add local fixes, each with a source or marked TO CHECK.
+
+**Names per era.** Every named place (river, lake, sea, later province and holding) stores its
+names by era. A proposed shape:
+```json
+{ "names": {
+    "today":  { "name": "Daugava", "sources": ["ne:<feature id>"] },
+    "1219":   { "name": "Daugava", "standIn": true },
+    "1 AD":   { "name": "Daugava", "standIn": true } },
+  "other": { "lt": "…", "lv": "…", "et": "…", "pl": "…", "de": "…", "ru": "…" } }
+```
+- `standIn: true` means today's local name is standing in because no name of the time is sourced.
+  The map shows the name for the slider's era. The panel shows every name with its sources.
+- A test checks that every named feature has a name per era, or a marked stand-in, and a source.
+- The values above are an invented example of the shape, not data.
+
+**Sources and credits:**
+- data/sources.md lists collections (Natural Earth, OpenStreetMap, GEBCO and so on), each with a
+  short id and its licence quoted once read. Records cite `collection:id`, such as
+  `osm:<feature id>`.
+- A small machine-readable index of the collection ids lets tests check that every cited
+  collection exists and its licence was read before the file ships.
+- One credits list builds both the in-game Credits screen and `ATTRIBUTION.md`: owner, licence and
+  link, the required notice, and what we changed.
+
+**Drawing (2a):**
+- Terrain is painted once into cached image tiles, so panning reuses them. Pixel density is
+  capped at 2.
+- Less detail when zoomed out; far-away detail drops first (Ignas's rule).
+- A placeholder fog-of-war layer is in the speed test from the start, so its cost is known.
+- Speed targets on his phone: 95% of frames under 16.7 ms while panning, a full redraw under
+  50 ms, first map in under 3 s from the saved copy.
+
+**Provinces, borders and holdings (2b):**
+- **Per province:** id, names by era, other-language names, outline, centre, terrain (plains,
+  forest, hills, marsh, lake shore, coast, from its cells), neighbours, coast, rivers, historical
+  land, first-mention year, sources. 150 or more in the Baltic core. No province is invented to
+  reach 150.
+- **Lithuania:** the lands and castle districts named in 14th-century sources, each with its
+  first-mention year.
+- **How provinces are made:** each grows from a sourced seed point over the 1 km terrain, with
+  border rivers named in sources acting as walls. Modern units only check the result.
+- **Border kinds:** every border piece records its kind: *sourced* (a line a source gives, with
+  its source ids) or *guessed* (drawn by a stated rule, marked invented). The two are drawn
+  differently: guessed borders look softer.
 - **The lands** (Lithuania proper, Deltuva, Nalšia, Samogitia: TO CHECK) as groups of provinces.
-- **A small terrain grid per province** (for example 32 by 32 cells, invented): land cover, water,
-  height. Battlefields (step 6) and town layouts (step 7) are cut from it. Map JSON stays under about
-  500 KB in total (HANDOFF).
-- **Land cover for drawing:** Ignas chose a drawn terrain look (forests, marshes, rivers, lakes) with
-  realm colours tinted over it, so step 2 also delivers those shapes, with sources.
-- **Links** between provinces by river, sea and road, added later for movement, supply and trade.
-  Winter routes over frozen marshes, rivers and lakes need seasonal links too (step 5, Ignas).
-  Roads are not drawn by hand: they develop by themselves between busy places (Ignas), so the map
-  only needs to say where a road could run (terrain cost); rivers and sea links come with step 2.
-- **Holding sites only where sourced.** Each holding is a point at a real site. One with no sourced
-  site has no point, and is listed in its province panel until research finds it.
-- **Sources for every item** (province, border, holding site, river), by ids from data/sources.md.
+- **Holding sites only where sourced.** A point only at a real, sourced and dated site. Broadly
+  dated sites show in the panel as "possibly in use"; disputed sites show their candidates, with
+  no point; a holding with no sourced site is listed in its province panel.
+- **Links** between provinces by river, sea and road, for movement, supply and trade. Winter routes
+  over frozen marshes, rivers and lakes need seasonal links too (step 5, Ignas). Roads are not
+  drawn by hand: they develop by themselves between busy places (Ignas), so the map only needs to
+  say where a road could run (the road-cost grid, rebuilt at start-up).
+- Province ids enter saves from 3a. Changing them after that needs a save migration (section 4).
+
+**Sources for every item** (province, border, holding site, river, name), by `collection:id` or
+by ids from data/sources.md.
 
 ## 10. Invariants and soak outputs
 

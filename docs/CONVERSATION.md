@@ -166,6 +166,39 @@ working rule. Ignas:
 
 > Sure on the screens and the roads should be developed or build automatically if they are needed in a spot and now continue with step 2
 
+### Step 2: the map
+
+Claude fixed Campfire and Cal Track, as he had said yes: pull requests in his Guitar,
+cal_track and cal_track.2.0 repos, so each app deletes only its own caches when it updates.
+
+Then Claude researched step 2: six researchers (today's base map, coasts through time, the lands
+of 1219, holding sites, tools and phone speed, land cover), a draft plan, and two reviewers who
+looked for its faults. Most data sites were blocked where Claude works, so many licences were seen
+only in search results. The research showed step 2 was too big for one go. Claude asked three
+rounds of questions. The options he picked (labels written by Claude, topic names added):
+
+> Split step 2: "Split: 2a then 2b (Recommended)". Lithuania: "Later real units, dated (Recommended)". Ice-age maps: "Step 8, rough preview now (Recommended)". South edge: "50°N (Recommended)".
+
+> Licences: "Never: free forever". File size: "No limit". Blocked data: "I'll allow the sites (Recommended)". Your phone: "Android phone".
+
+> Terrain grid: "1 km map, finer later (Recommended)". Map names: "Names of the time". Unsure borders: "Guessed ones look softer (Recommended)".
+
+Then he added:
+
+> The names on the map should chage with the time and ask me to allow sites once needed
+
+Claude read it as: the names change with the time slider, and he allows a blocked site only when
+a milestone needs it, asked one site at a time. Claude wrote the step 2a plan with these answers,
+and he approved it. His answers change these earlier plans:
+
+- Step 2 is split into 2a (the map) and 2b (the 1219 provinces and holdings).
+- A 1 km terrain map replaces the small 32 by 32 grid per province.
+- No hard size limit replaces "under about 500 KB of map JSON"; the test is how fast the map
+  opens on his phone.
+- The five ice-age slices are built properly in step 8; 2a gives a rough preview.
+- Names of the time, changing with the slider. The research had proposed today's local names.
+- Share-alike data is allowed. The research had recommended avoiding it.
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.
