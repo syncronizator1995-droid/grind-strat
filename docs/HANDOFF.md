@@ -202,11 +202,17 @@ sites once needed".
 
 ### 2a: the map
 
-Status (6 October 2026): **M1 built.** The speed test runs on a test map, labelled as made up,
-with the real Natural Earth coast, lakes and rivers. Waiting for Ignas's numbers from his Android
-phone before M2. In headless Chrome on a PC, with no GPU: first map in about 0.4 s, full redraw
-about 33 ms, panning 99% of frames on time. With the processor slowed 4×: first map in about
-1.7 s.
+Status (6 October 2026): **M1 done; M2 next.** The speed test runs on a test map, labelled as made
+up, with the real Natural Earth coast, lakes and rivers. Ignas's Android phone (Chrome 154, 8 cores,
+screen 411 × 576 drawn at 2×, a 90 Hz display) passed all three targets:
+- First map on screen 2.5 s (target 3 s). Of that, 2.2 s passed before the game's code started (the
+  page arriving and being read); the map work itself took about 0.25 s (unpacking 62 ms, terrain
+  127 ms, shapes 44 ms). So start-up depends mostly on the page's size: watch it as real data
+  is added.
+- Full redraw 11 ms (target 50).
+- Panning and zooming: 993 frames, 99% on time; frames every 11 ms, drawing 0.1 ms per frame.
+
+No drawing fixes are needed before M2.
 
 **What Ignas sees on his phone at the end of 2a:**
 - **The real map** instead of the empty grid: sea, coasts, rivers, lakes, hill shading, forests
