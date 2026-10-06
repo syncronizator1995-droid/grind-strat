@@ -91,7 +91,8 @@ engine itself is rewritten in 3a, and its code and test files weren't uploaded).
 Goal: an empty but working project that builds one offline file and runs tests. No game features yet.
 Show Ignas the folder layout and tool choices in plan mode first, then build it.
 
-Status: built and tested in Claude Code on 6 October 2026; waiting for Ignas to play it on his phone.
+Status: done. Built and tested in Claude Code on 6 October 2026, merged, published on GitHub Pages,
+and Ignas played it on his phone the same day: "it seems to work perfectly fine".
 What was built, beyond the list below:
 - Dev dependencies: esbuild, typescript and playwright, plus @types/node (type definitions only,
   needed so the type check understands the Node scripts in tools/ and test/).

@@ -137,6 +137,11 @@ Ignas approved the plan. His answers change five earlier decisions:
 - 150 or more provinces. This replaces "roughly 80 to 150, decide with Ignas".
 - The prototype engine is rewritten in 3a, instead of being moved over and adapted.
 
+Claude built step 1, had it reviewed, fixed what the review found, and opened a pull request.
+Ignas made the repo public, turned on GitHub Pages, merged it, and tried the game on his phone:
+
+> Done and it seems to work perfectly fine
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.
