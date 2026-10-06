@@ -151,6 +151,8 @@ async function playAsFile(browser, scheme) {
   for (const p of await layoutProblems(page)) failures.push(`${label}: ${p}`);
   await page.screenshot({ path: join(SHOTS, `${scheme}-1-start.png`) });
   check((await page.locator('#mapNote').count()) === 0, `${label}: the M1 "test map" note is still there`);
+  const names = Number(await page.locator('#map').getAttribute('data-names'));
+  check(names >= 4, `${label}: only ${names} river and lake names on the starting map`);
   const creditLine = await page.locator('#mapCreditText').innerText();
   check(/GEBCO/.test(creditLine) && /more$/.test(creditLine), `${label}: the map credit line is wrong: "${creditLine}"`);
   await mapViews(page, label, scheme);
@@ -247,6 +249,8 @@ async function mapViews(page, label, scheme) {
   await page.mouse.wheel(0, -500);
   await settle(page);
   await page.screenshot({ path: join(SHOTS, `${scheme}-map-lithuania.png`) });
+  const names = Number(await page.locator('#map').getAttribute('data-names'));
+  check(names >= 3, `${label}: only ${names} river and lake names zoomed in over Lithuania`);
   for (const p of await layoutProblems(page)) failures.push(`${label} zoomed in: ${p}`);
   await page.reload();
   await mapShown(page, label);

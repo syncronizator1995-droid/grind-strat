@@ -13,6 +13,8 @@ import { simplify } from './geometry.js';
 import { bandShown, BANDS, bandWidth, indexWater, labelFont, placeWaterLabels, riverBand } from './labels.js';
 import { paintSea, paintTerrain } from './terrain.js';
 
+/** @typedef {import('./load.js').WaterData} WaterData */
+
 /** Province tint colours (realms come in step 3; the test map uses these). */
 const TINTS = ['#c0392b', '#2e86c1', '#d4ac0d', '#7d3c98', '#17a589', '#ca6f1e', '#5d6d7e', '#a93226', '#1f618d', '#b7950b', '#6c3483', '#148f77'];
 const SEA = '#2f5266';
@@ -28,8 +30,11 @@ const SETTLE_MS = 140;
  */
 const LEVELS = [{ tolerancePx: 0.8, below: 0.06 }, { tolerancePx: 0.6, below: 0.25 }, { tolerancePx: 0, below: Infinity }];
 const WATER = '#4a7f96';
-/** Placing names stops after this long (ms); the biggest rivers and lakes are named first. */
-const LABEL_BUDGET_MS = 4;
+/**
+ * Placing names stops after this long (ms): a cap for a slow phone, not the usual cost (about
+ * 1 ms once warm). The biggest rivers and lakes are named first, so it only drops small ones.
+ */
+const LABEL_BUDGET_MS = 8;
 /** Name colours: dark blue with a light halo; on a dark phone, light blue with a dark halo. */
 const LABEL_INK = { light: { fill: '#173f56', halo: 'rgba(238, 241, 232, 0.88)' }, dark: { fill: '#d3e6f0', halo: 'rgba(14, 26, 34, 0.86)' } };
 
@@ -333,13 +338,19 @@ export function createMapView(canvas, map) {
     if (!map.water || !waterIndex) return NaN;
     const start = performance.now();
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Measuring a name is slow the first time (the browser finds the font), then it is cached.
+    // That one-off time doesn't count against the placing budget, or the first map would get
+    // almost no names.
+    let measuring = 0;
     const measure = (/** @type {string} */ text, /** @type {number} */ size) => {
       const key = `${size}|${text}`;
       let w = widths.get(key);
       if (w === undefined) {
+        const t0 = performance.now();
         c.font = labelFont(size);
         w = c.measureText(text).width;
         widths.set(key, w);
+        measuring += performance.now() - t0;
       }
       return w;
     };
@@ -350,16 +361,19 @@ export function createMapView(canvas, map) {
     const labels = placeWaterLabels({
       water: map.water, index: waterIndex, level: index, scale: s, ox, oy, width: fw, height: fh, measure, keepOut: covered,
       screen: [dx, dy, dx + cssW, dy + cssH],
-      budgetMs: LABEL_BUDGET_MS, now: () => performance.now(),
+      budgetMs: LABEL_BUDGET_MS, now: () => performance.now() - measuring,
     });
+    // How many names are on the map, for the screenshot checks.
+    canvas.dataset.names = String(labels.length);
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.lineJoin = 'round';
     c.lineWidth = 3;
     c.strokeStyle = ink.halo;
     c.fillStyle = ink.fill;
+    let font = '';
     for (const l of labels) {
-      c.font = labelFont(l.size);
+      if (labelFont(l.size) !== font) c.font = font = labelFont(l.size);
       c.setTransform(dpr * Math.cos(l.angle), dpr * Math.sin(l.angle), -dpr * Math.sin(l.angle), dpr * Math.cos(l.angle), l.x * dpr, l.y * dpr);
       c.strokeText(l.text, 0, 0);
       c.fillText(l.text, 0, 0);
@@ -510,7 +524,7 @@ export function createMapView(canvas, map) {
     /**
      * Adds the rivers and lakes once they are unpacked (just after the first picture), and
      * redraws.
-     * @param {import('./load.js').WaterData} water
+     * @param {WaterData} water
      */
     setWater(water) {
       map.water = water;

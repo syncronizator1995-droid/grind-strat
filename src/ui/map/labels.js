@@ -151,8 +151,8 @@ let buffer = new Float64Array(4096);
 /**
  * Straight-ish stretches of a line (screen points) at least `length` long, as candidate places for
  * a name: the chord from start to end, with the line never straying more than `maxDev` from it.
- * Starts are tried every quarter of `length` along the line, which finds the room there is
- * without trying every point. Returned nearest to the frame's middle first.
+ * Every point is tried as a start (trying fewer missed good places where a bend sits at the
+ * start). Returned nearest to the frame's middle first.
  * @param {Float64Array} pts flat screen points [x0, y0, ...], all inside the frame
  * @param {number} length CSS px @param {number} maxDev CSS px
  * @param {{ cx: number, cy: number, width: number, height: number }} frame
@@ -165,9 +165,8 @@ export function straightStretches(pts, length, maxDev, frame, count = pts.length
   if (arcs.length < n) arcs = new Float64Array(n * 2);
   arcs[0] = 0;
   for (let i = 1; i < n; i++) arcs[i] = arcs[i - 1] + Math.hypot(pts[i * 2] - pts[i * 2 - 2], pts[i * 2 + 1] - pts[i * 2 - 1]);
-  const stride = length / 4;
   let j = 0;
-  for (let i = 0; i < n - 1;) {
+  for (let i = 0; i < n - 1; i++) {
     if (j < i) j = i;
     while (j < n - 1 && arcs[j] - arcs[i] < length) j++;
     if (arcs[j] - arcs[i] < length) break;
@@ -180,8 +179,6 @@ export function straightStretches(pts, length, maxDev, frame, count = pts.length
       }
       if (worst <= maxDev) out.push({ x0, y0, x1, y1, d: Math.hypot((x0 + x1) / 2 - frame.cx, (y0 + y1) / 2 - frame.cy) });
     }
-    const next = arcs[i] + stride;
-    do i++; while (i < n - 1 && arcs[i] < next);
   }
   return out.sort((p, q) => p.d - q.d);
 }

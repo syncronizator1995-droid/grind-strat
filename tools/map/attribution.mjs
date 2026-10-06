@@ -127,6 +127,9 @@ export function makeAttribution({ sources, blocks, ofl }) {
   const all = [...byCitation.values()];
   const short = (/** @type {typeof all[number]} */ d) => String(/** @type {any} */ (sources.find((s) => s.id === d.ids[0])?.credit).short);
   const onMap = all.filter((d) => d.ids.some((id) => /** @type {any} */ (sources.find((s) => s.id === id)?.credit).onMap));
+  // OpenStreetMap's credit leads the line, as its attribution guidelines ask for a visible credit.
+  const isOsm = (/** @type {Group} */ d) => d.ids.some((id) => sources.find((s) => s.id === id)?.collection === 'osm');
+  onMap.sort((a, b) => Number(isOsm(b)) - Number(isOsm(a)));
   const odbl = blocks.find((b) => b.block.licence === 'ODbL-1.0');
   /** @type {Credits} */
   const credits = {
