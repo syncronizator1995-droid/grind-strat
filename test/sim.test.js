@@ -1,6 +1,7 @@
 // @ts-check
 // Rules tests: the calendar, random numbers, saves and the invariant checker.
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { dateFromDay, dayFromDate, formatDate, isFirstOfMonth } from '../src/sim/calendar.js';
 import { advanceDay, fromSave, newGame, SAVE_VERSION, START_DAY, toSave } from '../src/sim/game.js';
@@ -125,6 +126,17 @@ describe('game and saves', () => {
     const data = JSON.parse(toSave(state));
     assert.equal(data.version, SAVE_VERSION);
     assert.deepEqual(Object.keys(data).sort(), ['day', 'rng', 'seed', 'version']);
+  });
+
+  it('loads a saved game from every save version so far', () => {
+    const dir = new URL('./fixtures/', import.meta.url);
+    const files = readdirSync(dir).filter((f) => /^save-v\d+\.json$/.test(f));
+    assert.equal(files.length, SAVE_VERSION, 'one fixture save per version');
+    for (const f of files) {
+      const loaded = fromSave(readFileSync(new URL(f, dir), 'utf8'));
+      assert.ok(loaded.ok, `${f}: ${loaded.ok ? '' : loaded.error}`);
+      if (loaded.ok) assert.equal(loaded.state.version, SAVE_VERSION);
+    }
   });
 
   it('refuses bad saves with a clear message instead of crashing', () => {

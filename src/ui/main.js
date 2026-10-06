@@ -7,7 +7,7 @@ import { advanceDay, fromSave, newGame, toSave } from '../sim/game.js';
 import { shouldAutosave } from './autosave.js';
 import { daysForFrame, FASTEST_BUDGET_MS, MAX_DAYS_PER_FRAME } from './clock.js';
 import { setUpInstall } from './install.js';
-import { askToKeepStorage, AUTOSAVE_KEY, readText, SAVE_KEY, writeText } from './storage.js';
+import { askToKeepStorage, AUTOSAVE_KEY, readText, SAVE_KEY, UNREADABLE_KEY, writeText } from './storage.js';
 
 /**
  * @template {Element} T
@@ -52,7 +52,10 @@ function startingState() {
       queueMicrotask(() => tell(`Continued from your autosave: ${formatDate(loaded.state.day)}.`));
       return loaded.state;
     }
-    queueMicrotask(() => tell(`Your autosave couldn't be loaded. ${loaded.error} A new game has started.`, true));
+    // Keep the unreadable save aside (a newer version of the game may read it), so the new
+    // game's autosaves never overwrite it.
+    const kept = writeText(UNREADABLE_KEY, read.text).ok ? ' It has been kept aside.' : '';
+    queueMicrotask(() => tell(`Your autosave couldn't be loaded. ${loaded.error}${kept} A new game has started.`, true));
     return newGame(randomSeed());
   }
   if (read.ok) queueMicrotask(() => tell('A new game. Time is paused: tap a speed, 1 to 5, to start.'));

@@ -4,6 +4,8 @@
 
 export const AUTOSAVE_KEY = 'grind-strat/autosave';
 export const SAVE_KEY = 'grind-strat/save';
+/** Where an autosave this version can't read is kept, so a new game never overwrites it. */
+export const UNREADABLE_KEY = 'grind-strat/autosave-unreadable';
 
 /** @typedef {{ ok: true, text: string | null } | { ok: false, error: string }} ReadResult */
 /** @typedef {{ ok: true } | { ok: false, error: string }} WriteResult */
