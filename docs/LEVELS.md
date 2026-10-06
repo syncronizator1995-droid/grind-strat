@@ -47,13 +47,13 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 - **Vassal duties:** each vassal has his own terms, set one by one. Which terms, how many steps each, and what asking for more costs you: designed for 3b and shown to you first.
 - **Computer rulers:** a rival can't use your secret unless his character has found it. He uses the same actions you do.
 - **Inheritance:** at the start sons come before daughters, and land is split between sons until a stronger law is adopted (as DESIGN.md says). Laws and events can change both.
-- **Provinces:** a detailed map. HANDOFF suggested 80 to 150; you chose 150 or more.
+- **Provinces:** a detailed map, 150 or more. **This changes** HANDOFF's "roughly 80 to 150, decide with Ignas".
 - **Holdings on the map:** castles and towns appear as points where they really stood. One without a sourced site appears only in its province's panel until research finds it.
 - **Entering land:** tap any holding in your realm and build it by hand, Manor Lords style. Building in a vassal's holding may anger him. **This changes** DESIGN.md, which said "Other holdings: run from the realm map with build menus".
 - **Clock inside a holding:** time drops to speed 1 (2 days a second, about 3 minutes per game year). Births, deaths, wars and other big events still pause it.
 - **Seat sieges:** if an enemy besieges your seat, you defend the town you built, on its own map.
 - **Map look:** forests, marshes, rivers and lakes are drawn, with each realm's colour laid over them.
-- **Prototype engine:** written fresh in 3a around this design, with the prototype's ideas and tests reused on purpose. You don't need to upload anything. **This changes** HANDOFF, which said to move the prototype's rules over and adapt them.
+- **Prototype engine:** written fresh in 3a around this design. The prototype's ideas, and what its tests checked, are reused on purpose (from HANDOFF's notes: the code and test files weren't uploaded). You don't need to upload anything. **This changes** HANDOFF, which said to move the prototype's rules over and adapt them.
 - **If phones are too slow:** distant holdings and markets run as simple numbers until you look at them.
 
 ### My push-back, for the record
@@ -67,9 +67,9 @@ These are the most demanding options, and each has a cost:
 ## The ladder of levels, 1219 to 1569
 
 - The cards go from you in person up to distant powers, then battles, which touch every level.
-- You start on 1 January 1219 as one of the dukes of the 1219 treaty, when 21 Lithuanian dukes made peace with Galicia–Volhynia. There is no Grand Duchy yet.
+- You start on 1 January 1219 (the proposed start, see DESIGN.md). If you play Lithuania, you are one of the dukes of the 1219 treaty, when 21 Lithuanian dukes made peace with Galicia–Volhynia. There is no Grand Duchy yet. Other Baltic rulers stay playable, as decided earlier.
 - Faith (pagan, Catholic or Orthodox) and culture run through every level. They change opinions, alliances and the crusade threat.
-- DESIGN.md says every layer exists from the first playable version. In step 3 some layers are thin stand-ins: a holding is just a type and a level, battles are settled automatically, and there's no town to enter yet.
+- DESIGN.md says every layer exists from the first playable version. In step 3 some layers are thin stand-ins: a holding is just a type and a level, any battles are settled automatically, and there's no town to enter yet.
 
 **Words on this page:**
 - **Holding:** one place in a province: a camp, village, hillfort, castle, chartered town or city.
@@ -81,6 +81,7 @@ These are the most demanding options, and each has a cost:
 - **Map mode:** a way of colouring the map, such as by faith.
 - **Auto-resolve:** a battle settled instantly by numbers.
 - **Soak test:** the computer plays many games to find errors.
+- **Chronicle:** the game's running history, one short line per big moment, with its reason.
 
 ### In person
 - **Do:** fight a duel, hunt, or lead a raid by hand.
@@ -90,11 +91,11 @@ These are the most demanding options, and each has a cost:
 - **Built in:** the action engine arrives in step 8. When it reaches the Middle Ages is not decided.
 
 ### You
-- **Do:** answer event cards, play to your skills and traits, and lead your armies (from 3b).
+- **Do:** answer event cards, play to your skills and traits, and lead your armies (proposed: 3b).
 - **See:** your portrait, five skills (diplomacy, martial, stewardship, intrigue, learning), traits, and opinions with their reasons.
 - **Feeds:** your skills shape every action. Your death starts succession.
 - **Fed by:** opinions, claims, wounds, illness and age. Later, secrets and stress (an idea to test).
-- **Built in:** 3a. Secrets, stress, friends, rivals and lovers come in step 4 (**decided**).
+- **Built in:** 3a. Friends, rivals and lovers come in step 4 (**decided**), with secrets and stress (from the build plan; stress is an idea to test).
 
 ### Family and house
 - **Do:** arrange marriages, betroth children, pick each child's education at six, give land to kin.
@@ -126,7 +127,7 @@ These are the most demanding options, and each has a cost:
 - **Built in:** shapes and terrain in step 2 (150 or more in the Baltic core, **decided**); holder and numbers in 3a; harvests in 3c; supply in step 5; battlefields from its small terrain grid in step 6.
 
 ### Land
-Lithuania proper, Deltuva, Nalšia and Samogitia (borders TO CHECK).
+Lithuania proper, Deltuva, Nalšia and Samogitia (the list and the borders are TO CHECK).
 - **Do:** win over a land's dukes, marry into their families, make them your vassals, or fight them.
 - **See:** the "lands" map mode, and each duke's portrait.
 - **Feeds:** the dukes' tax and soldiers if they serve you; rivalry if they don't.
@@ -151,7 +152,7 @@ In 1219:
 - Denmark (its position in northern Estonia TO CHECK) and Sweden;
 - other Baltic peoples: Semigallia under Viesturs (verified for 1205), Curonians, Selonians, Latgalians, Livonians, Prussians, Yotvingians and Estonians (rulers TO CHECK).
 
-Later: Konrad of Masovia invites the Teutonic Knights in 1226, and they settle in Chełmno in 1230. The Livonian Order merges into them in 1237.
+Later: Konrad of Masovia invites the Teutonic Knights in 1226, and they settle in Chełmno in 1230. In 1237 the Livonian Order merges into the Teutonic Knights (how the Livonian Order relates to the Sword Brothers: TO CHECK).
 
 - **Do:** marry, ally, pay or demand tribute, declare war, make truces (agreed times without war) and peace, join crowns in a union.
 - **See:** the "realms" and "opinion of you" map modes, and each ruler's opinion of you with reasons.
@@ -164,7 +165,7 @@ Later: Konrad of Masovia invites the Teutonic Knights in 1226, and they settle i
 The Golden Horde, and the wider Christian world.
 - **Do:** mostly react: pay, resist or convert.
 - **See:** raids arriving on the map; demands and offers as event cards.
-- **Feeds:** raids (the Horde's reach Lithuania in 1241, 1259 and 1275), crusade pressure, offers of baptism and a crown.
+- **Feeds:** raids (Golden Horde raids reached Lithuania in 1241, 1259 and 1275), crusade pressure, offers of baptism and a crown.
 - **Fed by:** little. Your faith changes the crusade threat.
 - **Built in:** 3b, as goals and events in less detail.
 
@@ -173,7 +174,7 @@ The Golden Horde, and the wider Christian world.
 - **See:** a top-down field built from the province's terrain, season and weather. Your army starts at the bottom, the enemy at the top.
 - **Feeds:** deaths, wounds, captives for ransom, fame, war score (how well the war is going, from −100 to 100), and a chronicle line.
 - **Fed by:** the armies (fed or hungry), commanders, terrain, season and weather.
-- **Built in:** auto-resolved in 3b; supply and seasons in step 5; battles you command in step 6; your seat's siege on its own town map in step 7 (**decided**).
+- **Built in:** auto-resolved from 3b (proposed); supply and seasons in step 5; battles you command in step 6; your seat's siege on its own town map in step 7 (**decided**).
 
 ## A typical 10 minutes
 
@@ -193,6 +194,7 @@ Speeds: pause, then 2, 5, 12 and 30 days a second, then as fast as your phone al
 - **Tap:** an event card, picking one of two or three answers that each show their effect. In the Family tab: propose a marriage, pick a child's education.
 - **Wait for:** an answer to a betrothal, a birth, a child coming of age.
 - **Interrupts:** a death, an illness or a birth. The game pauses.
+- **Shows up elsewhere:** a marriage brings an alliance with the other family; a child's education shapes the heir you will play next.
 - **In 10 minutes:** perhaps 3 or 4 cards and one marriage (guess).
 
 ### Your realm and vassals (from 3a, terms in 3b)
@@ -200,32 +202,41 @@ Speeds: pause, then 2, 5, 12 and 30 days a second, then as fast as your phone al
 - **Tap:** a vassal on the map or in the Realm tab. On his panel: grant land, take it back, ask him for more or ease off.
 - **Wait for:** taxes and soldiers each month, and opinions to settle.
 - **Interrupts:** a vassal's request card, a relative's claimant faction growing, a revolt.
+- **Shows up elsewhere:** asking a vassal for more tax fills your treasury but costs his opinion (3b), which can push him towards the claimant faction.
+- **In 10 minutes:** perhaps one land grant and one or two request cards (guess).
 
 ### Neighbours and diplomacy (3b)
 
 - **Tap:** a realm on the map, then its ruler in the Rulers tab: offer a marriage, an alliance or tribute, and read why he likes or dislikes you.
 - **Wait for:** his answer, or a truce to run out.
 - **Interrupts:** a tribute demand, a crusade threat, an offer of baptism and a crown.
+- **Shows up elsewhere:** a marriage alliance brings allies into your wars; a refused tribute demand can start a raid.
+- **In 10 minutes:** perhaps one offer and one answer (guess).
 
-### War (simple from 3b, full in step 5)
+### War (simple wars proposed for 3b, full in step 5)
 
 - **Tap:** the War tab: pick a reason for war (a claim, holy war, independence or a title's rightful lands), raise soldiers, and drag an army's banner to a province.
-- **Wait for:** marching days, a siege, the war score climbing. Often at speed 3 or 4.
-- **Interrupts:** a battle result card, an enemy army close by. From step 5: winter freezing the marshes, and hungry troops.
+- **Wait for:** marching days, a siege, the war score climbing. Often at 12 or 30 days a second.
+- **Interrupts:** a battle result card, an enemy army close by. From step 5: hungry troops. Winter freezing the marshes: 3b or step 5, still open (see Smaller questions).
+- **Shows up elsewhere:** a lost battle can kill or capture a relative. Proposal: raised soldiers stop working the land, so tax and food drop while they march.
+- **In 10 minutes:** perhaps one war and one or two battles (guess).
 
 ### Inside a holding (step 7)
 
 - **Tap:** a holding's point on the map, then Enter. Place plots, fields and workplaces, and give families jobs.
 - **Clock:** drops to speed 1, about 3 minutes per game year. Big events still pause it. Leaving brings your old speed back (proposal).
 - **Wait for:** buildings to finish, the autumn harvest.
-- **Interrupts:** a raid or siege of your seat, fought on this same map; a vassal's anger if it's his holding.
+- **Interrupts:** a siege of your seat, fought on this same map (**decided**); a raid (whether raids are fought here too: open); a vassal's anger if it's his holding.
+- **Shows up elsewhere:** what you build changes its six outputs (gold, soldiers, food, goods, fort strength, approval), which the realm reads.
+- **In 10 minutes:** about 3 game years at speed 1, so a few buildings and 3 harvests (guess).
 
-### A battle (auto-resolved from 3b, by hand in step 6)
+### A battle (auto-resolved, proposed for 3b; by hand in step 6)
 
 - **Tap:** Fight or Auto-resolve. By hand: drag units, tap formation buttons, pause to think.
 - **Wait for:** messengers carrying orders to distant units. Battle speeds: pause, normal, double and quadruple.
 - **Interrupts:** a relative wounded or captured, a unit breaking, rain or cracking ice.
 - **Length:** a few minutes by hand (guess); auto-resolve is instant.
+- **Shows up elsewhere:** deaths and captives go straight to Family and the chronicle.
 
 ## How the levels feed each other
 
@@ -383,7 +394,7 @@ Your call on each. Nothing here is decided.
 5. **Roads and river routes.** For armies' supply and for merchants. HANDOFF adds river and sea links later. Do they come with the market (3c) or with war (step 5)?
 6. **The phone screen budget (proposal):**
    - at most 5 bottom tabs (step 3 has Realm, Family, Rulers, War, Chronicle);
-   - about 5 map modes (realms, lands, opinion of you, faith, and one more);
+   - at most 4 map modes in step 3 (realms, lands, opinion of you, faith), as HANDOFF lists; a fifth only if another is dropped;
    - at most 2 buttons per list row;
    - vassal terms on the vassal's own panel, not in the list.
 
@@ -394,3 +405,5 @@ Your call on each. Nothing here is decided.
 - Frozen winter routes: step 3, as HANDOFF's list says, or step 5 with the seasons?
 - Which neighbours get full detail first (see the Neighbours card)?
 - What it takes to create the Grand Duchy title.
+- Sieges and raids of your other built holdings: fought on their own layout, or on 3 or 4 templates by holding type?
+- Simple wars and auto-resolved battles: in 3b (proposed), or later?

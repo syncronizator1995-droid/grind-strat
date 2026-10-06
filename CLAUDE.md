@@ -9,6 +9,8 @@ Owner: Ignas. Read these before planning any work:
 
 - docs/HANDOFF.md: what to build now, step by step, with tests and acceptance checks.
 - docs/DESIGN.md: the whole design.
+- docs/LEVELS.md: what the player does at each level of play, and how the levels connect.
+- docs/ARCHITECTURE.md: the technical rules that stop the parts of the game breaking each other.
 - docs/CONVERSATION.md: how each decision was reached, in Ignas's own words.
 - data/sources.md: every real fact the game uses, with links.
 
@@ -21,7 +23,7 @@ The living plan is a Claude Doc that Ignas keeps on claude.ai. The docs here are
    show the plan in plain words, and wait for his OK. Building ahead of agreement is the one mistake
    this project has already made. Don't repeat it.
 2. Never change a design decision on your own. Propose it with the trade-off, let him choose,
-   then update docs/DESIGN.md.
+   then update docs/DESIGN.md, and docs/LEVELS.md if it changes how you play.
 3. Talk plainly and briefly. No jargon unless he asks. He often reads on his phone.
 4. He pushes back when he disagrees. Take it seriously, and push back too when you have reasons.
 5. Nothing is ever final ("everything is open in the plan"). Keep decisions easy to change.
@@ -32,6 +34,8 @@ The living plan is a Claude Doc that Ignas keeps on claude.ai. The docs here are
 
 - The game ships as ONE self-contained file: dist/grind-strat.html. No network at runtime:
   no CDN, no remote fonts, images or data. Everything is inlined.
+- The published site (GitHub Pages) also carries a web manifest, a service worker and icons, so the
+  game installs like an app. The game itself stays one self-contained file that works without them.
 - Portrait phone first (360 to 430 px wide, touch). Desktop must also work (mouse, wheel zoom).
 - Zero runtime dependencies. Dev-only tools are allowed and kept few.
 - All game text in English, in plain words.
@@ -52,7 +56,7 @@ The living plan is a Claude Doc that Ignas keeps on claude.ai. The docs here are
 - test/: unit tests, invariant checks, soak runs, phone screenshots.
 - prototype/: earlier prototypes, for reference only. Copy ideas or code into src/ on purpose;
   never import from prototype/.
-- docs/: design, handoff, conversation.
+- docs/: design, handoff, conversation, levels, architecture, and research notes.
 
 ## Code rules
 
@@ -83,5 +87,6 @@ The living plan is a Claude Doc that Ignas keeps on claude.ai. The docs here are
 2. npm test, npm run soak and npm run check all pass.
 3. dist/grind-strat.html opens offline on a phone in portrait and plays.
 4. Screenshots checked for overlapping or cut-off text and unreadable sizes.
-5. docs/DESIGN.md, docs/HANDOFF.md and data/sources.md are updated.
+5. docs/DESIGN.md, docs/HANDOFF.md, docs/LEVELS.md, docs/ARCHITECTURE.md and data/sources.md are
+   updated wherever the step changed them.
 6. A plain-language note for Ignas: what's new, what to try, known gaps.

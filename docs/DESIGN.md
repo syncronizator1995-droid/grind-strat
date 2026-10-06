@@ -3,6 +3,9 @@
 A snapshot of Ignas's living plan, 6 October 2026. If Ignas says something different now, he wins:
 update this file. Everything here stays open to change.
 
+Updated on 6 October 2026 in Claude Code with Ignas's answers to a questionnaire. Each answer is a row
+in "Decisions so far" at the end; docs/LEVELS.md explains what each one means in play.
+
 ## The game
 
 A slow, deep grand strategy game for your phone, in English. You start as a band of hunters in
@@ -53,6 +56,13 @@ Battles (real-time fights you command)
 A bad harvest in your town means hungry soldiers, a lost battle, and perhaps a dead heir.
 That chain is where the depth comes from.
 
+## Levels of play
+
+- docs/LEVELS.md, for Ignas: what you do at each level of the Middle Ages, from you in person up
+  to distant powers; what a typical 10 minutes looks like; and how the levels feed each other.
+- docs/ARCHITECTURE.md, for Claude Code: the technical rules that stop the parts of the game from
+  breaking each other, such as who may change what, saves, time and detail.
+
 ## How time works
 
 Time moves at different speeds in different ages, so 12,000 years stay playable.
@@ -71,17 +81,42 @@ Time moves at different speeds in different ages, so 12,000 years stay playable.
 
 ## The ages
 
-| Age | Years | You play | What changes | Key moments |
-| --- | --- | --- | --- | --- |
-| First hunters | 10,000 BC to about 5000 BC | One hunter and a small band, hands-on | Bands, hunting, survival, wild beasts | The game starts here |
-| Crafts, farms and amber | About 5000 BC to 100 AD | Your people, whose customs, beliefs and lands you shape | Settling down, first fields, amber trade | New peoples arrive about 3000 BC |
-| Tribes and hillforts | About 100 AD to about 1200 | Your tribe among rival tribes | Named tribes, raids, pagan faith, amber trade | Amber for Rome, Viking raids, tribute to Rus' |
-| Grand Duchy and Middle Ages | About 1200 to 1569 | A dynasty, like Crusader Kings 3 | Unification, castles, wars with the Orders | Crowned 1253, converted 1387, Grunwald 1410 |
-| Commonwealth and gunpowder | 1569 to 1795 | The country, like Europa Universalis 4 | Elected kings, a nobles' parliament, muskets | Union of Lublin 1569, the Deluge 1655, the partitions |
-| Empires and revolutions | 1795 to 1918 | The country, or its fight for freedom if an empire has taken it | Imperial rule, uprisings, national revival | Uprisings 1830 and 1863, the press ban until 1904 |
-| World wars to today | 1918 to today | The country, like Hearts of Iron 4 | Fronts, ideologies, occupation, resistance | Independence 1918 and 1990, NATO and the EU 2004 |
+**First hunters**, 10,000 BC to about 5000 BC
+- You play: one hunter and a small band, hands-on.
+- What changes: bands, hunting, survival, wild beasts.
+- Key moments: the game starts here.
 
-The ages are evenly spaced in this table, not to scale. Before about 1200 the history is the
+**Crafts, farms and amber**, about 5000 BC to 100 AD
+- You play: your people, whose customs, beliefs and lands you shape.
+- What changes: settling down, first fields, amber trade.
+- Key moments: new peoples arrive about 3000 BC.
+
+**Tribes and hillforts**, about 100 AD to about 1200
+- You play: your tribe among rival tribes.
+- What changes: named tribes, raids, pagan faith, amber trade.
+- Key moments: amber for Rome, Viking raids, tribute to Rus'.
+
+**Grand Duchy and Middle Ages**, about 1200 to 1569
+- You play: a dynasty, like Crusader Kings 3.
+- What changes: unification, castles, wars with the Orders.
+- Key moments: crowned 1253, converted 1387, Grunwald 1410.
+
+**Commonwealth and gunpowder**, 1569 to 1795
+- You play: the country, like Europa Universalis 4.
+- What changes: elected kings, a nobles' parliament, muskets.
+- Key moments: Union of Lublin 1569, the Deluge 1655, the partitions.
+
+**Empires and revolutions**, 1795 to 1918
+- You play: the country, or its fight for freedom if an empire has taken it.
+- What changes: imperial rule, uprisings, national revival.
+- Key moments: uprisings 1830 and 1863, the press ban until 1904.
+
+**World wars to today**, 1918 to today
+- You play: the country, like Hearts of Iron 4.
+- What changes: fronts, ideologies, occupation, resistance.
+- Key moments: independence 1918 and 1990, NATO and the EU 2004.
+
+Each age gets the same space here, whatever its length. Before about 1200 the history is the
 player's to write; after that it follows this path unless the player's choices bend it.
 
 ## Who you play, and how one hands over to the next
@@ -156,6 +191,7 @@ Characters:
 - Opinions with visible reasons, so you can see why someone likes or hates you.
 - Stress, as an idea to test: acting against your character's nature costs stress.
 - Age, illness, wounds and death, with child rulers and regents.
+- Friends, rivals and lovers, in step 4.
 
 Family:
 
@@ -164,6 +200,7 @@ Family:
 - Succession laws change over time. Land is split between sons until a stronger law is adopted.
   Gediminid rulers were hereditary but chose the son they thought most able, which suggests a
   chosen-heir law.
+- Inheritance starts sons first (sons before daughters); laws and events can change it.
 - Younger branches and rival relatives can claim your titles.
 
 Intrigue:
@@ -171,7 +208,9 @@ Intrigue:
 - Schemes: forge a claim, win someone over, kill a rival, spread rumours.
 - Secrets: pagan worship after conversion, children born outside marriage, past murders.
   A secret you find becomes leverage.
-- A spymaster and council defend you against plots.
+- A spymaster and council defend you against plots. Both come in step 4.
+- Computer rulers know only what their character would know: a rival can't use your secret unless
+  he has found it.
 - Intrigue carries on in every age: feuds between clans before, court plots during, politics after.
 
 Faith:
@@ -188,12 +227,18 @@ Titles and realm:
 Starting point (proposed): 1219, when 21 Lithuanian dukes signed a treaty with Galicia–Volhynia.
 The five elder dukes were Živinbudas, Daujotas, Dausprungas, Mindaugas and Vilikaila.
 
+- In 1219 there is no Grand Duchy yet. Playing Lithuania, you start as one of the dukes of the 1219
+  treaty; the Grand Duchy is a title that can be created.
+- A land can have more than one duke: in 1219 Samogitia's dukes included Erdvilas and Vykintas.
+- In 1219 there is no Teutonic or Livonian Order in the region yet. The crusading neighbours are
+  the Livonian Brothers of the Sword, founded in 1202 by Bishop Albert of Riga, and the Bishop of Riga.
+
 History's path after 1219, followed unless the player changes it:
 
 | Year | What happened |
 | --- | --- |
 | 1226 to 1230 | Konrad of Masovia invites the Teutonic Knights, who settle in Chełmno and attack Prussia |
-| 1236 | Samogitians under Vykintas crush the Livonian Order at Saule |
+| 1236 | Samogitians under Vykintas crush a crusading order's army at Saule (the Sword Brothers: TO CHECK) |
 | 1237 | The Livonian Order merges into the Teutonic Knights |
 | 1241, 1259, 1275 | Golden Horde raids reach Lithuania |
 | 1251 to 1253 | Mindaugas is baptised and crowned king |
@@ -218,6 +263,12 @@ History's path after 1219, followed unless the player changes it:
   and in 1791 a written constitution.
 - From the crusades on, computer-run realms follow their historical goals by default: the crusading
   Orders push into pagan lands and Rus' princes demand tribute, unless someone stops them.
+- Factions inside your realm: your own vassals band together to demand something. The first type,
+  a relative claiming your throne, comes in step 3 (3b); more types later.
+- Vassal terms: each vassal has his own fine-grained terms, such as tax and soldiers, set one by
+  one, closer to Crusader Kings 3. Which terms: designed in 3b.
+- The full market: goods, prices, merchants and regional markets, so prices move with harvests and
+  trade. It arrives in step 3c, with harvests.
 
 ## War, supply and fronts
 
@@ -259,7 +310,12 @@ History's path after 1219, followed unless the player changes it:
 - Feeding the rest of the game: grain becomes army food, iron becomes weapons, horses become cavalry,
   trade goods become gold.
 - Seasons and approval: families need food, firewood and safety; unhappy towns shrink.
-- Other holdings: run from the realm map with build menus.
+- Every holding in your realm can be built by hand like Manor Lords, even a vassal's, though
+  vassals may resent it. (Ignas, 6 October 2026. This replaces the earlier "Other holdings: run
+  from the realm map with build menus".)
+- While you are inside a holding, the realm clock slows to speed 1; big events still pause it.
+- A siege of your seat is fought on your own town map.
+- Still open: do holdings nobody is building grow by themselves?
 - Far future: a Stellaris-style age beyond today is a maybe.
 
 ## The map through time
@@ -268,6 +324,11 @@ The map covers the Vistula to the Gulf of Finland, with neighbouring powers in l
 Coasts, rivers, lakes and ice must match research for each period, with every source recorded.
 The main goal is a polished, error-free Lithuanian playthrough that holds together however the
 player changes history.
+
+- Provinces: 150 or more in the Baltic core in 1219.
+- Holdings: every holding is a point on the map, at its real, sourced site only. A holding with no
+  sourced site is listed in its province's panel until research finds the site.
+- The look: terrain is drawn (forests, marshes, rivers, lakes), with realm colours tinted over it.
 
 The Baltic basin changed shape after the ice:
 
@@ -300,6 +361,11 @@ Real people appear where records exist; made-up people fill the gaps, and no one
 - Panels slide up from the bottom; events appear as cards that show each choice's effect.
 - Text stays large enough to read, and nothing important needs two hands.
 - It works offline and saves on the phone automatically.
+- It installs like an app: a home-screen icon with a blackletter "G", and it opens with no signal.
+- It autosaves on the first day of every game month and when you leave the app, and has Save,
+  Load and New game buttons.
+- Colours follow the phone's light or dark setting.
+- Years have 365 days, with no leap days.
 
 ## Quality and testing
 
@@ -307,6 +373,8 @@ Real people appear where records exist; made-up people fill the gaps, and no one
 - Checks: no broken numbers, every province has a living ruler, no loops in who serves whom,
   and saves load back exactly.
 - Speed: the map stays smooth, and one game day computes in a few milliseconds.
+- If phones are too slow, far-away detail gives first: distant holdings and markets run as simple
+  numbers until you look at them.
 - Each step ends with Ignas playing it on his phone.
 
 ## Build plan
@@ -314,16 +382,23 @@ Real people appear where records exist; made-up people fill the gaps, and no one
 Build one era well, with every layer working together, before adding the next. Each step is tested with
 hundreds of computer-played games, then Ignas plays it on his phone and gives feedback before the next
 one starts. The Middle Ages come first, because dynasty and intrigue live there and the existing engine
-already covers much of them.
+already covers much of them (as ideas, and what its tests checked: the engine itself is rewritten
+in 3a, and its code and test files weren't uploaded).
 
 1. Agree this design.
 2. Map research: the real Baltic map and how it changed from the ice age to today, with sources for every stage.
 3. Middle Ages, dynasty and realm: from about 1200, as the crusades begin, with real rulers, families,
-   marriages, succession, diplomacy and events.
-4. Middle Ages, intrigue: schemes, secrets, council and faith.
+   marriages, succession, diplomacy and events. Split into three parts, each ending playable on
+   Ignas's phone:
+   - 3a: the real map, characters, family, succession and titles. The prototype engine is rewritten.
+   - 3b: diplomacy, vassals with fine-grained terms, faith, one faction type (a relative claiming
+     your throne), and the goals of the crusading Orders and the Golden Horde.
+   - 3c: harvests and the full market.
+4. Middle Ages, intrigue: schemes, secrets, the council and spymaster, friends, rivals and lovers,
+   and stress as an idea to test (faith itself arrives in 3b; secret pagan worship comes here).
 5. Middle Ages, war: armies, supply, seasons and sieges, with battles settled automatically.
 6. Middle Ages, battles: real-time battles you command.
-7. Middle Ages, towns: your seat feeding the realm.
+7. Middle Ages, towns: your seat, and any holding in your realm, built by hand and feeding the realm.
 8. The first hunters: top-down action in 10,000 BC on the ice-age map, like Far Cry Primal.
 9. Your tribe's story: shaping your people from the hunters to the crusades as the land changes.
    With step 8, this becomes the game's opening.
@@ -332,6 +407,8 @@ already covers much of them.
 12. World wars to today.
 
 ## Decisions so far (all open to change)
+
+The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Code.
 
 | Question | Decision |
 | --- | --- |
@@ -348,6 +425,29 @@ already covers much of them.
 | How it's built | Claude Code on Ignas's PC, ending in one offline file for his phone |
 | Pace | No limit; pause and speed buttons, fast-forward in battles |
 | Name | Grind Strat, a working title for a game that borrows from many others |
+| Calendar | 365-day years, no leap days |
+| Saving | Autosave every game month and when you leave the app, plus Save and Load buttons |
+| Colours | Follow the phone's light or dark setting |
+| App icon | A blackletter "G" |
+| Installs like an app | Yes, like his Campfire app: home-screen icon, works offline; the game stays one file |
+| Step 3 split | 3a, 3b and 3c, each playable on the phone |
+| Economy | A full market (goods, prices, merchants, regional markets), in 3c with harvests |
+| Factions | One type (a relative claiming your throne) in step 3; more later |
+| Friends, rivals, lovers | Step 4 |
+| Council | Step 4, with the spymaster |
+| Vassal duties | Fine-grained terms per vassal, closer to Crusader Kings 3 |
+| Computer rulers | Know only what their character would know |
+| Inheritance | Sons first at the start; laws and events can change it |
+| Provinces | 150 or more in the Baltic core |
+| Holdings on the map | Every holding a point, at real sourced sites only; the rest listed in the province panel |
+| Entering land | Every holding in your realm can be built by hand, even a vassal's (replaces "build menus") |
+| Clock inside a holding | Slows to speed 1; big events still pause |
+| Seat sieges | Fought on your own town map |
+| Map look | Terrain drawn, with realm colours tinted over it |
+| Prototype engine | Rewritten in step 3a around the new design |
+| If phones are too slow | Far-away detail gives first |
+| Repo public on GitHub Pages | Yes, so the game opens on Ignas's phone from a link |
+| Font with extended Latin letters | Yes: Grenze Gotisch, so letters such as Ž, ė, ą, ł, ā and õ show |
 
 ## Treating real history with care
 

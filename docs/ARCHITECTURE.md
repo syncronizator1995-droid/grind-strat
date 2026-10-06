@@ -31,7 +31,8 @@ game mechanic read only from search-result extracts (the Paradox and Manor Lords
 - GitHub Pages also serves a web manifest, a service worker and icons with a blackletter "G", so it
   installs like an app. The game adds these only on the website; as a plain file it plays the same.
 - Step 1 files: src/sim/game.js (new game, advance a day, save and load), random.js, calendar.js,
-  invariants.js; src/ui/main.js, storage.js (autosave and buttons), install.js.
+  invariants.js; src/ui/main.js (screen and buttons), clock.js (speeds), storage.js (wrapped
+  localStorage), autosave.js (when to autosave), install.js and sw.js (install like an app).
 
 **Ignas's answers of 6 October that change earlier plans:**
 - Every holding in your realm can be built by hand, even a vassal's (vassals may resent it).
@@ -75,12 +76,13 @@ game mechanic read only from search-result extracts (the Paradox and Manor Lords
    another system's slot outside its change functions.
 
 **Realms and titles appear, merge and vanish mid-game,** so the data allows it from 3a:
-- In 1219 there is no Grand Duchy yet. The player starts as one of the dukes of the 1219 treaty;
-  the Grand Duchy is a title that can be created.
+- In 1219 there is no Grand Duchy yet. A player who picks Lithuania starts as one of the dukes of
+  the 1219 treaty; the Grand Duchy is a title that can be created.
 - In 1219 the Livonian Brothers of the Sword (founded 1202 by Bishop Albert of Riga) are there, but
   not the Teutonic Knights: they are invited in 1226 and settle in Chełmno in 1230, and the Livonian
   Order merges into them in 1237 (source: hist-lt-1219).
-- A land can have more than one duke: Samogitia had Erdvilas and Vykintas in 1219 (source: dukes).
+- A land can have more than one duke: Samogitia's dukes in 1219 included Erdvilas and Vykintas
+  (source: dukes).
   Lands, titles and holders are never assumed to match one-to-one.
 
 ## 3. Time
@@ -97,7 +99,8 @@ game mechanic read only from search-result extracts (the Paradox and Manor Lords
 - Pause plus 5 speeds: 2, 5, 12 and 30 days a second, then as fast as the phone allows. Easy to tune.
 - The UI works out how many whole days to run from the real time passed. The sim only runs whole
   days, so the frame rate never changes results. A phone that falls behind drops the backlog and
-  runs slower; it never freezes. Top speed runs as many days as the frame's time allows.
+  runs slower; it never freezes. Top speed runs as many days as fit in about 8 ms of each frame,
+  at most 30 (easy to tune).
   Player actions apply between days, never in the middle of one.
 - Big moments pause the game: events, births, deaths, war declarations. A card waiting for the
   player is sim state: it is saved, and no days run until it is answered. Computer rulers answer
@@ -106,7 +109,8 @@ game mechanic read only from search-result extracts (the Paradox and Manor Lords
 **Autosave** on the first day of every game month and when the app is hidden or closed, plus
 Save, Load and New game buttons. Saves happen only between days. Storage is localStorage and every
 access is wrapped, so blocked or full storage shows a message such as "Couldn't save: this browser
-blocks storage" instead of crashing.
+blocks storage" instead of crashing. At high speeds, month-start autosaves are kept at least
+2 real seconds apart, so not every month start saves.
 
 **Spreading the monthly and yearly work:**
 - Each thing with monthly work (a province, a character, a computer ruler, a market) runs it on
@@ -115,8 +119,8 @@ blocks storage" instead of crashing.
 - This uses the running day counter, never the day of the month: anything given the 29th, 30th or
   31st would skip some months. So "monthly" here means every 30 days. Things tied to the calendar
   (the autumn harvest, seasons, autosave) use the calendar instead.
-- Moving the prototype's monthly and yearly rules to spread days shifts the balance, so the soak's
-  history numbers are re-run afterwards.
+- Spread days shift the balance compared with the prototype's monthly and yearly updates, so the
+  soak's history numbers are re-tuned afterwards.
 
 **Inside a holding** the clock runs at speed 1 at most (2 days a second). Pause still works and big
 events still pause. It is a limit set by the UI: the rules are the same, so results don't change.
@@ -185,6 +189,8 @@ events still pause. It is a limit set by the UI: the rules are the same, so resu
 | Summary | Provinces as a few numbers; holdings you are not inside, hand-built ones too; peasants as numbers; distant realms as a goal and a strength; distant markets; battles between computer realms, settled at once into one chronicle line | Monthly or yearly, spread out |
 | Only when you look | An untouched holding's generated layout; "why?" sheets; portraits; a look-only view of land outside your realm (still open) | On tap, then thrown away |
 
+- Putting hand-built holdings in Summary is a proposal: Ignas's rule is that far-away detail gives
+  first if phones are too slow. Confirm with him in step 7, after measuring.
 - **Looking never changes the game.** A look-only view uses its own hash and its own throwaway
   generator and writes nothing to the state. A test opens every view and checks that the save is
   byte-for-byte the same.
@@ -257,8 +263,8 @@ Each is designed with Ignas in its own step. Numbers here are invented; game mec
 - Each vassal has its own contract: a list of terms (tax, soldiers, others decided in 3b), each at a
   level. Changing a term is an action; raising one costs that vassal's opinion through a memory.
 - CK3 sets tax and levy in steps: the wiki extract lists five (Exempt, Low, Normal, High, Massive),
-  while the pre-release Dev Diary #17 described three. Raising one costs a +20 "tyranny" opinion
-  hit. All unverified.
+  while the pre-release Dev Diary #17 described three. Raising one adds 20 "tyranny", an opinion
+  penalty with vassals. All unverified.
 - The terms go on the vassal's own panel, not in list rows, so they fit 360 px.
 
 **Inheritance laws (from 3a):**
@@ -341,7 +347,8 @@ Soak outputs (`npm run soak`: 100 seeds from 1219 to 1569; a skeleton until step
 - Start-up time: loading a late save and rebuilding the derived data (budget 3 s).
 - History numbers, such as how often the Orders reach Samogitia's border by 1300 (HANDOFF). They
   guide tuning and are not pass or fail. Show them to Ignas.
-- From step 3, the step-3 part of the example chain in LEVELS.md runs as a scripted test.
+- By the end of 3c, the step-3 part of the example chain in LEVELS.md runs as a scripted test;
+  links 8 to 10 join in steps 5 and 6.
 
 ## Sources for the game mechanics above (read only through search-result extracts)
 
