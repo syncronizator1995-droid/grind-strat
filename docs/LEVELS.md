@@ -37,6 +37,10 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 | Creating the Grand Duchy | Takes size (enough land) and renown |
 | Sieges and raids of built holdings | Fought on that holding's own layout |
 | Simple wars | In 3b, with battles settled automatically |
+| After 1569 | Your dynasty carries on; you can try to save it and change history |
+| Holdings nobody is building | Grow very slowly compared with built ones |
+| Looking at other lands | Neighbours only, limited, like fog of war; see inside through direct ties such as visits, hunts or letters |
+| War exhaustion | Long wars directly lower your armies' effectiveness |
 
 ### What each one means in play
 
@@ -69,6 +73,10 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 - **Creating the Grand Duchy:** you need enough land (size) and enough renown, your house's fame. The exact numbers are set in 3a and shown to you first.
 - **Sieges and raids of built holdings:** any holding you built, not only your seat, is fought over on its own layout.
 - **Simple wars:** in 3b you can declare wars, and battles are settled automatically. Supply and seasons come in step 5, and battles you command in step 6.
+- **After 1569:** the Union of Lublin no longer ends dynasty play. Your dynasty carries on, and you can try to save it and change history. **This changes** DESIGN.md, which said you play the country from 1569. When play finally turns to the country is planned when those ages are built.
+- **Holdings nobody is building:** they still grow, but very slowly compared with ones you or a computer ruler build.
+- **Looking at other lands:** you can look at your neighbours' lands, but only partly, like fog of war in strategy games. You see inside a holding only through a direct tie: a visit, a hunt together, letters. Far-off realms stay hidden. This matches the rule that computer rulers know only what their character would know.
+- **War exhaustion:** the longer a war drags on, the worse your armies fight. Comes with war in step 5.
 
 ### My push-back, for the record
 
@@ -395,22 +403,9 @@ ChatGPT saw only the old village prototype (Hamlet), not the current design. Its
 
 ## Still open
 
-Your call on each. Nothing here is decided.
+1. **Roads and river routes.** For armies' supply and for merchants. HANDOFF adds river and sea links later. Do they come with the market (3c) or with war (step 5)? To settle while planning step 2, since the map data carries the links.
 
-1. **The 1569 handover.** DESIGN.md says you play the country from 1569. An idea came up that your dynasty could carry on through the elected kings (from 1573). An earlier draft slipped that in without asking, and a reviewer caught it. It would change your decision, so it stays yours.
-   - A. Play the country from 1569, as now.
-   - B. Your dynasty carries on through the elections.
-2. **Holdings nobody is building.** Do they grow by themselves?
-   - A. Yes, slowly, from their numbers (harvests, wealth, peace).
-   - B. Only when their holder, you or a computer ruler, builds.
-3. **A look-only view of land outside your realm.** Can you enter a foreign holding just to look? If yes, it's drawn from its numbers with its own random numbers, so looking never changes the game.
-4. **War exhaustion.** Long wars wear a realm down, as in EU4 ([EU4 wiki: War exhaustion](https://eu4.paradoxwikis.com/War_exhaustion), *unverified*). Add it in step 5?
-5. **Roads and river routes.** For armies' supply and for merchants. HANDOFF adds river and sea links later. Do they come with the market (3c) or with war (step 5)?
-6. **The phone screen budget (proposal):**
-   - at most 5 bottom tabs (step 3 has Realm, Family, Rulers, War, Chronicle);
-   - at most 4 map modes in step 3 (realms, lands, opinion of you, faith), as HANDOFF lists; a fifth only if another is dropped;
-   - at most 2 buttons per list row;
-   - vassal terms on the vassal's own panel, not in the list.
+**A working rule, not a question:** to keep the phone screen readable, at most 5 bottom tabs (step 3 has Realm, Family, Rulers, War, Chronicle), at most 4 map modes in step 3 (realms, lands, opinion of you, faith), at most 2 buttons per list row, and vassal terms on the vassal's own panel. Claude follows it unless you say otherwise.
 
 ### Smaller questions
 

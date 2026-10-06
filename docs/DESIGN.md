@@ -249,7 +249,7 @@ History's path after 1219, followed unless the player changes it:
 | 1385 to 1387 | Union of Krewo with Poland, then conversion |
 | 1410 | Grunwald: the Polish–Lithuanian army defeats the Knights |
 | 1422 | Treaty of Melno: Samogitia recovered for good |
-| 1569 | Union of Lublin creates the Commonwealth; dynasty play hands over to country play |
+| 1569 | Union of Lublin creates the Commonwealth. Your dynasty carries on (Ignas, 6 October 2026): you can try to save it and change history |
 
 ## Realm and diplomacy
 
@@ -289,6 +289,7 @@ History's path after 1219, followed unless the player changes it:
   soldiers. From step 5, very high unrest can become a peasant revolt with rebel armies.
 - Sieges: walls slow them, starving a fort works, and storming one is bloody.
 - War score and peace: battles and occupation build a score that decides the peace terms.
+- War exhaustion: the longer a war drags on, the worse your armies fight (step 5).
 - Commanders are characters with traits and skills: they can die, defect or win fame.
 - Fronts: from the age of revolutions, front lines and battle plans like Hearts of Iron 4, with
   factories and supply lines.
@@ -323,7 +324,9 @@ History's path after 1219, followed unless the player changes it:
 - Sieges and raids of any holding you built, your seat included, are fought on its own layout.
 - A holding you built keeps your work when it changes hands, for example to a brother under split
   inheritance; only the holder changes.
-- Still open: do holdings nobody is building grow by themselves?
+- Holdings nobody is building still grow, but very slowly compared with built ones.
+- You can look at neighbouring lands only partly, like fog of war; you see inside a holding through
+  a direct tie such as a visit, a hunt together or letters.
 - Far future: a Stellaris-style age beyond today is a maybe.
 
 ## The map through time
@@ -423,7 +426,7 @@ The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Cod
 | Question | Decision |
 | --- | --- |
 | Start date | 10,000 BC, the first hunters after the ice; prehistory moves in jumps until the tribes |
-| Who you play over time | A hunter band, then your tribe, then a dynasty in the Middle Ages, then the country from 1569 |
+| Who you play over time | A hunter band, then your tribe, then a dynasty in the Middle Ages, then the country. Updated 6 October 2026: the dynasty carries on past 1569, and you can try to save it and change history; when play turns to the country is planned with those ages |
 | Tribal history | Written by the player; outsiders only trade and raid until the crusades around 1200 |
 | Playable realms | Baltic realms, Lithuania first; the powers that shaped them, up to the Golden Horde, are on the map too |
 | Main goal | A polished, error-free Lithuanian playthrough, however history changes |
@@ -460,6 +463,10 @@ The rows from Calendar down are Ignas's answers of 6 October 2026, in Claude Cod
 | Neighbours in full detail | The closest realms, and any tied to you through family, marriage or your council |
 | Creating the Grand Duchy | Takes size (enough land) and renown |
 | Simple wars | In 3b, with battles settled automatically |
+| After 1569 | Your dynasty carries on; you can try to save it and change history |
+| Holdings nobody is building | Grow very slowly compared with built ones |
+| Looking at other lands | Neighbours only, limited, like fog of war; see inside through direct ties such as visits, hunts or letters |
+| War exhaustion | Long wars directly lower your armies' effectiveness (step 5) |
 | Map look | Terrain drawn, with realm colours tinted over it |
 | Prototype engine | Rewritten in step 3a around the new design |
 | If phones are too slow | Far-away detail gives first |

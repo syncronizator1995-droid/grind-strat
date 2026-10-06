@@ -138,7 +138,12 @@ events still pause. It is a limit set by the UI: the rules are the same, so resu
 - Each age gets its own save shape, designed when that age is built; no single record fits all.
 - Moving between ages calls one handover function per boundary: old age's state in, new age's state
   out, carrying what DESIGN.md's "What carries over" lists. Each bumps the save version and is tested.
-- How the dynasty hands over to the country in 1569 is still Ignas's to decide (LEVELS.md).
+- 1569 does not end dynasty play (Ignas, 6 October 2026): the dynasty carries on, and the player
+  can try to save it and change history. When play turns to the country is designed with those ages.
+- What the player sees follows the same knowledge rule as computer rulers: neighbouring lands are
+  only partly visible (fog of war), and the inside of a holding shows only through a direct tie
+  such as a visit, a hunt or letters. Far realms stay hidden. Built with 3b's knowledge rules
+  (proposal).
 
 ## 4. Saves
 

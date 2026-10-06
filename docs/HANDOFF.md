@@ -359,7 +359,7 @@ situation, the event adapts or does not happen. Verified dates:
 | 1410 | Grunwald: the Polish–Lithuanian army defeats the Teutonic Knights |
 | 1413 | The conversion of Samogitia begins |
 | 1422 | Treaty of Melno: Samogitia recovered for good |
-| 1569 | Union of Lublin: the end of dynasty play; the game hands over to country play in a later step |
+| 1569 | Union of Lublin. Dynasty play carries on (Ignas, 6 October 2026): the player can try to save the dynasty and change history. When play turns to the country is planned with the later ages |
 
 Build these as goals for computer-run realms (the crusading Orders want pagan land; the Horde raids),
 plus events with conditions. For example, a ruler in Mindaugas's position may be offered baptism and a
@@ -507,7 +507,8 @@ Known issues:
 4. Intrigue: schemes, secrets and leverage, the council and spymaster, friends, rivals and lovers,
    and stress (test whether it is fun).
 5. War: supply and food from towns, foraging, starvation, seasons and frozen winter routes, raids
-   versus conquest, sieges, and peasant revolts with rebel armies when unrest runs very high.
+   versus conquest, sieges, peasant revolts with rebel armies when unrest runs very high, and war
+   exhaustion that lowers armies' effectiveness the longer a war lasts.
 6. Battles: real-time, portrait, formations, morale, messengers, line of sight, weather,
    relatives on the field.
 7. Towns: your seat and any holding in your realm, built by hand and feeding the realm, starting
