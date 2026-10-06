@@ -1,5 +1,5 @@
 {
-  "about": "Raw map data for the map pipeline, kept in data/raw/ (not stored in git). Files with access 'whole' (the default) are downloaded by tools/map/fetch.mjs; access 'range' marks big rasters that tools/map/build-grids.mjs reads window by window through tools/map/fetch-grids.mjs, with {NN} (a class number) or {tile} (a tile name) in the url filled in by the builder. 'files' are small extra files (legends, licences, manuals) fetched whole. licenceStatus is 'read' only once the licence was read on the owner's own host and quoted here (licenceReadAt says where; licenceQuote is verbatim); a shipped map file built from an 'unverified' source fails the build. 'credit' is what the in-game Credits screen shows; its licenceUri has no scheme. The lead keeps data/sources.md in step with this file.",
+  "about": "Raw map data for the map pipeline, kept in data/raw/ (not stored in git). Files with access 'whole' (the default) are downloaded by tools/map/fetch.mjs; access 'range' marks big rasters that tools/map/build-grids.mjs reads window by window through tools/map/fetch-grids.mjs, with {NN} (a class number) or {tile} (a tile name) in the url filled in by the builder. 'files' are small extra files (legends, licences, manuals) fetched whole. licenceStatus is 'read' only once the licence was read on the owner's own host and quoted here (licenceReadAt says where; licenceQuote is verbatim); a shipped map file built from an 'unverified' source fails the build. 'credit' is what the in-game Credits screen and ATTRIBUTION.md show (tools/map/attribution.mjs writes both): owner, version, short (the name on the map's credit line), onMap (whether that short name stays on the map's credit line at all times), line, citation, changes, notes, licenceName and licenceUri (no scheme: the game page may not contain web addresses). The lead keeps data/sources.md in step with this file.",
   "sources": [
     {
       "id": "ne-land",
@@ -15,6 +15,10 @@
       "unofficialCopy": null,
       "toCheck": [],
       "credit": {
+        "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
+        "version": "5.1.2",
+        "short": "Natural Earth",
+        "onMap": false,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
         "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; islets under about 0.4 km² dropped.",
@@ -36,6 +40,10 @@
       "unofficialCopy": null,
       "toCheck": [],
       "credit": {
+        "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
+        "version": "5.1.2",
+        "short": "Natural Earth",
+        "onMap": false,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
         "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA) and simplified to about 200 m.",
@@ -57,6 +65,10 @@
       "unofficialCopy": null,
       "toCheck": [],
       "credit": {
+        "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
+        "version": "5.1.2",
+        "short": "Natural Earth",
+        "onMap": false,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
         "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; reservoirs left out (not there in 1219).",
@@ -106,6 +118,10 @@
       "unofficialCopy": null,
       "toCheck": [],
       "credit": {
+        "owner": "GEBCO Compilation Group (the General Bathymetric Chart of the Oceans, under the IHO and the IOC of UNESCO); the grid is archived and published by the British Oceanographic Data Centre (BODC)",
+        "version": "GEBCO_2026 Grid, ice-surface elevation, 15 arc-seconds",
+        "short": "GEBCO",
+        "onMap": true,
         "line": "GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa)",
         "citation": "GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals. NERC EDS British Oceanographic Data Centre NOC. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
         "changes": "Clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and averaged over 2 km cells, rounded to whole metres.",
@@ -150,6 +166,10 @@
         "Uppland (59.85N 17.60E) reads about half marsh (GLWD raw 34%, marsh 49%, 10 km mean 34%): drained peat in the valleys. Left as it is on purpose: in 1219 that land stood several metres lower because of post-glacial uplift, so wet valley floors are plausible. Not tuned away."
       ],
       "credit": {
+        "owner": "Bernhard Lehner and co-authors (2025), published by HydroSHEDS",
+        "version": "2.0",
+        "short": "GLWD v2",
+        "onMap": false,
         "line": "Marsh and bog: Global Lakes and Wetlands Database v2 (Lehner et al. 2025), hydrosheds.org/products/glwd",
         "citation": "Lehner, B., Anand, M., Fluet-Chouinard, E., Tan, F., Aires, F., Allen, G.H., Bousquet, P., Canadell, J.G., Davidson, N., Ding, M., Finlayson, C.M., Gumbricht, T., Hilarides, L., Hugelius, G., Jackson, R.B., Korver, M.C., Liu, L., McIntyre, P.B., Matthews, E., Nagy, S., Olefeldt, D., Pavelsky, T.M., Pekel, J.-F., Poulter, B., Prigent, C., Wang, J., Worthington, T.A., Yamazaki, D., Zhang, X., Thieme, M. (2025). Mapping the world's inland surface waters: an upgrade to the Global Lakes and Wetlands Database (GLWD v2). Earth System Science Data. Data doi:10.6084/m9.figshare.28519994",
         "changes": "Wetland classes 8-19, 22-25 and 29-31 added up (capped at 100%), clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and averaged over 1 km cells. Shares at or below 15% dropped as background; shares from 15% to 55% stretched in a straight line to 0-100% marsh, and 55% or more read as full marsh. Combined with today's herbaceous wetland (class 90) from ESA WorldCover 2021: each cell keeps the larger of the two.",
@@ -181,6 +201,10 @@
         "The tiles' internal overviews were made by ESA's own processing (resampling method not stated in the file): fine for 1 km shares, but not exact 10 m counts."
       ],
       "credit": {
+        "owner": "European Space Agency (ESA) and the ESA WorldCover consortium",
+        "version": "v200 (2021)",
+        "short": "ESA WorldCover",
+        "onMap": true,
         "line": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
         "citation": "Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann, C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M., Herold, M., Tsendbazar, N.E., Xu, P., Ramoino, F., Arino, O., 2022. ESA WorldCover 10 m 2021 v200. doi:10.5281/zenodo.7254221",
         "changes": "Read from the tiles' 74 m overviews, clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and turned into the share of each class in 1 km cells; snow merged into bare ground and mangrove into wetland. For the marsh around 1219, the herbaceous wetland share (class 90; moss and lichen, class 100, left out as mountain tundra) is combined with GLWD v2 marsh: each cell keeps the larger of the two, after GLWD shares at or below 15% are dropped and shares from 15% to 55% stretched to 0-100%.",
@@ -217,6 +241,10 @@
         "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too. Check with Ignas how the game shows and shares that."
       ],
       "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 4 (about AD 750-1250)",
+        "short": "SpatioCompo",
+        "onMap": false,
         "line": "Forest around 1219: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
         "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
         "changes": "Time window 4 (about AD 750-1250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are.",

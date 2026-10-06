@@ -1,0 +1,132 @@
+{
+  "about": [
+    "The map shows the land as it was around AD 1219, as far as it can be worked out today.",
+    "Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today's land cover, terrain and rivers; they are not from a historical map.",
+    "Marsh: from today's peat-soil and wetland maps plus today's open bogs.",
+    "Under modern reservoirs the land shows flat, at today's water level.",
+    "Rivers and lakes are today's, with today's local names; modern reservoirs are left out. Heights and sea depths are today's."
+  ],
+  "interim": [
+    "Interim: the rivers and lakes are a simpler stand-in (Natural Earth) until the OpenStreetMap ones are ready."
+  ],
+  "mapLine": "GEBCO · ESA WorldCover · more",
+  "datasets": [
+    {
+      "title": "Natural Earth",
+      "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
+      "version": "5.1.2",
+      "uses": [
+        "Land, coast, heights and sea depths",
+        "The land around 1219: forest, open land, marsh and heath",
+        "Rivers, lakes and their names"
+      ],
+      "line": "Made with Natural Earth.",
+      "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
+      "changes": [
+        "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; islets under about 0.4 km² dropped.",
+        "For the terrain grid, combined with the other terrain sources into one class per 1 km cell by a rule (src/data/by-sa/README.md says how).",
+        "Clipped to the map, reprojected to the game's equal-area projection (LAEA) and simplified to about 200 m.",
+        "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; reservoirs left out (not there in 1219)."
+      ],
+      "licenceName": "Public domain",
+      "licenceUri": "www.naturalearthdata.com/about/terms-of-use/",
+      "notes": [],
+      "unofficialCopy": null
+    },
+    {
+      "title": "GEBCO",
+      "owner": "GEBCO Compilation Group (the General Bathymetric Chart of the Oceans, under the IHO and the IOC of UNESCO); the grid is archived and published by the British Oceanographic Data Centre (BODC)",
+      "version": "GEBCO_2026 Grid, ice-surface elevation, 15 arc-seconds",
+      "uses": [
+        "Land, coast, heights and sea depths",
+        "The land around 1219: forest, open land, marsh and heath"
+      ],
+      "line": "GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa)",
+      "citation": "GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals. NERC EDS British Oceanographic Data Centre NOC. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+      "changes": [
+        "Clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and averaged over 2 km cells, rounded to whole metres.",
+        "For the terrain grid, combined with the other terrain sources into one class per 1 km cell by a rule (src/data/by-sa/README.md says how)."
+      ],
+      "licenceName": "Public domain (GEBCO Grid terms of use)",
+      "licenceUri": "dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf",
+      "notes": [
+        "Not for navigation.",
+        "Not endorsed by GEBCO, the IHO or the IOC.",
+        "Made available as is."
+      ],
+      "unofficialCopy": null
+    },
+    {
+      "title": "SpatioCompo",
+      "owner": "Behnaz Pirzamanbein",
+      "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 4 (about AD 750-1250)",
+      "uses": [
+        "The land around 1219: forest, open land, marsh and heath"
+      ],
+      "line": "Forest around 1219: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+      "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+      "changes": [
+        "Time window 4 (about AD 750-1250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are.",
+        "For the terrain grid, combined with the other terrain sources into one class per 1 km cell by a rule (src/data/by-sa/README.md says how)."
+      ],
+      "licenceName": "CC BY-SA 4.0",
+      "licenceUri": "creativecommons.org/licenses/by-sa/4.0/",
+      "notes": [],
+      "unofficialCopy": null
+    },
+    {
+      "title": "ESA WorldCover",
+      "owner": "European Space Agency (ESA) and the ESA WorldCover consortium",
+      "version": "v200 (2021)",
+      "uses": [
+        "The land around 1219: forest, open land, marsh and heath"
+      ],
+      "line": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
+      "citation": "Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann, C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M., Herold, M., Tsendbazar, N.E., Xu, P., Ramoino, F., Arino, O., 2022. ESA WorldCover 10 m 2021 v200. doi:10.5281/zenodo.7254221",
+      "changes": [
+        "Read from the tiles' 74 m overviews, clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and turned into the share of each class in 1 km cells; snow merged into bare ground and mangrove into wetland. For the marsh around 1219, the herbaceous wetland share (class 90; moss and lichen, class 100, left out as mountain tundra) is combined with GLWD v2 marsh: each cell keeps the larger of the two, after GLWD shares at or below 15% are dropped and shares from 15% to 55% stretched to 0-100%.",
+        "For the terrain grid, combined with the other terrain sources into one class per 1 km cell by a rule (src/data/by-sa/README.md says how)."
+      ],
+      "licenceName": "CC BY 4.0",
+      "licenceUri": "creativecommons.org/licenses/by/4.0/",
+      "notes": [],
+      "unofficialCopy": null
+    },
+    {
+      "title": "GLWD v2",
+      "owner": "Bernhard Lehner and co-authors (2025), published by HydroSHEDS",
+      "version": "2.0",
+      "uses": [
+        "The land around 1219: forest, open land, marsh and heath"
+      ],
+      "line": "Marsh and bog: Global Lakes and Wetlands Database v2 (Lehner et al. 2025), hydrosheds.org/products/glwd",
+      "citation": "Lehner, B., Anand, M., Fluet-Chouinard, E., Tan, F., Aires, F., Allen, G.H., Bousquet, P., Canadell, J.G., Davidson, N., Ding, M., Finlayson, C.M., Gumbricht, T., Hilarides, L., Hugelius, G., Jackson, R.B., Korver, M.C., Liu, L., McIntyre, P.B., Matthews, E., Nagy, S., Olefeldt, D., Pavelsky, T.M., Pekel, J.-F., Poulter, B., Prigent, C., Wang, J., Worthington, T.A., Yamazaki, D., Zhang, X., Thieme, M. (2025). Mapping the world's inland surface waters: an upgrade to the Global Lakes and Wetlands Database (GLWD v2). Earth System Science Data. Data doi:10.6084/m9.figshare.28519994",
+      "changes": [
+        "Wetland classes 8-19, 22-25 and 29-31 added up (capped at 100%), clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and averaged over 1 km cells. Shares at or below 15% dropped as background; shares from 15% to 55% stretched in a straight line to 0-100% marsh, and 55% or more read as full marsh. Combined with today's herbaceous wetland (class 90) from ESA WorldCover 2021: each cell keeps the larger of the two.",
+        "For the terrain grid, combined with the other terrain sources into one class per 1 km cell by a rule (src/data/by-sa/README.md says how)."
+      ],
+      "licenceName": "CC BY 4.0",
+      "licenceUri": "creativecommons.org/licenses/by/4.0/",
+      "notes": [],
+      "unofficialCopy": "Carl Boettiger, on Source Cooperative (AWS S3, us-west-2, cboettig/wetlands/GLWD_v2_0/): the per-class percent GeoTIFFs, legend and TechDoc. The TechDoc is byte-identical to the official one; the data TIFFs were not compared with the official download."
+    }
+  ],
+  "font": {
+    "title": "Grenze Gotisch (font)",
+    "owner": "Omnibus-Type, The Grenze Gotisch Project Authors",
+    "version": "Google Fonts release (variable weight)",
+    "uses": [
+      "The game's title and date"
+    ],
+    "line": "Copyright 2020 The Grenze Gotisch Project Authors (github.com/Omnibus-Type/Grenze-Gotisch)",
+    "citation": "Copyright 2020 The Grenze Gotisch Project Authors (github.com/Omnibus-Type/Grenze-Gotisch)",
+    "changes": [
+      "Cut down to Latin and Latin Extended letters and saved as woff2 (tools/subset-font.py)."
+    ],
+    "licenceName": "SIL Open Font License 1.1",
+    "licenceUri": "scripts.sil.org/OFL",
+    "notes": [],
+    "unofficialCopy": null
+  },
+  "odblOffer": null
+}

@@ -205,3 +205,101 @@ export async function inflate(bytes) {
   const stream = new Blob([/** @type {BlobPart} */ (bytes)]).stream().pipeThrough(new DecompressionStream('deflate'));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
+
+/**
+ * Packs a list of whole numbers from 0 up (for example, which river each line belongs to).
+ * @param {ArrayLike<number>} values
+ * @returns {Uint8Array}
+ */
+export function encodeUints(values) {
+  const w = new Writer();
+  w.uint(values.length);
+  for (let i = 0; i < values.length; i++) w.uint(values[i]);
+  return w.done();
+}
+
+/**
+ * @param {Uint8Array} bytes
+ * @returns {Uint32Array}
+ */
+export function decodeUints(bytes) {
+  const r = new Reader(bytes);
+  const out = new Uint32Array(r.uint());
+  for (let i = 0; i < out.length; i++) out[i] = r.uint();
+  if (r.at !== bytes.length) throw new RangeError('map data has bytes left over');
+  return out;
+}
+
+/**
+ * Predicts a grid cell from its neighbours already read: left (a), below (b) and below-left (c),
+ * as in lossless image formats (the "median edge detector" of LOCO-I and JPEG-LS). Smooth
+ * slopes and sharp edges are both guessed well, so what is stored stays small.
+ * @param {number} a @param {number} b @param {number} c
+ */
+export function predictCell(a, b, c) {
+  if (c >= (a > b ? a : b)) return a < b ? a : b;
+  if (c <= (a < b ? a : b)) return a > b ? a : b;
+  return a + b - c;
+}
+
+/**
+ * Packs a grid of whole numbers (heights in metres, for example) row by row, from row 0. Each
+ * cell is stored as how far it is from the guess of predictCell (zigzag LEB128 numbers), which
+ * is small for real terrain and deflates well. Missing neighbours at the grid's edges are taken
+ * from the cell that is there (or 0 for the very first cell).
+ * @param {ArrayLike<number>} values cols * rows whole numbers, row by row
+ * @param {number} cols
+ * @returns {Uint8Array}
+ */
+export function encodeGrid(values, cols) {
+  if (values.length % cols !== 0) throw new RangeError('the grid is not whole rows');
+  const w = new Writer();
+  w.uint(cols);
+  w.uint(values.length / cols);
+  for (let i = 0; i < values.length; i++) {
+    const v = values[i];
+    if (!Number.isInteger(v)) throw new RangeError(`not a whole number: ${v}`);
+    w.int(v - gridGuess(values, i, cols));
+  }
+  return w.done();
+}
+
+/**
+ * The guess for cell i from the cells before it.
+ * @param {ArrayLike<number>} v @param {number} i @param {number} cols
+ */
+function gridGuess(v, i, cols) {
+  const col = i % cols;
+  if (i < cols) return col > 0 ? v[i - 1] : 0;
+  if (col === 0) return v[i - cols];
+  return predictCell(v[i - 1], v[i - cols], v[i - cols - 1]);
+}
+
+/**
+ * Unpacks a grid packed by encodeGrid into 16-bit numbers (heights fit: -32768 to 32767 m).
+ * @param {Uint8Array} bytes
+ * @returns {{ cols: number, rows: number, data: Int16Array }}
+ */
+export function decodeGrid16(bytes) {
+  const r = new Reader(bytes);
+  const cols = r.uint();
+  const rows = r.uint();
+  const data = new Int16Array(cols * rows);
+  // Read inline: this runs for every cell at start-up, so no per-number method calls.
+  const b = bytes;
+  let at = r.at;
+  for (let i = 0; i < data.length; i++) {
+    let u = 0;
+    let scale = 1;
+    for (;;) {
+      if (at >= b.length) throw new RangeError('map data ends too early');
+      const byte = b[at++];
+      u += (byte & 127) * scale;
+      if (byte < 128) break;
+      scale *= 128;
+    }
+    data[i] = gridGuess(data, i, cols) + (u % 2 === 0 ? u / 2 : -(u + 1) / 2);
+  }
+  if (at !== bytes.length) throw new RangeError('map data has bytes left over');
+  return { cols, rows, data };
+}
