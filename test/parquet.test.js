@@ -3,6 +3,7 @@
 // Thrift varints and structs, the RLE / bit-packed hybrid, dictionary and plain pages (v1 and
 // v2), levels for a list of structs and a map, a whole little file, and WKB. No network.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { zstdCompressSync } from 'node:zlib';
 import {
@@ -354,4 +355,21 @@ describe('WKB', () => {
     assert.throws(() => readWkb(Uint8Array.from(wkb(true, 7, (w) => w(0)))), /collection/);
     assert.throws(() => readWkb(Uint8Array.from([...wkb(true, 1, (_, d) => { d(1); d(2); }), 0])), /left over/);
   });
+});
+
+describe('a real slice of Overture water data (test/fixtures/odbl/, ODbL 1.0)', () => {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/odbl/overture-water-slice.json', import.meta.url), 'utf8'));
+
+  for (const [path, col] of Object.entries(/** @type {Record<string, any>} */ (fixture.columns))) {
+    it(`decodes ${path}: dictionary pages, levels and ZSTD as Overture writes them`, () => {
+      const bytes = new Uint8Array(Buffer.from(col.bytes, 'base64'));
+      const rows = columnRows(readColumnChunk(bytes, col.chunk, col.leaf), col.leaf);
+      assert.equal(rows.length, fixture.numRows);
+      assert.equal(rows.filter((r) => r === null).length, col.expect.nulls);
+      /** @type {Record<string, number>} */
+      const counts = {};
+      for (const r of rows) for (const v of [r].flat()) if (v !== null) counts[v] = (counts[v] ?? 0) + 1;
+      for (const [v, n] of Object.entries(col.expect.counts)) assert.equal(counts[v], n, `${path} ${v}`);
+    });
+  }
 });

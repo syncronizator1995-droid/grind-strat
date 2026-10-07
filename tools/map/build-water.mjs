@@ -494,7 +494,8 @@ async function main() {
     reviewedButNotFound: reviewMissing,
     riversThroughDroppedReservoirs: through,
   };
-  const osmSnapshot = Object.keys(run.meta.osmSnapshots ?? {}).sort().pop() ?? null;
+  // The snapshot nearly every row carries (Overture's sources[].version); a few rows are newer.
+  const osmSnapshot = Object.entries(/** @type {Record<string, number>} */ (run.meta.osmSnapshots ?? {})).sort((x, y) => y[1] - x[1])[0]?.[0] ?? null;
   const out = {
     source: 'osm',
     licence: 'ODbL-1.0',

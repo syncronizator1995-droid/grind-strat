@@ -2,74 +2,98 @@
 
 Contains information from OpenStreetMap, openstreetmap.org/copyright, which is made available
 here under the Open Database License (ODbL) 1.0, opendatacommons.org/licenses/odbl/1-0/.
-Credit: © OpenStreetMap contributors. See LICENSE.md in this folder.
+Credit: © OpenStreetMap contributors, Overture Maps Foundation. See LICENSE.md in this folder.
 
 Everything in this folder is under the ODbL 1.0, and nothing from any other source is mixed into
 it. The rest of the repository has its own terms.
 
-## What the extract contains
+## What the database contains
 
-The rivers and natural lakes of Grind Strat's map of the Baltic lands (the land as around AD 1219),
-taken from OpenStreetMap:
+`water.json` holds the rivers and natural lakes of Grind Strat's map of the Baltic lands (the land
+as around AD 1219), taken from OpenStreetMap:
 
-- **Rivers**: one feature per river, as lines. Each has its OSM id (the waterway relation, or the
-  first way when there is no relation), its local name (OSM `name`), its names in Lithuanian,
-  Latvian, Estonian, Polish, German, Russian, Belarusian, Ukrainian, Finnish, Swedish and English
-  (OSM `name:lt` ... `name:en`, where mapped), its Wikidata id, its length inside the map in km,
-  and its lines.
-- **Lakes**: natural lakes, lagoons and oxbow lakes with the same name fields, the Wikidata id,
-  the area inside the map in km², and the rings (outer rings and holes for islands).
-- Modern reservoirs are left out (the map shows the land before the dams). The list of reviewed
-  water bodies and the reason for each decision is in tools/map/reservoirs-1219.json.
+- **Rivers** (2,375): one feature per river. Each has its local name (OSM `name`), its names in
+  Lithuanian, Latvian, Estonian, Polish, German, Russian, Belarusian, Ukrainian, Finnish, Swedish
+  and English (OSM `name:lt` ... `name:en`, where mapped), its Wikidata id, its length inside the
+  map in km, and its lines. Each line also carries the local name of that stretch where it
+  differs from the river's own (the Nemunas is "Nemunas" in Lithuania and "Нёман" in Belarus).
+- **Lakes** (7,021): natural lakes, lagoons and oxbow lakes with the same name fields, the
+  Wikidata id, the area inside the map in km², a point for the name, and the rings (outer rings
+  and holes for islands).
 
 The names are today's names. Names as of 1219 come from other sources in a later step and are not
 part of this database.
 
 Coordinates are whole game units of 100 m on the game's map projection (a Lambert azimuthal
 equal-area projection on the GRS80 ellipsoid centred on 56°N 23°E, defined in
-tools/map/projection.mjs), measured from
-the south-west corner of the map rectangle.
+tools/map/projection.mjs), measured from the south-west corner of the map rectangle. The file
+is the game's data block: the lines and rings are packed (delta-encoded, deflated, base64) as
+`src/ui/map/codec.js` reads them, with one level of detail per point; the names and facts are
+JSON inside the same bundle (its `info` layer). `src/ui/map/load.js` unpacks it.
 
-## OSM snapshot
+## Source and snapshot
 
-OSM_BASE_PLACEHOLDER
+- OpenStreetMap data as published by the Overture Maps Foundation: release **2026-09-23.1**,
+  theme `base`, type `water` (GeoParquet files in the AWS S3 bucket `overturemaps-us-west-2`,
+  `release/2026-09-23.1/theme=base/type=water/`), read on 7 October 2026. Every row used carries
+  the licence `ODbL-1.0` in its `sources`.
+- OSM snapshot: the rows' `sources[].version` is **2026-09-06** for 199,778 of the 199,781 rows
+  read (2026-09-12 for 3). Overture's release notes for 2026-09-23 give the base theme's "OSM
+  Cut-Off Date: 2026-09-12". (Which of the two to quote is TO CHECK with Overture's documentation.)
+- River relations (which ways make up which river): OpenStreetMap `type=waterway` +
+  `waterway=river` relations read through the public Overpass API (overpass-api.de) on
+  6 October 2026 (OSM base 2026-10-06T17:27:06Z). Also OpenStreetMap data under the ODbL.
 
 ## How it was made
 
 Everything is done by scripts in tools/map/ in this repository, which are public:
 
-1. `tools/map/fetch-osm.mjs` asks the public Overpass API (overpass-api.de) for the data, one
-   request at a time, and caches every answer (the cache is not part of the repository). The
-   queries are in the `QUERIES` object of that file:
-   - all `type=waterway` + `waterway=river` relations in the window, with their members;
-   - named `waterway=river` ways, with geometry, per tile of 2 x 2 degrees;
-   - relation members that the tiles did not bring (unnamed stretches), by id;
-   - lake candidates per tile: `natural=water` with `water=lake`, `oxbow`, `lagoon` or no `water`
-     tag, that have a name or a Wikidata id, with bounding boxes only; candidates whose box is
-     under the size limits are not fetched; the rest are fetched with full geometry once each;
-   - everything tagged `water=reservoir` or `landuse=reservoir` (with a name or a Wikidata id),
-     for the reservoir review.
-   The query window is the map rectangle's extent in longitude and latitude plus 0.3 degrees.
-2. `tools/map/build-water.mjs`, with the rules in `tools/map/water-rules.mjs`, builds the
-   extract:
-   - River ways are grouped into rivers: by waterway relation first, else by Wikidata id, else by
-     the same name and a shared end point. A group never mixes two relations or two Wikidata ids.
-     The ways of a river are stitched into as few lines as possible.
-   - A river is kept when it has a name and its length inside the map is at least 50 km, or at
-     least 15 km when it has a Wikidata id.
-   - A lake is kept when it has a name and an area of at least 1 km², or a Wikidata id and at
-     least 0.5 km².
-   - Anything tagged `water=reservoir` or `landuse=reservoir` is dropped. Lakes whose names look
-     like reservoirs (marios, водохранилище, zbiornik, ūdenskrātuve, veehoidla, HES, ГЭС and a few
-     more) are only flagged for review; the decisions are in tools/map/reservoirs-1219.json.
-   - Rivers mapped as areas (`water=river`) are not used; rivers stay lines. River lines through
-     dropped reservoirs are kept as OSM has them (down the reservoir's middle).
+1. `tools/map/fetch-overture.mjs` finds the newest Overture release (S3 ListObjectsV2), reads each
+   water file's footer, keeps the row groups whose bounding-box statistics overlap the map
+   window (the map rectangle's extent in longitude and latitude plus 0.3°: about 7.98-38.03°E,
+   49.15-62.23°N), reads their `subtype`, `class` and `bbox` columns, and reads the other columns
+   only for row groups with rows it wants: river lines (`subtype` river, `class` river), and lakes,
+   unnamed water and reservoirs whose box is at least 0.4 km². 391 of the release's 4,592 row
+   groups were read: 1,348 byte-range requests, 2.18 GB. `tools/map/parquet.mjs` is the small
+   Parquet reader it uses.
+2. `tools/map/build-water.mjs`, with `tools/map/overture-water.mjs` and the rules in
+   `tools/map/water-rules.mjs`, builds the extract:
+   - River ways (129,439 lines, one OSM way each) are grouped into rivers: by waterway relation
+     first (matching Overture's `sources[].record_id`, e.g. `w123@4`, to relation members), else
+     by Wikidata id, else by the same name and a shared end point. A group never mixes two
+     relations or two Wikidata ids. Rivers drawn as areas (river banks) are not used.
+   - Each stretch keeps its own local name; an unnamed stretch, or one whose name is not a name of
+     the river (OSM sometimes writes other text on a border), takes its neighbour's name. The
+     ways of each name are stitched into as few lines as possible.
+   - The river's own name: the relation's `name` when the river's ways carry it too; else the
+     single name its ways carry over the most length on the map.
+   - A river is kept when it has a name and its length inside the map is at least 50 km
+     (1,108 rivers), or at least 15 km when it has a Wikidata id (1,267 more).
+   - Lakes: rows mapped as `natural=water` with `water=lake`, `oxbow`, `lagoon` or no `water` tag
+     (a lagoon may be `natural=bay`), already assembled by Overture from OSM multipolygons. A
+     lake is kept when it has a name and an area of at least 1 km², or a Wikidata id and at least
+     0.5 km² (2,301 of the lakes kept are under 1 km²). Pieces with the same Wikidata id are one
+     lake. A lake that OSM maps a second time inside a bigger lake (Peipus proper inside
+     Peipus-Pskov, parts of Saimaa) is left out (27).
+   - The lakes of 1219: whatever OSM tags as a reservoir (`water=reservoir`, `landuse=reservoir`,
+     `reservoir_type`, Overture's subtype `reservoir`) is left out (528 of 0.5 km² or more), and
+     so is a lake whose OSM tags show it was made later (a flooded quarry or mine: `lake=quarry`,
+     `was:lake=quarry`, a resource tag; or a `start_date` after 1219; 10). The reviewed list
+     `tools/map/osm-water-1219.json` (107 entries) corrects the tags: it drops reservoirs and
+     flooded mines tagged as lakes (85, among them the mining lakes of Lusatia and around
+     Leipzig) and keeps natural lakes tagged as reservoirs (19, among them Tyrifjorden and
+     Randsfjorden, whose levels are regulated today). Names that look like reservoirs (marios,
+     водохранилище, zbiornik, ūdenskrātuve, veehoidla, nádrž, tvenkinys, dīķis, Stausee, HES, ГЭС
+     and others) only flag a lake for review: "marios" names both the Kaunas Reservoir and the
+     natural Curonian Lagoon.
+   - River lines through dropped reservoirs are kept as OSM has them (down the reservoir's
+     middle), an approximation of the river before the dam.
    - Every point is projected with tools/map/projection.mjs (through `project` in
      tools/map/geo.mjs, which adds points along long edges), rounded to 100 m, and clipped to the
      map rectangle. Points that repeat after rounding are dropped.
-   - Lake rings: outer rings run counter-clockwise and holes clockwise (with y growing north);
-     each outer ring is followed by its own holes.
-3. A later step simplifies the lines and rings for three zoom levels and writes `water.json` into
-   this folder.
+3. `tools/map/pack-water.mjs` simplifies the lines and rings to 150 m and gives each point the
+   coarsest of three zoom levels that needs it (tolerances 20 and 5 units for the overview and
+   the middle level), and writes `water.json`.
 
-To make it again: `npm run map:osm`.
+To make it again: `npm run map:water` (download and build; a rerun downloads nothing), then
+`npm run map:pack`.

@@ -3,11 +3,11 @@
 // point (tools/map/levels.mjs), which river or lake each shape belongs to, and the river and
 // lake info (names, Wikidata id, size, a lake's label point).
 //
-// M2 ships Natural Earth's simpler rivers and lakes (public domain) at src/data/map/water-ne.json,
-// with the lakes of 1219 chosen by the reviewed list in tools/map/ne-water-1219.json. The next
-// milestone brings fuller rivers and lakes from OpenStreetMap: once its extract exists
-// (data/raw/derived/water-osm.json), the block becomes src/data/odbl/water.json, under the
-// ODbL 1.0 and holding nothing from any other source, and the Natural Earth block is removed.
+// The game ships OpenStreetMap's rivers and lakes (read through Overture, built by
+// tools/map/build-water.mjs into data/raw/derived/water-osm.json) as src/data/odbl/water.json,
+// under the ODbL 1.0 and holding nothing from any other source. M2's Natural Earth block
+// (src/data/map/water-ne.json, the lakes of 1219 by tools/map/ne-water-1219.json) is kept as
+// code only: it is made when the OpenStreetMap extract is missing, and removed when it exists.
 
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';

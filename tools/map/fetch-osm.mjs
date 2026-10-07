@@ -1,6 +1,9 @@
 // @ts-check
 // Downloads rivers, lakes and reservoirs from OpenStreetMap through the public Overpass API
 // (overpass-api.de), politely, and caches every raw answer in data/raw/osm/ (git ignores it).
+// Since M2b the map reads its rivers and lakes from Overture's copy of OpenStreetMap
+// (tools/map/fetch-overture.mjs); of this tool's cache it still uses the river relations, which
+// say which ways make up which river. overpass-api.de refused this container in October 2026.
 // A rerun downloads nothing: each answer is stored under a hash of its query, and its SHA-256
 // is recorded in data/raw/manifest.json under "osm-water".
 //
@@ -35,7 +38,7 @@ export const RUN_FILE = join(OSM_DIR, 'run.json');
 const MANIFEST = join(RAW, 'manifest.json');
 const INDEX = join(OSM_DIR, 'index.json');
 const MANIFEST_KEY = 'osm-water';
-const REVIEW_FILE = fileURLToPath(new URL('./reservoirs-1219.json', import.meta.url));
+const REVIEW_FILE = fileURLToPath(new URL('./osm-water-1219.json', import.meta.url));
 
 /**
  * What each query promises the server: run time in seconds and memory in bytes. The server only
@@ -422,7 +425,7 @@ async function reviewedDropIds() {
   const review = JSON.parse(await readFile(REVIEW_FILE, 'utf8'));
   /** @type {{ way: number[], relation: number[] }} */
   const ids = { way: [], relation: [] };
-  for (const e of review.reservoirs) {
+  for (const e of review.entries) {
     if (e.decision !== 'drop') continue;
     for (const id of e.osmIds) {
       const [kind, num] = String(id).split('/');
