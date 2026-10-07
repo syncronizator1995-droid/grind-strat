@@ -52,7 +52,10 @@ const ABOUT = [
 ];
 /** What the rivers and lakes are, by where the shipped water comes from. */
 const ABOUT_WATER = {
-  osm: ['Rivers, lakes and the coast are today\'s, with today\'s local names; modern reservoirs are left out. Heights and sea depths are today\'s.'],
+  osm: [
+    'Rivers and lakes are today\'s, from OpenStreetMap, with today\'s local names: a river\'s name changes where the local language does (Nemunas in Lithuania, Нёман in Belarus). Modern reservoirs, and lakes made later such as flooded mines, are left out; the rivers through those reservoirs follow today\'s mapped line.',
+    'The coast, heights and sea depths are today\'s.',
+  ],
   ne: [
     'Rivers and lakes: for now Natural Earth\'s simpler set, with its names: local names for most rivers, English names for some big lakes. Fuller rivers and lakes from OpenStreetMap come next; until then the upper Nemunas (above Kaunas) and smaller lakes such as Drūkšiai are missing, and the map shows land where those lakes are.',
     'Rivers, lakes and the coast are today\'s; modern reservoirs are left out and the bigger natural lakes kept. Heights and sea depths are today\'s.',
@@ -64,10 +67,10 @@ const INTERIM = /** @type {Record<string, string>} */ ({
 });
 
 /** Which licence covers which folder of the repository (the ODbL folder only once it ships). */
-const ODBL_FOLDER = ['src/data/odbl/', 'Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes (see its LICENSE.md and README.md). Nothing else is mixed into it.'];
+const ODBL_FOLDER = ['src/data/odbl/', 'Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes, as the Overture Maps Foundation publishes them (see its LICENSE.md and README.md). Nothing else is mixed into it.'];
 const FOLDERS = [
   ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid (see its LICENSE.md and README.md).'],
-  ['src/data/map/', 'Public domain data: Natural Earth (land, coast, rivers and lakes) and GEBCO (GEBCO asks to be credited; not for navigation).'],
+  ['src/data/map/', 'Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
   ['everything else', 'The code and the rest of the repository are under the repository\'s own licence (see README.md).'],
 ];

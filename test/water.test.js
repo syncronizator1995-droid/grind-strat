@@ -240,21 +240,25 @@ describe('sources.json: the OpenStreetMap entry', () => {
   const { sources } = JSON.parse(readFileSync(new URL('../tools/map/sources.json', import.meta.url), 'utf8'));
   const osm = sources.find((/** @type {{ id: string }} */ s) => s.id === 'osm-water');
 
-  it('names the ODbL and the Overpass API', () => {
+  it('names the ODbL, OpenStreetMap and Overture\'s copy', () => {
     assert.ok(osm);
     assert.equal(osm.collection, 'osm');
-    assert.equal(osm.access, 'overpass');
-    assert.equal(osm.url, 'https://overpass-api.de/api/interpreter');
+    assert.equal(osm.access, 'overture');
+    assert.match(osm.url, /^https:\/\/overturemaps-us-west-2\.s3\.us-west-2\.amazonaws\.com\/release\/\d{4}-\d{2}-\d{2}\.\d+\/theme=base\/type=water\/$/);
     assert.equal(osm.licence, 'Open Database License (ODbL) 1.0');
     assert.equal(osm.credit.licenceUri, 'opendatacommons.org/licenses/odbl/1-0/');
-    assert.match(osm.credit.line, /© OpenStreetMap contributors/);
+    assert.match(osm.credit.line, /^Rivers, lakes and their names: © OpenStreetMap contributors, Overture Maps Foundation\./);
     assert.match(osm.credit.line, /openstreetmap\.org\/copyright/);
+    assert.equal(osm.credit.short, '© OpenStreetMap contributors');
+    assert.equal(osm.credit.onMap, true);
   });
 
   it('quotes the licence where it was read', () => {
     if (osm.licenceStatus === 'read') {
       assert.match(osm.licenceQuote, /Open Database License/);
+      assert.match(osm.licenceQuote, /© OpenStreetMap contributors, Overture Maps Foundation/);
       assert.match(osm.licenceReadAt, /openstreetmap-website/);
+      assert.match(osm.licenceReadAt, /OvertureMaps\/docs/);
     } else {
       assert.ok(osm.toCheck.length > 0);
     }

@@ -154,7 +154,8 @@ export function labelDiscs(x, y, angle, width, size) {
 }
 
 /**
- * @typedef {{ x0: number, y0: number, x1: number, y1: number, d: number }} Stretch
+ * @typedef {{ x0: number, y0: number, x1: number, y1: number, d: number, text?: string, width?: number }} Stretch
+ *   text and width: the name a river's stretch carries there, and its width in CSS px
  */
 
 /** Scratch space for the arc lengths along a line, reused so placing names makes no garbage. */
@@ -365,17 +366,26 @@ function placeLake(lake, drawn, scale, ox, oy, frame, measure, occupied) {
 function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occupied, previous) {
   const river = water.riverInfo[k];
   const size = riverFont(river.lengthKm);
-  const textWidth = measure(river.name, size);
+  /** @type {Map<string, number>} */
+  const widths = new Map();
+  const widthOf = (/** @type {string} */ text) => {
+    let w = widths.get(text);
+    if (w === undefined) { w = measure(text, size); widths.set(text, w); }
+    return w;
+  };
   const offset = size * 0.7 + bandWidth(riverBand(river.lengthKm), scale);
   // Game-unit window of the frame, to skip lines that are off screen.
   const minX = -ox / scale; const maxX = (frame.width - ox) / scale;
   const minY = (oy - frame.height) / scale; const maxY = oy / scale;
   // Zoomed far out every river wiggles at the scale of a word: allow a little more bend there.
   const bend = size * (scale < THIN_BELOW ? 0.6 : 0.4);
-  const length = textWidth + size;
   /** @type {Stretch[]} */
   const stretches = [];
   for (const i of index.linesOf[k] ?? []) {
+    // Each stretch carries its local name: the Nemunas is "Nemunas" in Lithuania, "Нёман" in Belarus.
+    const text = (water.lineName && water.lineNames[water.lineName[i]]) || river.name;
+    const textWidth = widthOf(text);
+    const length = textWidth + size;
     const b = index.lineBox.subarray(i * 4, i * 4 + 4);
     if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
     // A line whose whole extent on screen is shorter than the name can't carry it.
@@ -389,7 +399,7 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
     // at chunks of the line near it.
     let count = 0;
     const flush = () => {
-      if (count >= 2) straightStretches(buffer, length, bend, frame, count, stretches);
+      if (count >= 2) for (const st of straightStretches(buffer, length, bend, frame, count)) stretches.push({ ...st, text, width: textWidth });
       count = 0;
     };
     for (let c = 0; c * 4 < chunks.length; c++) {
@@ -428,12 +438,13 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
     const x = (s.x0 + s.x1) / 2 + Math.sin(angle) * offset;
     const y = (s.y0 + s.y1) / 2 - Math.cos(angle) * offset;
     if (placed.some((l) => Math.hypot(l.x - x, l.y - y) < REPEAT_PX)) continue;
-    const discs = labelDiscs(x, y, angle, textWidth, size);
+    const text = s.text ?? river.name;
+    const discs = labelDiscs(x, y, angle, s.width ?? widthOf(text), size);
     if (!occupied.fits(discs)) continue;
     occupied.add(discs);
     const sx = (s.x0 + s.x1) / 2;
     const sy = (s.y0 + s.y1) / 2;
-    placed.push({ text: river.name, size, x, y, angle, river: k, mx: (sx - ox) / scale, my: (oy - sy) / scale });
+    placed.push({ text, size, x, y, angle, river: k, mx: (sx - ox) / scale, my: (oy - sy) / scale });
   }
   return placed;
 }

@@ -212,7 +212,7 @@ let mapView = null;
 /** @type {import('./map/speedtest.js').StartupTimes} */
 const startup = {
   mapOnScreenMs: NaN, scriptStartMs: performance.now(), base64Ms: NaN, inflateMs: NaN, decodeMs: NaN, paintMs: NaN, pathMs: NaN,
-  waterMs: NaN, waterOnScreenMs: NaN,
+  waterMs: NaN, waterOnScreenMs: NaN, waterUnpackMs: NaN, waterLabelMs: NaN,
 };
 const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -264,8 +264,10 @@ async function showMap() {
   const t0 = performance.now();
   const waterTimes = { base64Ms: 0, inflateMs: 0, decodeMs: 0 };
   mapView.setWater(await loadWater(readBlock('water'), waterTimes));
+  startup.waterUnpackMs = performance.now() - t0;
   mapView.render(true);
   startup.waterMs = performance.now() - t0;
+  startup.waterLabelMs = mapView.labelMs();
   startup.waterOnScreenMs = performance.now();
   document.documentElement.dataset.waterOnScreenMs = startup.waterOnScreenMs.toFixed(1);
   // For test/startup.mjs: where the start-up time goes.

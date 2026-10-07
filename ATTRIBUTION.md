@@ -6,13 +6,15 @@ hand. The game shows the same credits on its Credits sheet, and a short credit l
 
 ## Which licence covers which folder
 
+- `src/data/odbl/`: Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes, as the Overture Maps Foundation publishes them (see its LICENSE.md and README.md). Nothing else is mixed into it.
 - `src/data/by-sa/`: Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid (see its LICENSE.md and README.md).
-- `src/data/map/`: Public domain data: Natural Earth (land, coast, rivers and lakes) and GEBCO (GEBCO asks to be credited; not for navigation).
+- `src/data/map/`: Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).
 - `src/ui/fonts/`: SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).
 - `everything else`: The code and the rest of the repository are under the repository's own licence (see README.md).
 
 The game's combined data bundle (the way the blocks are put together in the game file) is also offered
-under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). No OpenStreetMap data ships yet.
+under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/), while the contents of the ODbL block
+(`src/data/odbl/`) stay under the ODbL 1.0. The OpenStreetMap-derived data is offered at github.com/syncronizator1995-droid/grind-strat, folder src/data/odbl/.
 
 All data is used as it is, with no warranty. No data provider endorses this game. The GEBCO grid
 is not for navigation or any other purpose involving safety at sea.
@@ -21,7 +23,7 @@ is not for navigation or any other purpose involving safety at sea.
 
 - `src/data/map/base.json` (public-domain): land, coast, heights and sea depths. Notice: "Land, coast, heights and sea depths for Grind Strat. Sources: Made with Natural Earth (Public domain, www.naturalearthdata.com/about/terms-of-use/); GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa) (Public domain (GEBCO Grid terms of use), dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf). Not for navigation. Not endorsed by GEBCO, the IHO or the IOC. Made available as is."
 - `src/data/by-sa/terrain-1219.json` (CC-BY-SA-4.0): the land around 1219: forest, open land, marsh and heath. Notice: "The land around AD 1219 for Grind Strat, 1 km grid: forest share estimated from pollen, edges placed by a rule; marsh from today's peat-soil and wetland maps plus today's open bogs. Shared under CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0/). Sources: Forest around 1219: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022) (CC BY-SA 4.0, creativecommons.org/licenses/by-sa/4.0/); © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0, creativecommons.org/licenses/by/4.0/); Marsh and bog: Global Lakes and Wetlands Database v2 (Lehner et al. 2025), hydrosheds.org/products/glwd (CC BY 4.0, creativecommons.org/licenses/by/4.0/); GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa) (Public domain (GEBCO Grid terms of use), dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf); Made with Natural Earth (Public domain, www.naturalearthdata.com/about/terms-of-use/). Not for navigation. Not endorsed by GEBCO, the IHO or the IOC. Made available as is."
-- `src/data/map/water-ne.json` (public-domain): rivers, lakes and their names. Notice: "Rivers and lakes for Grind Strat around AD 1219: Natural Earth's 1:10m set, with modern reservoirs left out and natural lakes kept, by a reviewed list. Sources: Made with Natural Earth (Public domain, www.naturalearthdata.com/about/terms-of-use/)."
+- `src/data/odbl/water.json` (ODbL-1.0): rivers, lakes and their names. Notice: "Contains information from OpenStreetMap, openstreetmap.org/copyright, made available under the Open Database License (ODbL) 1.0, opendatacommons.org/licenses/odbl/1-0/"
 
 ## Datasets
 
@@ -29,7 +31,7 @@ is not for navigation or any other purpose involving safety at sea.
 
 - Owner: Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)
 - Version: 5.1.2
-- Used for: Land, coast, heights and sea depths; the land around 1219: forest, open land, marsh and heath; rivers, lakes and their names
+- Used for: Land, coast, heights and sea depths; the land around 1219: forest, open land, marsh and heath
 - Where we got it: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_land.geojson, https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_rivers_lake_centerlines.geojson, https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_lakes.geojson
 - Licence: Public domain, https://www.naturalearthdata.com/about/terms-of-use/
 - Licence read at: LICENSE.md at tag v5.1.2 of github.com/nvkelso/natural-earth-vector, the repository of Natural Earth's co-author Nathaniel Vaughn Kelso (the owner's own host).
@@ -40,7 +42,7 @@ is not for navigation or any other purpose involving safety at sea.
   - Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (`src/data/by-sa/README.md` says how).
   - Rivers: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 200 m. Names repaired where Natural Earth lost letters (Göta älv, Klarälven, Motala ström, Glåma, Kokemäenjoki) or mistyped one (Dnepre, shown as Dnipro like the rest of the river). The Neman shown as Nemunas, the local name Natural Earth also gives. The pieces Natural Earth calls Vorma that are really the lower Glomma and the Gudbrandsdalslågen shown under those names.
   - Lakes: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 150 m. Every lake on the map reviewed by hand for 1219, whatever Natural Earth's own class says: modern reservoirs left out (not there in 1219), natural lakes kept even where a dam regulates them today. The two halves of the Vistula Lagoon joined under that name; Lake Il'Men' shown as Lake Ilmen; one lake whose names disagree shown unnamed.
-- Held in: `src/data/map/base.json`, `src/data/by-sa/terrain-1219.json`, `src/data/map/water-ne.json`, inlined into the game file `dist/grind-strat.html`
+- Held in: `src/data/map/base.json`, `src/data/by-sa/terrain-1219.json`, inlined into the game file `dist/grind-strat.html`
 
 ### GEBCO
 
@@ -102,6 +104,19 @@ is not for navigation or any other purpose involving safety at sea.
   - Wetland classes 8-19, 22-25 and 29-31 added up (capped at 100%), clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and averaged over 1 km cells. Shares at or below 15% dropped as background; shares from 15% to 55% stretched in a straight line to 0-100% marsh, and 55% or more read as full marsh. Combined with today's herbaceous wetland (class 90) from ESA WorldCover 2021: each cell keeps the larger of the two.
   - Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (`src/data/by-sa/README.md` says how).
 - Held in: `src/data/by-sa/terrain-1219.json`, inlined into the game file `dist/grind-strat.html`
+
+### OpenStreetMap contributors
+
+- Owner: OpenStreetMap contributors; published by the Overture Maps Foundation
+- Version: Overture release 2026-09-23.1 (OpenStreetMap data of September 2026)
+- Used for: Rivers, lakes and their names
+- Where we got it: https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=base/type=water/
+- Licence: Open Database License (ODbL) 1.0, https://opendatacommons.org/licenses/odbl/1-0/
+- Licence read at: OpenStreetMap: config/locales/en.yml, keys en.site.copyright.legal_babble.licensing_1_html to credit_4_v2025_html (lines 2483 to 2531), the English text of openstreetmap.org/copyright, at commit 31bc4cd72e26c70e1f453f202850aadae7c494e2 of github.com/openstreetmap/openstreetmap-website (the OpenStreetMap Foundation's own repository of the openstreetmap.org website), read through raw.githubusercontent.com on 6 October 2026 and read again on 7 October 2026 (still the latest commit). Overture: docs/attribution.mdx and docs/_generated_attribution.mdx (section Base) at commit f7030ca41d6ce4c31277e44762a4af00ddde80b3 of github.com/OvertureMaps/docs (the Overture Maps Foundation's own documentation repository, published at docs.overturemaps.org), read through raw.githubusercontent.com on 7 October 2026. Every row read carries sources[].license = ODbL-1.0. The %{...} placeholders of the YAML and the Markdown links are shown as [their link texts].
+- Notice: Rivers, lakes and their names: © OpenStreetMap contributors, Overture Maps Foundation. Open Database License: openstreetmap.org/copyright
+- Citation: OpenStreetMap contributors. OpenStreetMap data as published by the Overture Maps Foundation, overturemaps.org (release 2026-09-23.1, accessed 7 October 2026). openstreetmap.org
+- Changes we made: Rivers and lakes: filtered to named rivers (at least 50 km on the map, or 15 km with a Wikidata id) and named natural lakes (at least 1 km², or 0.5 km² with a Wikidata id); river ways joined into rivers by OpenStreetMap's river relations; modern reservoirs and lakes made after 1219 left out by their OpenStreetMap tags and a reviewed list; lakes mapped twice inside a bigger lake left out; moved onto the game's flat map (an equal-area projection), rounded to 100 m and simplified for three zoom levels.
+- Held in: `src/data/odbl/water.json`, inlined into the game file `dist/grind-strat.html`
 
 ## Font
 
