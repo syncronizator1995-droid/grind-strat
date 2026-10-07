@@ -13,8 +13,14 @@
     "test": "node --test \"test/*.test.js\"",
     "soak": "node test/soak.mjs",
     "check": "tsc -p tsconfig.json",
-    "shots": "node tools/build.mjs && node test/shots.mjs",
-    "map": "node tools/map/fetch.mjs && node tools/map/build-test-map.mjs"
+    "shots": "node test/shots.mjs",
+    "map": "node tools/map/fetch.mjs && node tools/map/build-grids.mjs && node tools/map/build-terrain-1219.mjs && node tools/map/pack.mjs && node tools/map/attribution.mjs",
+    "map:grids": "node tools/map/build-grids.mjs",
+    "map:previews": "node tools/map/preview-grids.mjs",
+    "startup": "node test/startup.mjs",
+    "attribution": "node tools/map/attribution.mjs",
+    "map:terrain": "node tools/map/build-terrain-1219.mjs",
+    "map:pack": "node tools/map/pack.mjs && node tools/map/attribution.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

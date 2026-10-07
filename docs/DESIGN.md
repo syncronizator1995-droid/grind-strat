@@ -354,7 +354,13 @@ polished, error-free Lithuanian playthrough that holds together however the play
   are made finer from it later.
 - Time slices: today, 1219 and 1 AD in full from step 2a. The five ice-age slices get a rough
   preview and sourced notes in 2a, and are built properly in step 8, with the hunters.
-- Credits: a Credits screen lists every data owner, the licence and what we changed.
+- Credits: a Credits screen lists every data owner, the licence and what we changed. It opens
+  from a Credits button and from a small credit line in a corner of the map. It starts with
+  "About this map", which says plainly what is estimated and what is today's.
+- The 1219 land (from M2): forest, marsh, heath and open land on the 1 km map. The forest share
+  per 1° cell comes from pollen records; the exact edges are placed by a rule; marsh comes from
+  peat-soil and wetland maps. Heights and sea depths are today's. Under modern reservoirs the land
+  shows flat, at today's water level, because no height data from before the dams exists.
 
 The Baltic basin changed shape after the ice:
 
@@ -506,6 +512,11 @@ Step 2 split down are his step 2 answers, later the same day.
 | Terrain grid | A 1 km terrain map for every province; battle and town maps made finer later (replaces the small 32 by 32 grid per province) |
 | Names on the map | Names of the time, changing with the time slider; today's name stands in, marked, where none is sourced |
 | Unsure borders | Guessed borders look softer than sourced ones |
+| Marsh in 1219 | "Bogs stand out": today's peat-soil and wetland maps (GLWD v2) plus today's open bogs (ESA WorldCover); the thin peat background is dropped so real bog cores read as mostly marsh |
+| Forest in 1219 | Pollen shares for AD 750 to 1250, unblended; forest edges placed by a rule from today's land cover, terrain and rivers, and the game says so |
+| Forest data licence | The finished pollen maps (SpatioCompo, Behnaz Pirzamanbein) used as CC BY-SA 4.0; TO CHECK with the author, because her repository also has a GPL file |
+| Sites allowed for M2 | overpass-api.de, dap.ceda.ac.uk and data.hydrosheds.org |
+| M2 rivers and lakes | Natural Earth's simpler set now; the full OpenStreetMap rivers come next, from Overture's official copy on Amazon, because OpenStreetMap's query server refused the cloud session |
 
 ## Treating real history with care
 

@@ -199,6 +199,45 @@ and he approved it. His answers change these earlier plans:
 - Names of the time, changing with the slider. The research had proposed today's local names.
 - Share-alike data is allowed. The research had recommended avoiding it.
 
+### Step 2a, M1 and M2: the speed test and the real map (6 and 7 October 2026)
+
+M1 put a made-up test map on his phone. He ran the speed test and pasted the numbers: first map
+2.5 s (2.2 s of it before the game's code started), full redraw 11 ms, 99% of frames on time on
+a 90 Hz screen. Every target passed, so no drawing fixes were needed.
+
+For M2 a research workflow (five researchers, five skeptics) found that almost every data host was
+blocked, and that some data could come from reachable copies on Amazon and GitHub. Claude asked
+him for three sites, each so a licence could be read on its owner's own site: overpass-api.de
+(OpenStreetMap rivers), dap.ceda.ac.uk (GEBCO) and data.hydrosheds.org (the marsh map). He
+answered "done". The GEBCO copy then matched the official file in all 22.7 million cells, and the
+marsh map's documentation matched byte for byte.
+
+His answers to the M2 questions:
+
+> Marsh look: "Bogs stand out (Recommended)". Forest age: "750–1250, as planned (Recommended)".
+> Forest data: "Use it, ask the author (Recommended)". Rivers: "Allow overpass-api.de
+> (Recommended)".
+
+So: real bog cores read as mostly marsh, and the thin peat background is dropped. The forest uses
+the pollen window AD 750 to 1250, unblended. The finished pollen maps on Behnaz Pirzamanbein's
+GitHub are used as CC BY-SA 4.0, with a TO CHECK because her repository also carries a GPL file.
+Claude drafted an email for Ignas to send her.
+
+Then OpenStreetMap's query server began refusing the connection, after only a small part of the
+rivers had downloaded. Asked again, he chose:
+
+> "Ship now, add rivers next (Recommended)"
+
+So M2 ships with Natural Earth's simpler rivers and lakes (public domain). The full OpenStreetMap
+rivers follow from Overture's official copy on Amazon, read by Claude's own code, with no new
+tool.
+
+Claude made two smaller calls and told him:
+- Moss and lichen are left out of the marsh rule, because on this map they are mountain tundra in
+  Norway and Sweden.
+- The Uppsala plain stays partly marshy, as the peat maps show, because in 1219 that land stood
+  several metres lower.
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.

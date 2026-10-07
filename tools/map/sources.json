@@ -1,5 +1,5 @@
 {
-  "about": "Raw map data that tools/map/fetch.mjs downloads into data/raw/ (not stored in git). licenceStatus is 'read' only once the licence was read on the owner's own site and quoted in data/sources.md; a shipped map file built from an 'unverified' source fails the build.",
+  "about": "Raw map data for the map pipeline, kept in data/raw/ (not stored in git). Files with access 'whole' (the default) are downloaded by tools/map/fetch.mjs; access 'range' marks big rasters that tools/map/build-grids.mjs reads window by window through tools/map/fetch-grids.mjs, with {NN} (a class number) or {tile} (a tile name) in the url filled in by the builder. 'files' are small extra files (legends, licences, manuals) fetched whole. licenceStatus is 'read' only once the licence was read on the owner's own host and quoted here (licenceReadAt says where; licenceQuote is verbatim); a shipped map file built from an 'unverified' source fails the build. 'credit' is what the in-game Credits screen and ATTRIBUTION.md show (tools/map/attribution.mjs writes both): owner, version, short (the name on the map's credit line), onMap (whether that short name stays on the map's credit line at all times), line, citation, changes, notes, licenceName and licenceUri (no scheme: the game page may not contain web addresses). The lead keeps data/sources.md in step with this file.",
   "sources": [
     {
       "id": "ne-land",
@@ -9,7 +9,22 @@
       "what": "Natural Earth 1:10m land polygons, v5.1.2",
       "licence": "Public domain (Natural Earth terms of use)",
       "licenceUrl": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/LICENSE.md",
-      "licenceStatus": "read"
+      "licenceStatus": "read",
+      "licenceReadAt": "LICENSE.md at tag v5.1.2 of github.com/nvkelso/natural-earth-vector, the repository of Natural Earth's co-author Nathaniel Vaughn Kelso (the owner's own host).",
+      "licenceQuote": "All versions of Natural Earth raster + vector map data found on this website are in the public domain. You may use the maps in any manner, including modifying the content and design, electronic dissemination, and offset printing. [...] No permission is needed to use Natural Earth. Crediting the authors is unnecessary.",
+      "unofficialCopy": null,
+      "toCheck": [],
+      "credit": {
+        "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
+        "version": "5.1.2",
+        "short": "Natural Earth",
+        "onMap": true,
+        "line": "Made with Natural Earth.",
+        "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
+        "changes": "Land and coast: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 150 m; islets under about 0.4 km² dropped.",
+        "licenceName": "Public domain",
+        "licenceUri": "www.naturalearthdata.com/about/terms-of-use/"
+      }
     },
     {
       "id": "ne-rivers",
@@ -19,7 +34,22 @@
       "what": "Natural Earth 1:10m rivers and lake centre-lines, v5.1.2",
       "licence": "Public domain (Natural Earth terms of use)",
       "licenceUrl": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/LICENSE.md",
-      "licenceStatus": "read"
+      "licenceStatus": "read",
+      "licenceReadAt": "LICENSE.md at tag v5.1.2 of github.com/nvkelso/natural-earth-vector, the repository of Natural Earth's co-author Nathaniel Vaughn Kelso (the owner's own host).",
+      "licenceQuote": "All versions of Natural Earth raster + vector map data found on this website are in the public domain. You may use the maps in any manner, including modifying the content and design, electronic dissemination, and offset printing. [...] No permission is needed to use Natural Earth. Crediting the authors is unnecessary.",
+      "unofficialCopy": null,
+      "toCheck": [],
+      "credit": {
+        "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
+        "version": "5.1.2",
+        "short": "Natural Earth",
+        "onMap": true,
+        "line": "Made with Natural Earth.",
+        "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
+        "changes": "Rivers: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 200 m. Names repaired where Natural Earth lost letters (Göta älv, Klarälven, Motala ström, Glåma, Kokemäenjoki) or mistyped one (Dnepre, shown as Dnipro like the rest of the river). The Neman shown as Nemunas, the local name Natural Earth also gives. The pieces Natural Earth calls Vorma that are really the lower Glomma and the Gudbrandsdalslågen shown under those names.",
+        "licenceName": "Public domain",
+        "licenceUri": "www.naturalearthdata.com/about/terms-of-use/"
+      }
     },
     {
       "id": "ne-lakes",
@@ -29,7 +59,198 @@
       "what": "Natural Earth 1:10m lakes and reservoirs, v5.1.2",
       "licence": "Public domain (Natural Earth terms of use)",
       "licenceUrl": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/LICENSE.md",
-      "licenceStatus": "read"
+      "licenceStatus": "read",
+      "licenceReadAt": "LICENSE.md at tag v5.1.2 of github.com/nvkelso/natural-earth-vector, the repository of Natural Earth's co-author Nathaniel Vaughn Kelso (the owner's own host).",
+      "licenceQuote": "All versions of Natural Earth raster + vector map data found on this website are in the public domain. You may use the maps in any manner, including modifying the content and design, electronic dissemination, and offset printing. [...] No permission is needed to use Natural Earth. Crediting the authors is unnecessary.",
+      "unofficialCopy": null,
+      "toCheck": [],
+      "credit": {
+        "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
+        "version": "5.1.2",
+        "short": "Natural Earth",
+        "onMap": true,
+        "line": "Made with Natural Earth.",
+        "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
+        "changes": "Lakes: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 150 m. Every lake on the map reviewed by hand for 1219, whatever Natural Earth's own class says: modern reservoirs left out (not there in 1219), natural lakes kept even where a dam regulates them today. The two halves of the Vistula Lagoon joined under that name; Lake Il'Men' shown as Lake Ilmen; one lake whose names disagree shown unnamed.",
+        "licenceName": "Public domain",
+        "licenceUri": "www.naturalearthdata.com/about/terms-of-use/"
+      }
+    },
+    {
+      "id": "gebco-2026",
+      "collection": "gebco",
+      "access": "range",
+      "url": "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/ice_surface_elevation/geotiff/gebco_2026_n90.0_s0.0_w0.0_e90.0_geotiff.tif",
+      "maxRangeBytes": 4194304,
+      "file": "cache/gebco-2026/",
+      "what": "GEBCO_2026 Grid (standard grid, ice-surface elevation): heights and sea depths at 15 arc-seconds, metres (int16). The official GeoTIFF tile for 0-90N, 0-90E (21600 x 21600, uncompressed, one row per strip, 933,257,454 bytes, ETag 69e8d8b0-37a060ee) on dap.ceda.ac.uk, where BODC publishes the grid for GEBCO. Read in chunks of at most 4 MB (CEDA drops long transfers). Land north of 60N comes largely from GMTED2010 and south of it from SRTM15+ V2.8 (per the documentation), so a seam at 60N is expected.",
+      "fallback": {
+        "url": "https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/ausantarctic/gebco/GEBCO_2026.tif?versionId=OzogAsyRFfM9qteLeEG380VEsRRGrOdX",
+        "what": "Unofficial Cloud Optimized GeoTIFF copy of the same grid (BigTIFF, DEFLATE + predictor 2, 512 x 512 tiles) by the Australian Antarctic Division on Source Cooperative (AWS S3), pinned to one S3 object version. Used only if the official tile is gone. On 6 October 2026 tools/map/compare-gebco.mjs read the map window (7217 x 3144 pixels, 7.97-38.04E, 49.14-62.24N) from both: all 22,690,248 values identical (SHA-256 of the int16 samples e6fcc354cedc2291bb0fe7224e695801f5cd24fa5da22e4812f441991726f013 for both)."
+      },
+      "files": [
+        {
+          "name": "00readme.txt",
+          "url": "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/00readme.txt",
+          "file": "gebco/00readme.txt"
+        },
+        {
+          "name": "00README_catalogue_and_licence.txt",
+          "url": "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/00README_catalogue_and_licence.txt",
+          "file": "gebco/00README_catalogue_and_licence.txt"
+        },
+        {
+          "name": "GEBCO_Grid_terms_of_use.pdf",
+          "url": "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf",
+          "file": "gebco/GEBCO_Grid_terms_of_use.pdf"
+        },
+        {
+          "name": "GEBCO_Grid_docmentation.pdf",
+          "url": "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_docmentation.pdf",
+          "file": "gebco/GEBCO_Grid_docmentation.pdf"
+        }
+      ],
+      "licence": "GEBCO Grid terms of use: public domain, with attribution asked; no suggestion of endorsement by GEBCO, IHO or IOC; not for navigation. CEDA's catalogue lists the Open Government Licence v3.0 (also attribution only) for the same data.",
+      "licenceUrl": "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf",
+      "licenceStatus": "read",
+      "licenceReadAt": "GEBCO_Grid_terms_of_use.pdf (145,503 bytes, sha256 3d0236bbb239fd1b29a432422e2879754f3ce21d75071ac1bf63929401bbb6bd) and 00README_catalogue_and_licence.txt (CEDA: \"Use of these data is covered by the following licence(s): http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/ When using these data you must cite them correctly using the citation given on the catalogue record.\"), both in https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/ on dap.ceda.ac.uk, where BODC (GEBCO's Global Center) archives the grid with CEDA: the owner's own host. Read on 6 October 2026. Citation from 00readme.txt there; the short data set reference from GEBCO_Grid_docmentation.pdf (sha256 f3ced9f031ff9c7eaf7ec19fe1137c9f37bb7913591dd1f55560eaf3b7eb5201).",
+      "licenceQuote": "The GEBCO Grid is placed in the public domain and may be used free of charge. Use of the GEBCO Grid indicates that the user accepts the conditions of use and disclaimer information given below. Users are free to: Copy, publish, distribute and transmit The GEBCO Grid; Adapt The GEBCO Grid; Commercially exploit The GEBCO Grid, by, for example, combining it with other information, or by including it in their own product or application. Users must: Acknowledge the source of The GEBCO Grid. A suitable form of attribution is given in the documentation that accompanies The GEBCO Grid. Not use The GEBCO Grid in a way that suggests any official status or that GEBCO, or the IHO or IOC, endorses any particular application of The GEBCO Grid. Not mislead others or misrepresent The GEBCO Grid or its source.\nDisclaimer: The GEBCO Grid should NOT be used for navigation or for any other purpose involving safety at sea. The GEBCO Grid is made available 'as is'. While every effort has been made to ensure reliability within the limits of present knowledge, the accuracy and completeness of The GEBCO Grid cannot be guaranteed. [...]",
+      "unofficialCopy": null,
+      "toCheck": [],
+      "credit": {
+        "owner": "GEBCO Compilation Group (the General Bathymetric Chart of the Oceans, under the IHO and the IOC of UNESCO); the grid is archived and published by the British Oceanographic Data Centre (BODC)",
+        "version": "GEBCO_2026 Grid, ice-surface elevation, 15 arc-seconds",
+        "short": "GEBCO",
+        "onMap": true,
+        "line": "GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa)",
+        "citation": "GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals. NERC EDS British Oceanographic Data Centre NOC. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+        "changes": "Clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and averaged over 2 km cells, rounded to whole metres.",
+        "notes": [
+          "Not for navigation.",
+          "Not endorsed by GEBCO, the IHO or the IOC.",
+          "Made available as is."
+        ],
+        "licenceName": "Public domain (GEBCO Grid terms of use)",
+        "licenceUri": "dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf"
+      }
+    },
+    {
+      "id": "glwd-v2",
+      "collection": "glwd",
+      "access": "range",
+      "url": "https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/cboettig/wetlands/GLWD_v2_0/GLWD_v2_0_area_by_class_pct/GLWD_v2_0_class_{NN}_pct.tif",
+      "file": "cache/glwd-v2/",
+      "what": "Global Lakes and Wetlands Database v2.0: share of each 15 arc-second cell (0-100%) covered by each of 33 classes, one LZW-compressed BigTIFF per class (128 x 128 tiles, 255 = no data). Read from an unofficial complete copy.",
+      "files": [
+        {
+          "name": "GLWD_Legend_v2_0.csv",
+          "url": "https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/cboettig/wetlands/GLWD_v2_0/GLWD_Legend_v2_0.csv",
+          "file": "glwd/GLWD_Legend_v2_0.csv"
+        },
+        {
+          "name": "GLWD_TechDoc_v2_0.pdf",
+          "url": "https://data.hydrosheds.org/file/hydrobasins/GLWD_TechDoc_v2_0.pdf",
+          "file": "glwd/GLWD_TechDoc_v2_0.pdf"
+        }
+      ],
+      "licence": "CC BY 4.0, with a request not to redistribute the data in whole in its original format on other websites",
+      "licenceUrl": "https://data.hydrosheds.org/file/hydrobasins/GLWD_TechDoc_v2_0.pdf",
+      "licenceStatus": "read",
+      "licenceReadAt": "Section 4.1 of GLWD_TechDoc_v2_0.pdf at https://data.hydrosheds.org/file/hydrobasins/GLWD_TechDoc_v2_0.pdf, on HydroSHEDS' own host (the owner's host), read on 6 October 2026: md5 3fbf94b5b6c175dc0cd795eecb4b9ee5, sha256 55c0b22ef0b619da2f6a25239d05df51ac467cf5c959666ababa2d966a30efe8, the same file as the copy on Source Cooperative. 4.2 disclaims all warranty (\"as is\"); 4.3 limits liability; 4.4 gives the citation.",
+      "licenceQuote": "Version 2 of the Global Lakes and Wetlands Database (GLWD) is distributed under a Creative Commons Attribution 4.0 International License. By downloading and using the data the user agrees to the terms and conditions of this license. A copy of the license is available at http://creativecommons.org/licenses/by/4.0/. Notwithstanding this free license, we ask users to refrain from redistributing the data in whole in its original format on other websites without the explicit written permission from the authors. GLWD v2 is available at https://www.hydrosheds.org/products/glwd.",
+      "unofficialCopy": "Carl Boettiger, on Source Cooperative (AWS S3, us-west-2, cboettig/wetlands/GLWD_v2_0/): the per-class percent GeoTIFFs, legend and TechDoc. The TechDoc is byte-identical to the official one; the data TIFFs were not compared with the official download.",
+      "toCheck": [
+        "The data TIFFs come from the unofficial Source Cooperative copy and were not compared with the official figshare zips (doi:10.6084/m9.figshare.28519994): that host is not allowed from this container.",
+        "Only a derived 1 km grid ships (the authors ask that the data are not redistributed in whole in their original format); raw GLWD files and cropped raw windows are never committed.",
+        "The article's volume, pages and DOI (believed 17, 2277-2329, doi:10.5194/essd-17-2277-2025) are given on figshare and ESSD, not in the TechDoc: confirm there and add them to the citation.",
+        "Uppland (59.85N 17.60E) reads about half marsh (GLWD raw 34%, marsh 49%, 10 km mean 34%): drained peat in the valleys. Left as it is on purpose: in 1219 that land stood several metres lower because of post-glacial uplift, so wet valley floors are plausible. Not tuned away."
+      ],
+      "credit": {
+        "owner": "Bernhard Lehner and co-authors (2025), published by HydroSHEDS",
+        "version": "2.0",
+        "short": "GLWD v2",
+        "onMap": false,
+        "line": "Marsh and bog: Global Lakes and Wetlands Database v2 (Lehner et al. 2025), hydrosheds.org/products/glwd",
+        "citation": "Lehner, B., Anand, M., Fluet-Chouinard, E., Tan, F., Aires, F., Allen, G.H., Bousquet, P., Canadell, J.G., Davidson, N., Ding, M., Finlayson, C.M., Gumbricht, T., Hilarides, L., Hugelius, G., Jackson, R.B., Korver, M.C., Liu, L., McIntyre, P.B., Matthews, E., Nagy, S., Olefeldt, D., Pavelsky, T.M., Pekel, J.-F., Poulter, B., Prigent, C., Wang, J., Worthington, T.A., Yamazaki, D., Zhang, X., Thieme, M. (2025). Mapping the world's inland surface waters: an upgrade to the Global Lakes and Wetlands Database (GLWD v2). Earth System Science Data. Data doi:10.6084/m9.figshare.28519994",
+        "changes": "Wetland classes 8-19, 22-25 and 29-31 added up (capped at 100%), clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and averaged over 1 km cells. Shares at or below 15% dropped as background; shares from 15% to 55% stretched in a straight line to 0-100% marsh, and 55% or more read as full marsh. Combined with today's herbaceous wetland (class 90) from ESA WorldCover 2021: each cell keeps the larger of the two.",
+        "licenceName": "CC BY 4.0",
+        "licenceUri": "creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "worldcover-2021",
+      "collection": "worldcover",
+      "access": "range",
+      "url": "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{tile}_Map.tif",
+      "file": "cache/worldcover-2021/",
+      "what": "ESA WorldCover 10 m 2021 v200 land cover, 3 x 3 degree tiles named by their south-west corner (e.g. N54E024). Read from each tile's internal overview of about 74 m (1/1500 degree) pixels.",
+      "files": [
+        {
+          "name": "WorldCover_PUM_V2.0.pdf",
+          "url": "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/docs/WorldCover_PUM_V2.0.pdf",
+          "file": "worldcover/WorldCover_PUM_V2.0.pdf"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/docs/WorldCover_PUM_V2.0.pdf",
+      "licenceStatus": "read",
+      "licenceReadAt": "Product User Manual V2.0 (WorldCover_PUM_V2.0.pdf, section 5.1 License and 5.2 Citation, page 19), on ESA WorldCover's own official bucket esa-worldcover.s3.eu-central-1.amazonaws.com: the owner's own host.",
+      "licenceQuote": "5.1 License\nThe WorldCover product is provided free of charge, without restriction of use. For the full license information see the Creative Commons Attribution 4.0 International License\nPublications, models and data products that make use of these datasets must include proper acknowledgement, including citing the datasets and the journal article as in the following citation.\n5.2 Citation\nA reference publication on the product is in preparation\nIf you are using the data as a layer in a published map, please include the following attribution text:\n'© ESA WorldCover project [year] / Contains modified Copernicus Sentinel data ([year]) processed by ESA WorldCover consortium’\nWith year either 2020 or 2021 for the WorldCover 2020 and 2021 map, respectively",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The tiles' internal overviews were made by ESA's own processing (resampling method not stated in the file): fine for 1 km shares, but not exact 10 m counts."
+      ],
+      "credit": {
+        "owner": "European Space Agency (ESA) and the ESA WorldCover consortium",
+        "version": "v200 (2021)",
+        "short": "ESA WorldCover",
+        "onMap": true,
+        "line": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
+        "citation": "Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann, C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M., Herold, M., Tsendbazar, N.E., Xu, P., Ramoino, F., Arino, O., 2022. ESA WorldCover 10 m 2021 v200. doi:10.5281/zenodo.7254221",
+        "changes": "Read from the tiles' 74 m overviews, clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and turned into the share of each class in 1 km cells; snow merged into bare ground and mangrove into wetland. For the marsh around 1219, the herbaceous wetland share (class 90; moss and lichen, class 100, left out as mountain tundra) is combined with GLWD v2 marsh: each cell keeps the larger of the two, after GLWD shares at or below 15% are dropped and shares from 15% to 55% stretched to 0-100%.",
+        "licenceName": "CC BY 4.0",
+        "licenceUri": "creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "spatiocompo-tw4",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_1000.csv",
+      "file": "spatiocompo/Land_Cover_1000.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 4 (about AD 750-1250): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub.",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too. Check with Ignas how the game shows and shares that."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 4 (about AD 750-1250)",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest around 1219: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 4 (about AD 750-1250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are.",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
     }
   ]
 }
