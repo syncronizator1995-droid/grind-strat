@@ -192,6 +192,16 @@ What is estimated, not measured (the game says so in "About this map"):
   level.
 - Which lakes are modern reservoirs: `tools/map/ne-water-1219.json` lists each decision. Dam dates
   are not used; any entry not confirmed by a source is marked TO CHECK.
+- Where the peat maps show more bog than the pollen's open share allows (25 one-degree squares in
+  north-west Russia, south-east Finland and east Estonia), bog wins, so forest there is up to 32
+  points below the pollen share. The game's "About this map" says so.
+- Natural Earth river names repaired in the same reviewed list, each with its reason: Nemunas
+  (Natural Earth says Neman), Dnipro (one river, where Natural Earth splits it), Göta älv,
+  Klarälven, Motala ström, Glåma/Glomma, Kokemäenjoki, and the Gudbrandsdalslågen pieces Natural
+  Earth calls Vorma. Today's names; names of 1219 come with the time slider.
+- The coastal dunes of the Curonian Spit and Łeba are painted as heath from today's bare sand.
+  Whether they were forested in 1219 (the drifting dunes may be later) is TO CHECK, with a source,
+  before M3.
 
 New TO CHECK items:
 - The pollen time window's exact edges (700 to 1200 BP, or 750 to 1250 BP; that is, AD 750 to
