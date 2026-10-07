@@ -214,7 +214,10 @@ screen 411 × 576 drawn at 2×, a 90 Hz display) passed all three targets:
 
 No drawing fixes are needed before M2.
 
-Status (7 October 2026): **M2 built, waiting for Ignas to merge.** The real map shows the land
+Status (7 October 2026): **M2 merged and on Ignas's phone.** His speed test (Android, Chrome 154,
+411 × 632 drawn at 2×) passed every target: first map 1.0 s (down from 2.5 s in M1; the page now
+carries the map as JSON blocks the browser doesn't parse as code), rivers and lakes 1.3 s, full
+redraw 11 ms (worst 22 ms), 100% of frames on time, names 0.6 ms per redraw. The real map shows the land
 around 1219. It uses GEBCO heights and sea depths (checked against the official file), the 1219
 forest, marsh, heath and open land on the 1 km map, Natural Earth coast, rivers and lakes with
 modern reservoirs removed, river and lake names, and a Credits screen. Data blocks are split by
