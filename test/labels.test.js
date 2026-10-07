@@ -83,4 +83,34 @@ describe('placing names', () => {
     const labels = placeWaterLabels({ water, index, level: 0, scale: 0.02, ox: 0, oy: 400, width: 400, height: 400, measure });
     assert.ok(!labels.some((l) => l.text === 'Short'));
   });
+  it('keeps the biggest names when the time budget is already spent', () => {
+    let t = 0;
+    const result = { complete: false };
+    const labels = placeWaterLabels({ water, index, level: 2, scale: 0.1, ox: 0, oy: 400, width: 400, height: 400, measure, budgetMs: 0, now: () => (t += 50), result });
+    const texts = labels.map((l) => l.text);
+    assert.ok(texts.includes('Long River') && texts.includes('Big Lake'), `got ${texts.join(', ')}`);
+    assert.equal(result.complete, true, 'with fewer than a dozen names, every one was tried');
+  });
+
+  it('puts a river\'s name back where it was after a pan, instead of hopping to the new middle', () => {
+    // A long straight river with a point every 25 px at this scale.
+    const line = Int32Array.from({ length: 66 }, (_, i) => (i % 2 ? 500 : (i / 2) * 250));
+    const one = {
+      ...water, rivers: [line], riverLevels: new Uint8Array(33), riverOf: Uint32Array.from([0]),
+      riverInfo: [water.riverInfo[0]], lakes: [], lakeLevels: new Uint8Array(0), lakeOf: new Uint32Array(0), lakeInfo: [],
+    };
+    const idx = indexWater(one);
+    const at = (/** @type {number} */ ox, /** @type {Map<number, number[]> | undefined} */ previous) => {
+      const l = placeWaterLabels({ water: one, index: idx, level: 2, scale: 0.1, ox, oy: 400, width: 400, height: 400, measure, previous })
+        .find((x) => x.text === 'Long River');
+      assert.ok(l && l.mx !== undefined && l.river === 0);
+      return l;
+    };
+    const first = at(0, undefined);
+    const previous = new Map([[0, [/** @type {number} */ (first.mx), /** @type {number} */ (first.my)]]]);
+    const panned = at(-100, previous);
+    assert.ok(Math.abs(/** @type {number} */ (panned.mx) - /** @type {number} */ (first.mx)) * 0.1 < 30, 'the name stayed on the same stretch of river');
+    const fresh = at(-100, undefined);
+    assert.ok(Math.abs(/** @type {number} */ (fresh.mx) - /** @type {number} */ (first.mx)) * 0.1 > 60, 'without memory it would have moved');
+  });
 });

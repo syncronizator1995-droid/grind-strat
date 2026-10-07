@@ -1,7 +1,8 @@
 // @ts-check
-// River and lake names on the map. Placed once per full redraw (in the kept frame, never per
-// pan frame): biggest rivers and lakes first, each only where it doesn't touch a name already
-// placed, so more names appear as you zoom in. A river's name follows a straight-ish stretch of
+// River and lake names on the map. Placed on each full redraw and again when the view settles
+// after a pan (never per pan frame): biggest rivers and lakes first, each only where it doesn't
+// touch a name already placed, so more names appear as you zoom in. A name goes back where it
+// was last time when it still fits there, so names don't hop about as the map moves. A river's name follows a straight-ish stretch of
 // the river, turned to run along it and kept upright; a lake's name sits at its middle.
 // No DOM here: the caller passes a text measurer, so this runs in Node for tests.
 
@@ -17,6 +18,16 @@ const MAX_REPEATS = 3;
 const LAKE_MIN_PX2 = 150;
 /** River names steeper than this (radians from level) are hard to read and are not placed. */
 const MAX_TILT = 1.05;
+/**
+ * The time budget never stops placing before this many names are on screen: the biggest
+ * rivers and lakes come first, so a slow phone still shows the main ones on its first map.
+ */
+const MIN_NAMES = 12;
+/**
+ * A river's name goes back where it was last time if a free place lies within this many CSS px
+ * of it: otherwise each redraw would pick new places and the names would hop about.
+ */
+const STICK_PX = 48;
 
 /** River size bands by length in km: small, middle, big, great. */
 const BAND_KM = [120, 300, 700];
@@ -46,6 +57,9 @@ export const labelFont = (size) => `italic ${Math.max(MIN_FONT_PX, size)}px Geor
  * @property {string} text @property {number} size font size, CSS px
  * @property {number} x @property {number} y centre, CSS px in the frame
  * @property {number} angle radians, clockwise on screen, kept between -90 and 90 degrees
+ * @property {number} [river] for a river's name, the river's index
+ * @property {number} [mx] @property {number} [my] for a river's name, the point on the river it
+ *   names, in game units: remembered so the next frame can put the name back there
  */
 
 /**
@@ -264,18 +278,24 @@ export function indexWater(water) {
  * @param {(text: string, size: number) => number} p.measure text width in CSS px
  * @param {number[][]} [p.keepOut] areas of the frame no name may touch, [left, top, right, bottom]
  * @param {number[]} [p.screen] the part of the frame on screen, [left, top, right, bottom]: no name
- *   is placed across its edge
- * @param {number} [p.budgetMs] stop placing names after this long: the biggest are placed first,
- *   so a slow phone shows fewer small names rather than a slow map
+ *   is placed across its edge, and names nearest its middle are preferred
+ * @param {number} [p.budgetMs] stop placing names after this long (but never before MIN_NAMES are
+ *   on screen): the biggest are placed first, so a slow phone shows fewer small names rather than a
+ *   slow map
  * @param {() => number} [p.now] the clock, in ms
+ * @param {Map<number, number[]>} [p.previous] per river, where its names were last time
+ *   ([mx, my, ...] in game units, from Label.mx and my): tried first, so names stay put
+ * @param {{ complete: boolean }} [p.result] filled in: false when the budget stopped placing early
  * @returns {Label[]}
  */
-export function placeWaterLabels({ water, index, level, scale, ox, oy, width, height, measure, keepOut = [], screen, budgetMs = Infinity, now = () => 0 }) {
+export function placeWaterLabels({ water, index, level, scale, ox, oy, width, height, measure, keepOut = [], screen, budgetMs = Infinity, now = () => 0, previous, result }) {
   const deadline = now() + budgetMs;
   const occupied = new Occupancy(width, height);
   occupied.screen = screen ?? null;
   for (const [l, t, r, b] of keepOut) occupied.keepOut(l, t, r, b);
-  const frame = { cx: width / 2, cy: height / 2, width, height };
+  // Names nearest the middle of what the player sees come first.
+  const middle = screen ? { cx: (screen[0] + screen[2]) / 2, cy: (screen[1] + screen[3]) / 2 } : { cx: width / 2, cy: height / 2 };
+  const frame = { ...middle, width, height };
   const lakes = water.lakeInfo;
   const rivers = water.riverInfo;
   // Both lists come biggest first (tools/map/pack-water.mjs sorts them), so the two are merged
@@ -285,19 +305,31 @@ export function placeWaterLabels({ water, index, level, scale, ox, oy, width, he
   let ri = 0;
   /** @type {Label[]} */
   const labels = [];
-  while (labels.length < MAX_LABELS && now() <= deadline) {
+  let complete = true;
+  // Names on screen, for the budget's floor: names in the frame's margin don't count.
+  let shown = 0;
+  const onScreen = (/** @type {Label} */ l) => !screen || (l.x >= screen[0] && l.x <= screen[2] && l.y >= screen[1] && l.y <= screen[3]);
+  const keep = (/** @type {Label} */ l) => {
+    labels.push(l);
+    if (onScreen(l)) shown++;
+  };
+  while (labels.length < MAX_LABELS) {
+    if (shown >= MIN_NAMES && now() > deadline) { complete = false; break; }
     const lakeLeft = li < lakes.length && lakes[li].areaKm2 * 100 * scale * scale >= LAKE_MIN_PX2;
     const riverLeft = ri < rivers.length && bandShown(riverBand(rivers[ri].lengthKm), scale);
     if (!lakeLeft && !riverLeft) break;
     if (lakeLeft && (!riverLeft || lakePriority(li) >= rivers[ri].lengthKm)) {
       const label = placeLake(lakes[li], index.lakeLevel[li] <= level, scale, ox, oy, frame, measure, occupied);
-      if (label) labels.push(label);
+      if (label) keep(label);
       li++;
     } else {
-      if (rivers[ri].name) for (const label of placeRiver(water, index, ri, level, scale, ox, oy, frame, measure, occupied)) labels.push(label);
+      if (rivers[ri].name) {
+        for (const label of placeRiver(water, index, ri, level, scale, ox, oy, frame, measure, occupied, previous?.get(ri))) keep(label);
+      }
       ri++;
     }
   }
+  if (result) result.complete = complete;
   return labels;
 }
 
@@ -327,9 +359,10 @@ function placeLake(lake, drawn, scale, ox, oy, frame, measure, occupied) {
  * @param {{ cx: number, cy: number, width: number, height: number }} frame
  * @param {(text: string, size: number) => number} measure
  * @param {Occupancy} occupied
+ * @param {number[]} [previous] where this river's names were last time, [mx, my, ...] game units
  * @returns {Label[]}
  */
-function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occupied) {
+function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occupied, previous) {
   const river = water.riverInfo[k];
   const size = riverFont(river.lengthKm);
   const textWidth = measure(river.name, size);
@@ -381,6 +414,7 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
     }
     flush();
   }
+  if (previous) stickToPrevious(stretches, previous, scale, ox, oy);
   stretches.sort((p, q) => p.d - q.d);
   /** @type {Label[]} */
   const placed = [];
@@ -397,7 +431,28 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
     const discs = labelDiscs(x, y, angle, textWidth, size);
     if (!occupied.fits(discs)) continue;
     occupied.add(discs);
-    placed.push({ text: river.name, size, x, y, angle });
+    const sx = (s.x0 + s.x1) / 2;
+    const sy = (s.y0 + s.y1) / 2;
+    placed.push({ text: river.name, size, x, y, angle, river: k, mx: (sx - ox) / scale, my: (oy - sy) / scale });
   }
   return placed;
+}
+
+/**
+ * Moves the stretches whose middle lies close to where the river's name was last time to the
+ * front, closest first, so a pan or redraw leaves names where they were when they still fit.
+ * @param {Stretch[]} stretches @param {number[]} previous [mx, my, ...] game units
+ * @param {number} scale @param {number} ox @param {number} oy
+ */
+function stickToPrevious(stretches, previous, scale, ox, oy) {
+  for (const s of stretches) {
+    const sx = (s.x0 + s.x1) / 2;
+    const sy = (s.y0 + s.y1) / 2;
+    let nearest = Infinity;
+    for (let i = 0; i < previous.length; i += 2) {
+      nearest = Math.min(nearest, Math.hypot(ox + previous[i] * scale - sx, oy - previous[i + 1] * scale - sy));
+    }
+    // Far below every ordinary distance from the middle, which is never negative.
+    if (nearest <= STICK_PX) s.d = nearest - 1e9;
+  }
 }

@@ -3,7 +3,8 @@
 //   npm run shots                        the release build (refuses interim data, as CI does)
 //   npm run shots -- --allow-interim     a local preview while some map data is a stand-in
 //  1. As a plain file, in light and dark: fresh start, the map zoomed out and over Lithuania with
-//     river and lake names, the Credits sheet, top speed, save and load, new game, reload.
+//     river and lake names, the Credits sheet, top speed, save and load, new game, reload. Then
+//     once more with the processor slowed 4x: the main rivers are still named on the first map.
 //  2. Served like the website (under /grind-strat/, as GitHub Pages does): the manifest loads, the
 //     service worker takes over, and the game still opens with the server switched off, with a
 //     signal too weak to answer, after another app on the same address wipes the caches, and
@@ -257,6 +258,33 @@ async function mapViews(page, label, scheme) {
 }
 
 /**
+ * A mid-range phone's stand-in (the processor slowed 4x, as test/startup.mjs does): the starting
+ * map still names the main rivers once it has settled, and the names are on screen, not in the
+ * margin the map keeps past its edges.
+ * @param {import('playwright').Browser} browser
+ */
+async function slowPhoneNames(browser) {
+  const label = 'file/slow phone';
+  const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: 'dark' });
+  await blockOutside(context, label, (url) => url.protocol === 'file:' || url.protocol === 'data:');
+  const page = await context.newPage();
+  watch(page, label);
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  await page.goto(pathToFileURL(join(DIST, 'grind-strat.html')).href);
+  await mapShown(page, label);
+  try {
+    await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-names-complete') === 'true', undefined, { timeout: 5000 });
+  } catch {
+    failures.push(`${label}: the names on the starting map were never finished`);
+  }
+  const shown = String(await page.locator('#map').getAttribute('data-name-list')).split('|');
+  for (const must of ['Daugava', 'Neris', 'Nemunas']) check(shown.includes(must), `${label}: "${must}" is not named on the starting map (named: ${shown.join(', ')})`);
+  await page.screenshot({ path: join(SHOTS, 'slow-phone-start.png') });
+  await context.close();
+}
+
+/**
  * The Credits sheet: opens from the chip and from the map's credit line, reads, scrolls, closes.
  * @param {import('playwright').Page} page @param {string} label @param {string} scheme
  */
@@ -463,6 +491,7 @@ const browser = await chromium.launch();
 try {
   await playAsFile(browser, 'light');
   await playAsFile(browser, 'dark');
+  await slowPhoneNames(browser);
   await playAsWebsite(browser);
 } catch (err) {
   failures.push(`the run crashed: ${err instanceof Error ? err.stack : err}`);

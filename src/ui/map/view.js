@@ -8,6 +8,9 @@
 // - Outlines have three levels of detail, worked out when the map data was made; zoomed out,
 //   the simpler ones are drawn.
 // River and lake names are drawn into the kept frame too, so they cost nothing while panning.
+// A copy of the frame without names is kept as well: when the view settles after a pan, the
+// names are placed again for what is on screen (clear of the buttons and the screen's edges)
+// without redrawing the whole map.
 
 import { simplify } from './geometry.js';
 import { bandShown, BANDS, bandWidth, indexWater, labelFont, placeWaterLabels, riverBand } from './labels.js';
@@ -31,10 +34,13 @@ const SETTLE_MS = 140;
 const LEVELS = [{ tolerancePx: 0.8, below: 0.06 }, { tolerancePx: 0.6, below: 0.25 }, { tolerancePx: 0, below: Infinity }];
 const WATER = '#4a7f96';
 /**
- * Placing names stops after this long (ms): a cap for a slow phone, not the usual cost (about
- * 1 ms once warm). The biggest rivers and lakes are named first, so it only drops small ones.
+ * Placing names during a redraw stops after this long (ms): a cap for a slow phone, not the
+ * usual cost (about 1 ms once warm). The biggest rivers and lakes are named first and a dozen
+ * are always placed, so it only drops small ones, and those are added once the view settles.
  */
 const LABEL_BUDGET_MS = 8;
+/** How far past the map's edge the view may go, as a share of the screen. */
+const EDGE_SLACK = 0.1;
 /** Name colours: dark blue with a light halo; on a dark phone, light blue with a dark halo. */
 const LABEL_INK = { light: { fill: '#173f56', halo: 'rgba(238, 241, 232, 0.88)' }, dark: { fill: '#d3e6f0', halo: 'rgba(14, 26, 34, 0.86)' } };
 
@@ -124,12 +130,15 @@ export function createMapView(canvas, map) {
   const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d', { alpha: false }));
   const frame = document.createElement('canvas');
   const fctx = /** @type {CanvasRenderingContext2D} */ (frame.getContext('2d', { alpha: false }));
+  // The kept frame without names, so the names can be placed again without redrawing the map.
+  const bare = document.createElement('canvas');
+  const bctx = /** @type {CanvasRenderingContext2D} */ (bare.getContext('2d', { alpha: false }));
 
   // --- prepared once ------------------------------------------------------------------
   const t0 = performance.now();
   const tiles = paintTerrain(map.terrain, map.heights);
   const seaPicture = paintSea(map.heights);
-  const seaFill = /** @type {CanvasPattern} */ (fctx.createPattern(seaPicture, 'repeat'));
+  const seaFill = /** @type {CanvasPattern} */ (bctx.createPattern(seaPicture, 'repeat'));
   // One pattern pixel is one height cell; the pattern is placed in map units when the sea is filled.
   seaFill.setTransform(new DOMMatrix([map.heights.cell, 0, 0, map.heights.cell, 0, 0]));
   const paintMs = performance.now() - t0;
@@ -141,6 +150,11 @@ export function createMapView(canvas, map) {
   /** Screen areas covered by buttons, CSS px from the canvas's top left: no names there. @type {number[][]} */
   let keepOut = [];
   let labelMs = NaN;
+  /** Where each river's names were last placed, game units, so they stay put. @type {Map<number, number[]>} */
+  let anchors = new Map();
+  /** The camera the names in the kept frame were placed for, and whether all of them fit the budget. */
+  /** @type {{ cx: number, cy: number, complete: boolean } | null} */
+  let named = null;
 
   /**
    * The outlines at one level of detail, built the first time that level is needed.
@@ -207,10 +221,20 @@ export function createMapView(canvas, map) {
   let placed = false;
 
   const minScale = () => Math.min(cssW / map.width, cssH / map.height) * 0.95;
+  /**
+   * Keeps the map on screen: centred on an axis where it is smaller than the screen, otherwise
+   * with its edge no further in than a little past the screen's edge.
+   * @param {number} c camera centre @param {number} size the map, game units @param {number} view the screen, game units
+   */
+  function clampAxis(c, size, view) {
+    if (size <= view) return size / 2;
+    const slack = view * EDGE_SLACK;
+    return Math.min(size - view / 2 + slack, Math.max(view / 2 - slack, c));
+  }
   function clampCamera() {
     cam.scale = Math.min(MAX_SCALE, Math.max(minScale(), cam.scale));
-    cam.cx = Math.min(map.width, Math.max(0, cam.cx));
-    cam.cy = Math.min(map.height, Math.max(0, cam.cy));
+    cam.cx = clampAxis(cam.cx, map.width, cssW / cam.scale);
+    cam.cy = clampAxis(cam.cy, map.height, cssH / cam.scale);
   }
 
   /** The kept frame: what camera it was drawn for, or null when it must be redrawn. */
@@ -223,8 +247,8 @@ export function createMapView(canvas, map) {
     cssH = Math.max(1, canvas.clientHeight);
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
-    frame.width = Math.round(cssW * (1 + 2 * MARGIN) * dpr);
-    frame.height = Math.round(cssH * (1 + 2 * MARGIN) * dpr);
+    bare.width = frame.width = Math.round(cssW * (1 + 2 * MARGIN) * dpr);
+    bare.height = frame.height = Math.round(cssH * (1 + 2 * MARGIN) * dpr);
     if (!placed) {
       // First time: centred on Lithuania, showing the Baltic core.
       placed = true;
@@ -255,7 +279,7 @@ export function createMapView(canvas, map) {
     const fh = cssH * (1 + 2 * MARGIN);
     const ox = fw / 2 - cam.cx * s;
     const oy = fh / 2 + cam.cy * s;
-    const c = fctx;
+    const c = bctx;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.fillStyle = OUTSIDE;
     c.fillRect(0, 0, fw, fh);
@@ -325,16 +349,36 @@ export function createMapView(canvas, map) {
     }
     // Holdings: fixed-size marks, only when zoomed in enough to tell them apart.
     if (s > 0.06 && map.points.length) drawPoints(c, ox, oy, s, fw, fh);
-    labelMs = drawLabels(c, index, ox, oy, s, fw, fh);
     kept = { cx: cam.cx, cy: cam.cy, scale: s };
+    labelMs = drawNames(LABEL_BUDGET_MS);
+  }
+
+  /**
+   * Copies the frame without names into the kept frame and puts the river and lake names on it,
+   * for the screen at the current camera (which may have slid since the frame was drawn).
+   * Returns how long the names took to place and draw, in ms.
+   * @param {number} budgetMs
+   */
+  function drawNames(budgetMs) {
+    const k = /** @type {Camera} */ (kept);
+    fctx.setTransform(1, 0, 0, 1, 0, 0);
+    fctx.drawImage(bare, 0, 0);
+    const s = k.scale;
+    const fw = cssW * (1 + 2 * MARGIN);
+    const fh = cssH * (1 + 2 * MARGIN);
+    const index = LEVELS.findIndex((l) => s < l.below);
+    const ms = drawLabels(fctx, index, fw / 2 - k.cx * s, fh / 2 + k.cy * s, s, fw, fh, budgetMs);
+    return ms;
   }
 
   /**
    * River and lake names, in CSS pixels on the frame. Returns how long it took, in ms.
    * @param {CanvasRenderingContext2D} c @param {number} index @param {number} ox @param {number} oy
-   * @param {number} s @param {number} fw @param {number} fh
+   * @param {number} s @param {number} fw @param {number} fh @param {number} budgetMs
    */
-  function drawLabels(c, index, ox, oy, s, fw, fh) {
+  function drawLabels(c, index, ox, oy, s, fw, fh, budgetMs) {
+    const k = /** @type {Camera} */ (kept);
+    named = { cx: cam.cx, cy: cam.cy, complete: true };
     if (!map.water || !waterIndex) return NaN;
     const start = performance.now();
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -354,17 +398,26 @@ export function createMapView(canvas, map) {
       }
       return w;
     };
-    // The frame reaches past the screen by a margin; the buttons' areas move with it.
-    const dx = (fw - cssW) / 2;
-    const dy = (fh - cssH) / 2;
+    // The frame reaches past the screen by a margin, and the camera may have slid since the
+    // frame was drawn: the screen's top left in the frame, where the buttons' areas move with it.
+    const dx = (fw - cssW) / 2 + (cam.cx - k.cx) * s;
+    const dy = (fh - cssH) / 2 - (cam.cy - k.cy) * s;
     const covered = keepOut.map(([l, t, r, b]) => [l + dx, t + dy, r + dx, b + dy]);
+    const screen = [dx, dy, dx + cssW, dy + cssH];
+    const result = { complete: true };
     const labels = placeWaterLabels({
       water: map.water, index: waterIndex, level: index, scale: s, ox, oy, width: fw, height: fh, measure, keepOut: covered,
-      screen: [dx, dy, dx + cssW, dy + cssH],
-      budgetMs: LABEL_BUDGET_MS, now: () => performance.now() - measuring,
+      screen, budgetMs, now: () => performance.now() - measuring, previous: anchors, result,
     });
-    // How many names are on the map, for the screenshot checks.
-    canvas.dataset.names = String(labels.length);
+    named.complete = result.complete;
+    anchors = new Map();
+    for (const l of labels) {
+      if (l.river === undefined || l.mx === undefined || l.my === undefined) continue;
+      const list = anchors.get(l.river) ?? [];
+      list.push(l.mx, l.my);
+      anchors.set(l.river, list);
+    }
+    showNamesForChecks(labels, screen, result.complete);
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.lineJoin = 'round';
@@ -380,6 +433,17 @@ export function createMapView(canvas, map) {
     }
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     return performance.now() - start;
+  }
+
+  /**
+   * Marks the canvas with the names on screen, for the screenshot and start-up checks.
+   * @param {import('./labels.js').Label[]} labels @param {number[]} screen @param {boolean} complete
+   */
+  function showNamesForChecks(labels, screen, complete) {
+    const shown = labels.filter((l) => l.x >= screen[0] && l.x <= screen[2] && l.y >= screen[1] && l.y <= screen[3]);
+    canvas.dataset.names = String(shown.length);
+    canvas.dataset.nameList = [...new Set(shown.map((l) => l.text))].join('|');
+    canvas.dataset.namesComplete = String(complete);
   }
 
   const POINT_COLOURS = ['#f4ecd8', '#d4a72c', '#e8e2d0', '#c9c2ad'];
@@ -441,13 +505,38 @@ export function createMapView(canvas, map) {
     const zooming = kept !== null && kept.scale !== cam.scale;
     if (force || !kept || !(keptCovers() || (zooming && Math.abs(Math.log(cam.scale / kept.scale)) < 0.7))) {
       drawFrame();
-    } else if (zooming) {
-      // Mid-pinch: show the scaled frame now, and the sharp one once the fingers settle.
-      clearTimeout(settle);
-      settle = setTimeout(() => { kept = null; requestRender(); }, SETTLE_MS);
+      if (named && !named.complete) settleSoon();
+    } else if (zooming || (named && (named.cx !== cam.cx || named.cy !== cam.cy))) {
+      // Mid-pinch or mid-pan: show the scaled or slid frame now, and the sharp frame or the names
+      // placed again for the new view once the camera is still.
+      settleSoon();
     }
     blit();
     return performance.now() - start;
+  }
+
+  /** Waits for the camera to be still for SETTLE_MS, then settles. */
+  function settleSoon() {
+    clearTimeout(settle);
+    settle = setTimeout(settleNow, SETTLE_MS);
+  }
+
+  /**
+   * The camera is still: redraw sharply after a zoom; after a pan, place the names again for what
+   * is on screen (the names in the slid frame were kept clear of the buttons and screen edges for
+   * where the frame was drawn); finish the names the time budget left out. No time budget here:
+   * nothing is moving.
+   */
+  function settleNow() {
+    clearTimeout(settle);
+    if (!kept || kept.scale !== cam.scale) {
+      kept = null;
+      requestRender();
+      return;
+    }
+    if (named && named.complete && named.cx === cam.cx && named.cy === cam.cy) return;
+    drawNames(Infinity);
+    blit();
   }
 
   // --- touch and mouse ---------------------------------------------------------------------
@@ -510,6 +599,8 @@ export function createMapView(canvas, map) {
   const lift = (/** @type {PointerEvent} */ e) => {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinch = null;
+    // The last finger is off: settle now rather than after the timer, unless a frame is pending.
+    if (pointers.size === 0 && !pending) settleNow();
   };
   canvas.addEventListener('pointerup', lift);
   canvas.addEventListener('pointercancel', lift);
