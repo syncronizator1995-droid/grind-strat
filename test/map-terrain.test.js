@@ -1,0 +1,242 @@
+// @ts-check
+// Tests for the 1219 terrain rules (tools/map/terrain-1219.mjs and its helpers) on made-up
+// inputs: quotas met per 1 degree cell, no visible squares, the same grid from the same inputs,
+// the class codes, and a check that the build never reads OpenStreetMap data. No network and no
+// data/raw files (CI has neither).
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { DERIVED_INPUTS, NE_INPUTS, PREVIEW_COLOURS, TERRAIN_SOURCES } from '../tools/map/build-terrain-1219.mjs';
+import { blendAll, latticePlaces, pollenLattice } from '../tools/map/pollen-field.mjs';
+import { solveQuota } from '../tools/map/quota.mjs';
+import { buildTerrain1219, CLASS, CLASS_NAMES } from '../tools/map/terrain-1219.mjs';
+import { classTotals, seamTest, squareChecks } from '../tools/map/terrain-checks.mjs';
+import { distanceTo, hash01, maskedBlur, upsample } from '../tools/map/terrain-fields.mjs';
+import { TERRAIN } from '../src/ui/map/terrain.js';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+
+/**
+ * A made-up 3 x 3 degree world on a flat lon/lat grid, 40 cells per degree: a strip of sea in the
+ * west, today's land cover from hashed blobs, a marsh patch, a dune strip, a lake today, and a
+ * pollen map whose forest share changes a lot from square to square.
+ */
+function syntheticInput() {
+  const per = 40;
+  const cols = 3 * per;
+  const rows = 3 * per;
+  const n = cols * rows;
+  const lon = new Float64Array(n);
+  const lat = new Float64Array(n);
+  const land = new Uint8Array(n);
+  const mk = () => new Uint8Array(n);
+  const cover = { tree: mk(), crop: mk(), built: mk(), bare: mk(), moss: mk(), water: mk() };
+  const marsh = mk();
+  const marshRaw = mk();
+  const rivers = mk();
+  const lakes = mk();
+  const height = new Float32Array(n);
+  const rough = new Float32Array(n);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      lon[i] = 20 + (c + 0.5) / per;
+      lat[i] = 54 + (r + 0.5) / per;
+      land[i] = c >= 6 ? 1 : 0;
+      // Blobs on lattices that do not line up with the 1 degree lines (40 cells), so any seam
+      // the test finds comes from the rules, not from the made-up inputs.
+      const blob = hash01(Math.floor((c + 3) / 7), Math.floor((r + 5) / 7), 7);
+      cover.tree[i] = Math.round(100 * blob * hash01(c, r, 1));
+      cover.crop[i] = Math.round((100 - cover.tree[i]) * hash01(c, r, 2));
+      if (c >= 6 && c < 8) cover.bare[i] = 60; // a dune strip on the coast
+      if (c >= 60 && c < 70 && r >= 60 && r < 70) marsh[i] = 80;
+      if (c >= 90 && c < 100 && r >= 20 && r < 30) cover.water[i] = 100; // a lake today
+      marshRaw[i] = Math.round(30 * hash01(c, r, 3));
+      height[i] = 200 * hash01(Math.floor((c + 5) / 13), Math.floor((r + 2) / 13), 4);
+      rough[i] = 20 * hash01(Math.floor((c + 5) / 13), Math.floor((r + 2) / 13), 5);
+      if (r === 75) rivers[i] = 1;
+    }
+  }
+  /** @type {import('../tools/map/pollen-field.mjs').PollenCell[]} */
+  const pollen = [];
+  const forest = [[0.35, 0.8, 0.55], [0.7, 0.45, 0.8], [0.5, 0.65, 0.4]];
+  for (let y = 0; y < 3; y++) {
+    for (let x = 0; x < 3; x++) {
+      const f = forest[y][x];
+      const k = 0.2 + 0.2 * ((x + y) % 3);
+      pollen.push({ lon: 20.5 + x, lat: 54.5 + y, conifer: f * k, broadleaf: f * (1 - k), open: 1 - f });
+    }
+  }
+  return { cols, rows, cellKm: 1, lon, lat, land, rivers, lakes, cover, marsh, marshRaw, height, rough, pollen };
+}
+
+describe('1219 terrain: class codes', () => {
+  it('uses M1\'s codes, never 1 (lakes come from the separate OpenStreetMap block)', () => {
+    for (const [name, code] of Object.entries(CLASS)) assert.equal(code, TERRAIN[/** @type {keyof typeof TERRAIN} */ (name)], name);
+    assert.deepEqual(CLASS_NAMES, { 0: 'sea', 2: 'open', 3: 'conifer', 4: 'mixed', 5: 'marsh', 6: 'heath' });
+    assert.ok(!(/** @type {number[]} */ (Object.values(CLASS))).includes(TERRAIN.lake));
+  });
+
+  it('previews in the same colours as the game paints (src/ui/map/terrain.js)', () => {
+    const src = readFileSync(join(ROOT, 'src', 'ui', 'map', 'terrain.js'), 'utf8');
+    const block = /const COLOURS = \[([\s\S]*?)\n\];/.exec(src);
+    assert.ok(block, 'COLOURS not found in terrain.js');
+    const colours = [...block[1].matchAll(/\[(\d+), (\d+), (\d+)\]/g)].map((m) => [Number(m[1]), Number(m[2]), Number(m[3])]);
+    assert.deepEqual(PREVIEW_COLOURS, colours);
+  });
+});
+
+describe('1219 terrain: rules on made-up inputs', () => {
+  const input = syntheticInput();
+  const built = buildTerrain1219(input);
+
+  it('meets every square\'s pollen forest and conifer share to within 3 points', () => {
+    const sq = squareChecks(built);
+    assert.equal(sq.count, 9);
+    assert.deepEqual(sq.capped, []);
+    for (const r of sq.rows) {
+      assert.ok(Math.abs(r.forest - r.forestTarget) <= 0.03, `forest ${r.lon},${r.lat}: ${r.forest} vs ${r.forestTarget}`);
+      assert.ok(Math.abs(r.conifer - r.coniferTarget) <= 0.03, `conifer ${r.lon},${r.lat}: ${r.conifer} vs ${r.coniferTarget}`);
+    }
+  });
+
+  it('shows no square edges: the class changes as often across them as across lines beside them', () => {
+    const s = seamTest(built, input);
+    assert.ok(s.edgePairs > 400 && s.controlPairs > 1600);
+    assert.ok(s.ratio < 1.25, `seam ratio ${s.ratio}: ${JSON.stringify(s)}`);
+  });
+
+  it('would catch squares: a square-by-square pick of the same shares fails the seam test', () => {
+    // The naive way: in each square, the cells with most tree cover today become forest.
+    const blocky = built.terrain.slice();
+    /** @type {Map<number, number[]>} */
+    const bySquare = new Map();
+    for (let i = 0; i < blocky.length; i++) {
+      if (!built.domain[i] || blocky[i] === CLASS.marsh || blocky[i] === CLASS.heath) continue;
+      blocky[i] = CLASS.open;
+      const g = built.places.group[i];
+      bySquare.set(g, [...(bySquare.get(g) ?? []), i]);
+    }
+    for (const [g, cells] of bySquare) {
+      cells.sort((a, b) => input.cover.tree[b] - input.cover.tree[a] || a - b);
+      const want = Math.round(built.lattice.forest[g] * built.forest.domainCount[g]);
+      for (const i of cells.slice(0, want)) blocky[i] = CLASS.mixed;
+    }
+    const s = seamTest({ terrain: blocky, domain: built.domain }, input);
+    assert.ok(s.ratio > 1.25, `seam ratio ${s.ratio}`);
+  });
+
+  it('keeps the sea, puts marsh first, dunes as heath, and fills today\'s water from its shores', () => {
+    const { terrain } = built;
+    for (let i = 0; i < terrain.length; i++) {
+      assert.equal(terrain[i] === CLASS.sea, !input.land[i], `cell ${i}`);
+      if (input.marsh[i] >= 50) assert.equal(terrain[i], CLASS.marsh);
+      else if (input.cover.bare[i] >= 20 && input.land[i]) assert.equal(terrain[i], CLASS.heath);
+      assert.ok(terrain[i] in CLASS_NAMES, `unknown class ${terrain[i]}`);
+    }
+    assert.equal(built.water.cells, 100);
+    assert.equal(built.water.interior, 16); // a 10 x 10 lake less its 3-cell shore band leaves 4 x 4
+    const totals = classTotals(terrain);
+    assert.equal(Object.values(totals).reduce((a, b) => a + b, 0), terrain.length);
+    assert.equal(totals.unknown, undefined);
+  });
+
+  it('gives the same grid from the same inputs, byte for byte', () => {
+    const again = buildTerrain1219(syntheticInput());
+    assert.deepEqual(again.terrain, built.terrain);
+  });
+});
+
+describe('1219 terrain: helpers', () => {
+  it('blends the pollen field smoothly, filling missing centres from the nearest one', () => {
+    const L = pollenLattice([{ lon: 20.5, lat: 54.5, conifer: 0.2, broadleaf: 0.2, open: 0.6 }, { lon: 21.5, lat: 54.5, conifer: 0.4, broadleaf: 0.4, open: 0.2 }], { west: 20, east: 22, south: 54, north: 55 });
+    const lon = Float64Array.from([20.5, 21, 21.5, 21.5]);
+    const lat = Float64Array.from([54.5, 54.5, 54.5, 54.9]);
+    const f = blendAll(L.forest, latticePlaces(lon, lat, L));
+    assert.ok(Math.abs(f[0] - 0.4) < 1e-6 && Math.abs(f[1] - 0.6) < 1e-6 && Math.abs(f[2] - 0.8) < 1e-6, `${f}`);
+    assert.ok(Math.abs(f[3] - 0.8) < 1e-6, 'the missing row to the north borrows its nearest value');
+  });
+
+  it('solves a quota per square with a smooth threshold', () => {
+    const per = 30;
+    const cols = 2 * per; const rows = per;
+    const lon = new Float64Array(cols * rows); const lat = new Float64Array(cols * rows);
+    const score = new Float32Array(cols * rows);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        lon[r * cols + c] = 10 + (c + 0.5) / per; lat[r * cols + c] = 50 + (r + 0.5) / per;
+        score[r * cols + c] = hash01(c, r, 9);
+      }
+    }
+    const L = pollenLattice([{ lon: 10.5, lat: 50.5, conifer: 0.1, broadleaf: 0.1, open: 0.8 }, { lon: 11.5, lat: 50.5, conifer: 0.45, broadleaf: 0.45, open: 0.1 }], { west: 10, east: 12, south: 50, north: 51 });
+    const all = new Uint8Array(cols * rows).fill(1);
+    const res = solveQuota({ score, eligible: all, domain: all, places: latticePlaces(lon, lat, L), target: L.forest });
+    const g0 = Math.round(10.5 - L.lon0) + Math.round(50.5 - L.lat0) * L.w;
+    assert.ok(Math.abs(res.chosenCount[g0] / res.domainCount[g0] - 0.2) <= 0.01);
+    assert.ok(Math.abs(res.chosenCount[g0 + 1] / res.domainCount[g0 + 1] - 0.9) <= 0.01);
+  });
+
+  it('measures distance, blurs within a mask and upsamples without steps', () => {
+    const src = new Uint8Array(25); src[12] = 1;
+    const d = distanceTo(src, 5, 5);
+    assert.equal(d[12], 0); assert.equal(d[13], 1); assert.ok(Math.abs(d[18] - Math.SQRT2) < 1e-6); assert.equal(d[14], 2);
+    const mask = Uint8Array.from([1, 1, 0, 0]);
+    const b = maskedBlur([10, 20, 99, 99], mask, 4, 1, 1);
+    assert.equal(b[0], 15); assert.equal(b[2], 20);
+    const up = upsample([0, 10, 0, 10], 2, 2, 4, 4, 2);
+    assert.deepEqual([...up.subarray(0, 4)], [0, 2.5, 7.5, 10]);
+  });
+
+  it('hashes the same way every time', () => {
+    assert.equal(hash01(3, 4, 5), hash01(3, 4, 5));
+    assert.notEqual(hash01(3, 4, 5), hash01(4, 3, 5));
+  });
+});
+
+describe('1219 terrain: licence separation', () => {
+  const OSM = /\bosm\b|osm-|-osm|overpass|openstreetmap\.org|\.osm\.|\.pbf\b/i;
+
+  /** The build script and every local module it imports, directly or not. */
+  function importGraph() {
+    const start = join(ROOT, 'tools', 'map', 'build-terrain-1219.mjs');
+    const seen = new Set();
+    const todo = [start];
+    while (todo.length) {
+      const file = /** @type {string} */ (todo.pop());
+      if (seen.has(file)) continue;
+      seen.add(file);
+      const src = readFileSync(file, 'utf8');
+      for (const m of src.matchAll(/^\s*(?:import|export)\s[^;]*?from\s+'([^']+)'/gm)) {
+        if (m[1].startsWith('.')) todo.push(resolve(dirname(file), m[1]));
+      }
+    }
+    return [...seen];
+  }
+
+  it('never reads OpenStreetMap data, directly or through what it imports', () => {
+    const files = importGraph();
+    assert.ok(files.length >= 10, `only ${files.length} files found`);
+    for (const file of files) {
+      const src = readFileSync(file, 'utf8');
+      for (const m of src.matchAll(/^\s*(?:import|export)\s[^;]*?from\s+'([^']+)'/gm)) assert.doesNotMatch(m[1], OSM, `${file} imports ${m[1]}`);
+      // Every string in the code (not the comments) that could name a file, URL or source id.
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
+      for (const m of code.matchAll(/'([^'\n]*)'|`([^`]*)`/g)) assert.doesNotMatch(m[1] ?? m[2], OSM, `${file}: ${m[0]}`);
+      for (const m of code.matchAll(/readRaw\('([^']+)'/g)) assert.ok(NE_INPUTS.includes(m[1]), `${file} reads raw source ${m[1]}`);
+    }
+  });
+
+  it('lists only the CC BY-SA, CC BY and public-domain inputs', () => {
+    assert.deepEqual([...NE_INPUTS], ['ne-land', 'ne-rivers', 'ne-lakes']);
+    for (const name of [...DERIVED_INPUTS, ...TERRAIN_SOURCES]) assert.doesNotMatch(name, OSM);
+    const sources = JSON.parse(readFileSync(join(ROOT, 'tools', 'map', 'sources.json'), 'utf8')).sources;
+    for (const id of TERRAIN_SOURCES) {
+      const s = sources.find((/** @type {{ id: string }} */ x) => x.id === id);
+      assert.ok(s, `${id} missing from sources.json`);
+      assert.equal(s.licenceStatus, 'read', `${id}: licence not read`);
+      assert.doesNotMatch(s.licence, /ODbL/i, id);
+    }
+  });
+});

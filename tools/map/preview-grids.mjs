@@ -144,7 +144,7 @@ function pollenPicture(cells, key, coast) {
  * @param {{ width: number, height: number, rgb: Uint8Array }} pic
  * @param {number} lon @param {number} lat centre @param {number} size cells across @param {number} zoom
  */
-function crop(pic, lon, lat, size, zoom) {
+export function crop(pic, lon, lat, size, zoom) {
   const [ux, uy] = MAP.toUnits(lon, lat);
   const cx = Math.floor(ux / GRID_1KM.cell);
   const cy = pic.height - 1 - Math.floor(uy / GRID_1KM.cell);
