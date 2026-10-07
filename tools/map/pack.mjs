@@ -1,8 +1,8 @@
 // @ts-check
 // Packs the derived map data into the game's committed data blocks, one per licence:
 //   src/data/map/base.json            public domain: land and coast, heights and sea depths
-//   src/data/by-sa/terrain-1219.json  CC BY-SA 4.0: the land around 1219 (interim until the real
-//                                     grid exists)
+//   src/data/by-sa/terrain-1219.json  CC BY-SA 4.0: the land around 1219, from the grid that
+//                                     npm run map:terrain builds (refused if it is stale)
 //   src/data/map/water-ne.json        public domain: Natural Earth rivers and lakes (M2), the
 //                                     lakes of 1219 from tools/map/ne-water-1219.json; or, once
 //                                     data/raw/derived/water-osm.json exists (next milestone),

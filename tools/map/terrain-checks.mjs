@@ -79,16 +79,59 @@ export function squareChecks(built) {
   const big = rows.filter((r) => r.land >= SMALL_SQUARE && !r.capped);
   const err = (/** @type {number[]} */ e) => ({ max: round(Math.max(0, ...e), 4), mean: round(e.reduce((s, v) => s + v, 0) / (e.length || 1), 4) });
   const bigForest = big.filter((r) => r.forest * r.land >= SMALL_SQUARE);
+  const capped = rows.filter((r) => r.capped);
   return {
     count: rows.length,
     summarised: big.length,
     smallLeftOut: rows.filter((r) => r.land < SMALL_SQUARE).length,
-    capped: rows.filter((r) => r.capped).map((r) => `${r.lon},${r.lat}`),
+    capped: capped.map((r) => `${r.lon},${r.lat}`),
+    cappedGaps: cappedGaps(capped),
     unmeasuredWithLand: rows.filter((r) => !r.measured).map((r) => `${r.lon},${r.lat}`),
     forestError: err(big.map((r) => Math.abs(r.forest - r.forestTarget))),
     coniferError: err(bigForest.map((r) => Math.abs(r.conifer - r.coniferTarget))),
     rows,
   };
+}
+
+/**
+ * How far the capped squares fall short of the pollen forest share. They are left out of the
+ * error summary (which would otherwise only measure the marsh), so this says what they miss:
+ * where today's wetland maps hold more marsh than the pollen's open share, marsh wins and the
+ * square has less forest than the pollen says, and no open land.
+ * @param {{ lon: number, lat: number, land: number, forestTarget: number, forest: number }[]} capped
+ */
+export function cappedGaps(capped) {
+  const gaps = capped.map((r) => ({ at: `${r.lon},${r.lat}`, land: r.land, gapPoints: round((r.forestTarget - r.forest) * 100, 1), missingForest: Math.round((r.forestTarget - r.forest) * r.land) }))
+    .sort((a, b) => b.gapPoints - a.gapPoints);
+  return {
+    squares: gaps.length,
+    landCells: gaps.reduce((s, g) => s + g.land, 0),
+    missingForestCells: gaps.reduce((s, g) => s + Math.max(0, g.missingForest), 0),
+    // The worst among squares with enough land to count (a square with 2 land cells can't hold a share).
+    worstGapPoints: gaps.find((g) => g.land >= SMALL_SQUARE)?.gapPoints ?? 0,
+    squaresList: gaps,
+  };
+}
+
+/**
+ * How much of the map the noise decides: the grid next to one built with no noise. Forest/not:
+ * share of land cells that change; conifer/mixed: share of cells forest in both that change.
+ * @param {{ terrain: Uint8Array, domain: Uint8Array }} built @param {{ terrain: Uint8Array }} quiet
+ */
+export function noiseShare(built, quiet) {
+  const forestOf = (/** @type {number} */ t) => t === CLASS.conifer || t === CLASS.mixed;
+  let land = 0; let forestChanged = 0; let bothForest = 0; let coniferChanged = 0;
+  for (let i = 0; i < built.terrain.length; i++) {
+    if (!built.domain[i]) continue;
+    land++;
+    const a = built.terrain[i]; const b = quiet.terrain[i];
+    if (forestOf(a) !== forestOf(b)) forestChanged++;
+    else if (forestOf(a)) {
+      bothForest++;
+      if (a !== b) coniferChanged++;
+    }
+  }
+  return { forestOrNot: round(forestChanged / (land || 1), 4), coniferOrMixed: round(coniferChanged / (bothForest || 1), 4) };
 }
 
 /**
@@ -284,7 +327,12 @@ export function formatChecks(k) {
   lines.push(`water today filled: ${k.waterToday.cells} cells, ${k.waterToday.interior} of them lake interiors (${Object.entries(k.waterToday.byClass).map(([c, v]) => `${CLASS_NAMES[/** @type {keyof typeof CLASS_NAMES} */ (Number(c))]} ${v}`).join(', ')}); marsh by a river: ${k.waterToday.nearRiverMarsh}`);
   const q = k.squares;
   lines.push(`1 degree squares with land: ${q.count}; summarised ${q.summarised} (left out: ${q.smallLeftOut} with under ${SMALL_SQUARE} land cells, ${q.capped.length} capped${q.capped.length ? `: ${q.capped.join(' ')}` : ''})`);
-  lines.push(`  forest share error: max ${pc(q.forestError.max)}, mean ${pc(q.forestError.mean)}; conifer share error: max ${pc(q.coniferError.max)}, mean ${pc(q.coniferError.mean)}`);
+  lines.push(`  forest share error: max ${pc(q.forestError.max)}, mean ${pc(q.forestError.mean)}; conifer share error: max ${pc(q.coniferError.max)}, mean ${pc(q.coniferError.mean)} (capped squares left out)`);
+  const g = q.cappedGaps;
+  if (g.squares) {
+    lines.push(`  capped squares (marsh above the pollen open share, so less forest and no open land): ${g.squares}, ${g.landCells} land cells, ${g.missingForestCells} forest cells short; worst ${g.worstGapPoints} points short`);
+    lines.push(`    ${g.squaresList.map((x) => `${x.at} ${x.gapPoints}`).join(', ')}`);
+  }
   lines.push(`  squares with land but no pollen value (filled from the nearest): ${q.unmeasuredWithLand.join(' ') || 'none'}`);
   lines.push(`solver rounds: forest ${k.solver.forestRounds} (worst ${pc(k.solver.forestWorst)}), conifer ${k.solver.coniferRounds} (worst ${pc(k.solver.coniferWorst)})`);
   const td = k.tidy;
@@ -293,6 +341,10 @@ export function formatChecks(k) {
   for (const b of k.boxes) lines.push(`  ${b.name.padEnd(22)} ${pc(b.forest).padStart(6)} | ${pc(b.pollenSquares).padStart(6)} | ${pc(b.pollenBlended).padStart(6)} | ${pc(b.coniferOfForest).padStart(6)} | ${pc(b.pollenConiferOfForest).padStart(6)} | ${pc(b.marsh).padStart(6)}   (${b.box}, ${b.landCells} cells)`);
   const s = k.seams;
   lines.push(`seam test: class changes ${pc(s.edgeChangeRate)} across 1 degree lines vs ${pc(s.controlChangeRate)} across control lines 0.05-0.1 degree away (ratio ${s.ratio}; ${pc(s.insideChangeRate)} deep inside squares); forest/not ${pc(s.edgeForestChangeRate)} vs ${pc(s.controlForestChangeRate)}`);
+  if ('noise' in k && k.noise) {
+    const nz = /** @type {{ forestOrNot: number, coniferOrMixed: number }} */ (k.noise);
+    lines.push(`noise: built again without it, forest/not changes on ${pc(nz.forestOrNot)} of land, conifer/mixed on ${pc(nz.coniferOrMixed)} of forest`);
+  }
   const sp = k.speckle;
   lines.push(`speckle: ${pc(sp.lone)} of land cells differ from every neighbour (forest/not ${pc(sp.loneForest)}); ${pc(sp.smallPatch)} in patches under 5 cells; ${sp.meanPatch} cells per patch`);
   return lines;

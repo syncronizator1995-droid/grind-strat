@@ -16,8 +16,9 @@
 // Licence: the pollen map is CC BY-SA 4.0, so this grid is too. It may also use CC BY inputs
 // (WorldCover, GLWD) and public-domain ones (GEBCO, Natural Earth), but never OpenStreetMap
 // (ODbL), which cannot be mixed with CC BY-SA. Lakes are therefore not a class here: the game
-// draws them from the separate OpenStreetMap block.
+// draws them from the separate water block (Natural Earth in M2, OpenStreetMap later).
 
+import { createHash } from 'node:crypto';
 import { blendAll, latticePlaces, pollenLattice } from './pollen-field.mjs';
 import { solveQuota } from './quota.mjs';
 import { cellNoise, distanceTo, maskedBlur } from './terrain-fields.mjs';
@@ -76,6 +77,12 @@ export const TERRAIN_PARAMS = Object.freeze({
 });
 
 /**
+ * A fingerprint of TERRAIN_PARAMS, stored with the grid and in the terrain block, so a grid built
+ * with other settings than today's is caught (tools/map/pack-terrain.mjs, test/map-terrain.test.js).
+ */
+export const terrainParamsSha256 = () => createHash('sha256').update(JSON.stringify(TERRAIN_PARAMS)).digest('hex');
+
+/**
  * @typedef {object} TerrainInput everything per 1 km cell, row 0 in the south
  * @property {number} cols @property {number} rows
  * @property {number} cellKm ground size of one cell
@@ -124,6 +131,11 @@ export function buildTerrain1219(input, p = TERRAIN_PARAMS, onRound = undefined)
 
   // Forest. The pollen map's "open" share includes bog and heath, so marsh and heath cells
   // count in each square's total but are never chosen: they come out of the open share.
+  // Where marsh alone is more than the open share, the square is "capped": it gets less forest
+  // than the pollen says (no open land at all). GLWD's forested wetland classes count as marsh
+  // here, while pollen counts the trees on forested peat as forest, so those squares (parts of
+  // NW Russia, SE Finland, E Estonia) fall short; the checks list them with their gaps. Whether
+  // forested marsh should count against the forest share instead is Ignas's call.
   const domain = new Uint8Array(n);
   const eligible = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
@@ -167,9 +179,14 @@ function tidyStats(cut, islands, final) {
 /**
  * Marsh, heath or (for now) open, in that order.
  * Marsh first: GLWD bog cores and today's open wetland were wet in 1219 too.
- * Heath: coastal dunes (bare sand near the sea: the Curonian and Vistula Spits, the Leba dunes)
- * and open bare or tundra ground (mostly the fells in the far north-west). Low bare ground away
- * from the sea is left to the forest rule: it is mostly today's quarries and open-cast mines.
+ * Heath: coastal dunes (bare sand near the sea) and open bare or tundra ground (mostly the fells
+ * in the far north-west). Low bare ground away from the sea is left to the forest rule: it is
+ * mostly today's quarries and open-cast mines.
+ * TO CHECK (dunes): on the 2026 grid the coast's heath is a few dozen cells, mostly at the Łeba
+ * dunes (about 14) and on the Curonian Spit's lagoon side near Nida (about 9), where today's great
+ * drifting dunes are. Those are widely described as the result of felling from the 16th to the
+ * 18th century, so in 1219 the spit may have been mostly forest; no source for open dunes in 1219
+ * is listed yet. The Vistula Spit gets no heath at all. Whether to keep this branch is Ignas's call.
  * @param {TerrainInput} input @param {number} i @param {number} seaKm @param {typeof TERRAIN_PARAMS} p
  */
 function firstPass(input, i, seaKm, p) {
@@ -284,8 +301,9 @@ function coniferScores(input, forest, pollenConifer, seaKm, riverKm, w) {
  * neighbours within that distance have; along rivers a marsh neighbour's vote counts extra,
  * because river edges were wet meadow before dams and drainage. Cells further out, inside big
  * lakes, all take the class most common on that water body's shore band: spreading neighbours
- * inwards cell by cell would draw star-shaped streaks across a lake like Ladoga. Natural lakes
- * are drawn over this by the water block's lakes anyway.
+ * inwards cell by cell would draw star-shaped streaks across a lake like Ladoga. The lakes the
+ * water block has are drawn over this. Natural lakes it lacks (Natural Earth's set misses smaller
+ * ones such as Drūkšiai in Lithuania) show the class of their shores until the fuller lakes come.
  * @param {Uint8Array} terrain changed in place @param {Uint8Array} waterToday
  * @param {Float32Array} riverKm @param {number} cols @param {number} rows @param {number} km
  * @param {typeof TERRAIN_PARAMS} p

@@ -18,11 +18,11 @@ import { clipLine, clipRing, featuresIn, fillRings, openRing, project, ringArea2
 import { inputRecord } from './grid-sources.mjs';
 import { encodePng } from './png.mjs';
 import { crop } from './preview-grids.mjs';
-import { keptLakeCollection, readReview, REVIEW_FILE, REVIEW_PATH } from './ne-water-1219.mjs';
+import { keptLakeCollection, lakeListSha256, readReview, REVIEW_FILE, REVIEW_PATH } from './ne-water-1219.mjs';
 import { MAP } from './projection.mjs';
 import { DERIVED, GRID_1KM, GRID_2KM, writeGrid } from './resample.mjs';
-import { buildTerrain1219, CLASS, CLASS_NAMES, TERRAIN_PARAMS } from './terrain-1219.mjs';
-import { formatChecks, terrainChecks } from './terrain-checks.mjs';
+import { buildTerrain1219, CLASS, CLASS_NAMES, TERRAIN_PARAMS, terrainParamsSha256 } from './terrain-1219.mjs';
+import { formatChecks, noiseShare, terrainChecks } from './terrain-checks.mjs';
 import { roughness, upsample } from './terrain-fields.mjs';
 
 /** The derived grids this build may read (all made by tools/map/build-grids.mjs). */
@@ -265,7 +265,12 @@ async function main() {
   const input = await loadInputs();
   console.log(`inputs read in ${((Date.now() - started) / 1000).toFixed(1)} s`);
   const built = buildTerrain1219(input);
-  const checks = terrainChecks(built, input);
+  // The same grid without the noise, to measure how much of it the noise decides rather than
+  // the land (the labels say the edges come from land cover, terrain and rivers).
+  /** @type {any} the frozen settings' types allow only their own values */
+  const noNoise = { ...TERRAIN_PARAMS, forest: { ...TERRAIN_PARAMS.forest, noise: 0 }, conifer: { ...TERRAIN_PARAMS.conifer, noise: 0 } };
+  const quiet = buildTerrain1219(input, noNoise);
+  const checks = { ...terrainChecks(built, input), noise: noiseShare(built, quiet) };
   for (const line of formatChecks(checks)) console.log(line);
 
   const inputs = [];
@@ -275,7 +280,10 @@ async function main() {
   }
   for (const id of NE_INPUTS) inputs.push({ source: id, ...(await inputRecord(id)) });
   const review = await readFile(REVIEW_PATH);
-  inputs.push({ file: REVIEW_FILE, what: 'which Natural Earth lakes count for 1219', sha256: createHash('sha256').update(review).digest('hex') });
+  inputs.push({
+    file: REVIEW_FILE, what: 'which Natural Earth lakes count for 1219', sha256: createHash('sha256').update(review).digest('hex'),
+    lakesSha256: lakeListSha256(JSON.parse(review.toString('utf8'))),
+  });
   await writeGrid(OUT_NAME, built.terrain, {
     cols: GRID_1KM.cols,
     rows: GRID_1KM.rows,
@@ -291,6 +299,7 @@ async function main() {
     labels: LABELS,
     inputs,
     params: TERRAIN_PARAMS,
+    paramsSha256: terrainParamsSha256(),
     checks,
     notes: 'Built by tools/map/build-terrain-1219.mjs. The forest share of each 1 degree cell is the pollen map\'s; which 1 km cells are forest, and which forest is conifer, is a rule (see tools/map/terrain-1219.mjs), not a historical map.',
   });

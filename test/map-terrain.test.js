@@ -11,8 +11,10 @@ import { fileURLToPath } from 'node:url';
 import { DERIVED_INPUTS, NE_INPUTS, PREVIEW_COLOURS, TERRAIN_SOURCES } from '../tools/map/build-terrain-1219.mjs';
 import { blendAll, latticePlaces, pollenLattice } from '../tools/map/pollen-field.mjs';
 import { solveQuota } from '../tools/map/quota.mjs';
-import { buildTerrain1219, CLASS, CLASS_NAMES, TERRAIN_PARAMS } from '../tools/map/terrain-1219.mjs';
-import { classTotals, seamTest, speckleTest, squareChecks, SPECKLE_LIMITS } from '../tools/map/terrain-checks.mjs';
+import { lakeListSha256 } from '../tools/map/ne-water-1219.mjs';
+import { staleReasons } from '../tools/map/pack-terrain.mjs';
+import { buildTerrain1219, CLASS, CLASS_NAMES, TERRAIN_PARAMS, terrainParamsSha256 } from '../tools/map/terrain-1219.mjs';
+import { cappedGaps, classTotals, seamTest, speckleTest, squareChecks, SPECKLE_LIMITS } from '../tools/map/terrain-checks.mjs';
 import { distanceTo, hash01, maskedBlur, upsample, valueNoise } from '../tools/map/terrain-fields.mjs';
 import { absorbSmallPatches, edgeScore } from '../tools/map/tidy.mjs';
 import { TERRAIN } from '../src/ui/map/terrain.js';
@@ -75,7 +77,7 @@ function syntheticInput() {
 }
 
 describe('1219 terrain: class codes', () => {
-  it('uses M1\'s codes, never 1 (lakes come from the separate OpenStreetMap block)', () => {
+  it('uses M1\'s codes, never 1 (lakes come from the separate water block)', () => {
     for (const [name, code] of Object.entries(CLASS)) assert.equal(code, TERRAIN[/** @type {keyof typeof TERRAIN} */ (name)], name);
     assert.deepEqual(CLASS_NAMES, { 0: 'sea', 2: 'open', 3: 'conifer', 4: 'mixed', 5: 'marsh', 6: 'heath' });
     assert.ok(!(/** @type {number[]} */ (Object.values(CLASS))).includes(TERRAIN.lake));
@@ -235,6 +237,48 @@ describe('1219 terrain: helpers', () => {
   it('hashes the same way every time', () => {
     assert.equal(hash01(3, 4, 5), hash01(3, 4, 5));
     assert.notEqual(hash01(3, 4, 5), hash01(4, 3, 5));
+  });
+});
+
+describe('1219 terrain: the shipped block is current', () => {
+  const block = JSON.parse(readFileSync(join(ROOT, 'src/data/by-sa/terrain-1219.json'), 'utf8'));
+  const review = JSON.parse(readFileSync(join(ROOT, 'tools/map/ne-water-1219.json'), 'utf8'));
+
+  it('was built from today\'s lake list and TERRAIN_PARAMS (else: npm run map:terrain, then npm run map:pack)', () => {
+    assert.equal(block.meta.built?.lakesSha256, lakeListSha256(review), 'the lakes in tools/map/ne-water-1219.json changed since the grid was built');
+    assert.equal(block.meta.built?.paramsSha256, terrainParamsSha256(), 'TERRAIN_PARAMS changed since the grid was built');
+  });
+
+  it('falls short of the pollen forest share in no more squares than it did when reviewed', () => {
+    // Where marsh is above the pollen's open share, the square gets less forest (see the README in
+    // src/data/by-sa/). Reviewed on 7 October 2026: 25 squares, 12,482 forest cells short. A rule
+    // change that makes this worse must be seen, not slip in: raise these only on purpose.
+    const capped = block.meta.built?.capped;
+    assert.ok(capped, 'the block records the capped squares');
+    assert.ok(capped.squares <= 25, `${capped.squares} capped squares`);
+    assert.ok(capped.missingForestCells <= 12482, `${capped.missingForestCells} forest cells short`);
+    assert.ok(capped.worstGapPoints <= 32.1, `worst square ${capped.worstGapPoints} points short`);
+  });
+
+  it('refuses to pack a grid built from another lake list or other settings', () => {
+    const fresh = { inputs: [{ file: 'tools/map/ne-water-1219.json', lakesSha256: lakeListSha256(review) }], params: JSON.parse(JSON.stringify(TERRAIN_PARAMS)) };
+    assert.deepEqual(staleReasons(fresh, review), []);
+    const lakeDropped = { ...review, lakes: review.lakes.map((/** @type {any} */ e, /** @type {number} */ k) => (k === 0 ? { ...e, keep: false } : e)) };
+    assert.match(staleReasons(fresh, lakeDropped).join(), /lakes in tools\/map\/ne-water-1219\.json changed/);
+    const retuned = { ...fresh, params: { ...fresh.params, minPatch: 40 } };
+    assert.match(staleReasons(retuned, review).join(), /TERRAIN_PARAMS .* changed/);
+    const riverRenamed = { ...review, riverNames: [] };
+    assert.deepEqual(staleReasons(fresh, riverRenamed), [], 'river names don\'t touch the terrain');
+  });
+
+  it('reports how far the capped squares fall short, the worst among squares with enough land', () => {
+    const g = cappedGaps([
+      { lon: 30.5, lat: 60.5, land: 1000, forestTarget: 0.8, forest: 0.5 },
+      { lon: 36.5, lat: 56.5, land: 2, forestTarget: 0.75, forest: 0 },
+    ]);
+    assert.equal(g.squares, 2);
+    assert.equal(g.missingForestCells, 302);
+    assert.equal(g.worstGapPoints, 30);
   });
 });
 
