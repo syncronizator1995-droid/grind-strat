@@ -31,9 +31,13 @@ const STICK_PX = 48;
 
 /** River size bands by length in km: small, middle, big, great. */
 const BAND_KM = [120, 300, 700];
-/** Line width per band, CSS px, and the scale (CSS px per game unit) from which it shows. */
+/**
+ * Line width per band, CSS px, and the scale (CSS px per game unit) from which it shows. With
+ * OpenStreetMap's two thousand smaller rivers, those under 120 km wait until the view is zoomed
+ * in past the starting map (0.075), or they would hide the land under a web of blue.
+ */
 const BAND_WIDTH = [0.8, 1.1, 1.5, 2.1];
-const BAND_FROM = [0.05, 0.03, 0, 0];
+const BAND_FROM = [0.11, 0.045, 0, 0];
 /** Zoomed out further than this, rivers are drawn thinner. */
 const THIN_BELOW = 0.04;
 
@@ -206,12 +210,23 @@ function within(f, x, y) {
 /**
  * @typedef {object} WaterIndex worked out once per map, for placing names quickly
  * @property {number[][]} linesOf river index -> its line indexes
- * @property {Int32Array} lineStart first point of each line in the levels list
+ * @property {Float64Array} riverBox [minX, minY, maxX, maxY] per river, game units
  * @property {Float64Array} lineBox [minX, minY, maxX, maxY] per line, game units
- * @property {Float64Array[]} chunkBox per line, the box of every CHUNK points, so only the parts
- *   of a long river near the screen are looked at
+ * @property {Int32Array[][]} levelLines per name level (0 and 1), each line's points at that
+ *   level: names are fitted to these, never to the full detail
+ * @property {Float64Array[][]} chunkBox per name level and line, the box of every CHUNK points,
+ *   so only the parts of a long river near the screen are looked at
  * @property {Uint8Array} lakeLevel coarsest level at which each lake is drawn
  */
+
+/**
+ * Names follow the next coarser level of a line than the one drawn (never the full detail):
+ * OpenStreetMap's meanders, drawn at full detail, leave few straight stretches long enough for
+ * a name.
+ */
+const NAME_LEVELS = [0, 1];
+/** @param {number} level the level drawn */
+const nameLevel = (level) => Math.min(NAME_LEVELS.length - 1, Math.max(0, level - 1));
 
 /** Points per chunk of a river line. */
 const CHUNK = 64;
@@ -240,21 +255,33 @@ function boxOf(line, from, to, out, at) {
 export function indexWater(water) {
   /** @type {number[][]} */
   const linesOf = water.riverInfo.map(() => []);
-  const lineStart = new Int32Array(water.rivers.length);
   const lineBox = new Float64Array(water.rivers.length * 4);
-  /** @type {Float64Array[]} */
-  const chunkBox = [];
+  /** @type {Int32Array[][]} */
+  const levelLines = NAME_LEVELS.map(() => []);
+  /** @type {Float64Array[][]} */
+  const chunkBox = NAME_LEVELS.map(() => []);
   let at = 0;
   water.rivers.forEach((line, i) => {
     linesOf[water.riverOf[i]]?.push(i);
-    lineStart[i] = at;
     const n = line.length / 2;
-    at += n;
     boxOf(line, 0, n - 1, lineBox, i * 4);
-    // Chunk c covers points c*CHUNK to (c+1)*CHUNK: neighbouring chunks share a point.
-    const chunks = new Float64Array(Math.max(1, Math.ceil((n - 1) / CHUNK)) * 4);
-    for (let c = 0; c * 4 < chunks.length; c++) boxOf(line, c * CHUNK, Math.min(n - 1, (c + 1) * CHUNK), chunks, c * 4);
-    chunkBox.push(chunks);
+    for (const level of NAME_LEVELS) {
+      let count = 0;
+      for (let p = 0; p < n; p++) if (water.riverLevels[at + p] <= level) count++;
+      const pts = new Int32Array(count * 2);
+      for (let p = 0, k = 0; p < n; p++) {
+        if (water.riverLevels[at + p] > level) continue;
+        pts[k++] = line[p * 2];
+        pts[k++] = line[p * 2 + 1];
+      }
+      levelLines[level].push(pts);
+      // Chunk c covers points c*CHUNK to (c+1)*CHUNK: neighbouring chunks share a point.
+      const m = pts.length / 2;
+      const chunks = new Float64Array(Math.max(1, Math.ceil((m - 1) / CHUNK)) * 4);
+      for (let c = 0; c * 4 < chunks.length; c++) boxOf(pts, c * CHUNK, Math.min(m - 1, (c + 1) * CHUNK), chunks, c * 4);
+      chunkBox[level].push(chunks);
+    }
+    at += n;
   });
   const lakeLevel = new Uint8Array(water.lakeInfo.length).fill(255);
   at = 0;
@@ -263,7 +290,16 @@ export function indexWater(water) {
     for (let p = 0; p < ring.length / 2; p++) lakeLevel[k] = Math.min(lakeLevel[k], water.lakeLevels[at + p]);
     at += ring.length / 2;
   });
-  return { linesOf, lineStart, lineBox, chunkBox, lakeLevel };
+  const riverBox = new Float64Array(water.riverInfo.length * 4);
+  for (let k = 0; k < water.riverInfo.length; k++) riverBox.set([Infinity, Infinity, -Infinity, -Infinity], k * 4);
+  water.rivers.forEach((_, i) => {
+    const k = water.riverOf[i] * 4;
+    riverBox[k] = Math.min(riverBox[k], lineBox[i * 4]);
+    riverBox[k + 1] = Math.min(riverBox[k + 1], lineBox[i * 4 + 1]);
+    riverBox[k + 2] = Math.max(riverBox[k + 2], lineBox[i * 4 + 2]);
+    riverBox[k + 3] = Math.max(riverBox[k + 3], lineBox[i * 4 + 3]);
+  });
+  return { linesOf, riverBox, lineBox, levelLines, chunkBox, lakeLevel };
 }
 
 /**
@@ -324,8 +360,11 @@ export function placeWaterLabels({ water, index, level, scale, ox, oy, width, he
       if (label) keep(label);
       li++;
     } else {
-      if (rivers[ri].name) {
-        for (const label of placeRiver(water, index, ri, level, scale, ox, oy, frame, measure, occupied, previous?.get(ri))) keep(label);
+      const rb = index.riverBox.subarray(ri * 4, ri * 4 + 4);
+      // Off the frame altogether: nothing to place (thousands of rivers, most of them elsewhere).
+      const inFrame = rb[2] * scale + ox >= 0 && rb[0] * scale + ox <= width && oy - rb[1] * scale >= 0 && oy - rb[3] * scale <= height;
+      if (rivers[ri].name && inFrame) {
+        for (const label of placeRiver(water, index, ri, nameLevel(level), scale, ox, oy, frame, measure, occupied, previous?.get(ri))) keep(label);
       }
       ri++;
     }
@@ -383,17 +422,16 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
   const stretches = [];
   for (const i of index.linesOf[k] ?? []) {
     // Each stretch carries its local name: the Nemunas is "Nemunas" in Lithuania, "Нёман" in Belarus.
+    const b = index.lineBox.subarray(i * 4, i * 4 + 4);
+    if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
     const text = (water.lineName && water.lineNames[water.lineName[i]]) || river.name;
     const textWidth = widthOf(text);
     const length = textWidth + size;
-    const b = index.lineBox.subarray(i * 4, i * 4 + 4);
-    if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
     // A line whose whole extent on screen is shorter than the name can't carry it.
     if (Math.max(b[2] - b[0], b[3] - b[1]) * scale < length * 0.9) continue;
-    const line = water.rivers[i];
-    const start = index.lineStart[i];
+    const line = index.levelLines[level][i];
     const n = line.length / 2;
-    const chunks = index.chunkBox[i];
+    const chunks = index.chunkBox[level][i];
     if (buffer.length < line.length) buffer = new Float64Array(line.length * 2);
     // Only the runs of the line inside the frame (a name must fit on screen anyway), looking only
     // at chunks of the line near it.
@@ -410,7 +448,6 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
       // Each chunk's first point is the last point of the chunk before; take it only when a new
       // run starts here.
       for (let p = c * CHUNK + (count ? 1 : 0), end = Math.min(n - 1, (c + 1) * CHUNK); p <= end; p++) {
-        if (water.riverLevels[start + p] > level) continue;
         const x = ox + line[p * 2] * scale;
         const y = oy - line[p * 2 + 1] * scale;
         if (x >= 0 && y >= 0 && x <= frame.width && y <= frame.height) {

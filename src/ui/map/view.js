@@ -18,6 +18,8 @@ import { paintSea, paintTerrain } from './terrain.js';
 import { cutWater, tileInView } from './water-tiles.js';
 
 /** @typedef {import('./load.js').WaterData} WaterData */
+/** @typedef {import('./water-tiles.js').WaterTile} WaterTile */
+/** @typedef {import('./water-tiles.js').TilePaths} TilePaths */
 
 /** Province tint colours (provinces return in step 2b, realms in step 3). */
 const TINTS = ['#c0392b', '#2e86c1', '#d4ac0d', '#7d3c98', '#17a589', '#ca6f1e', '#5d6d7e', '#a93226', '#1f618d', '#b7950b', '#6c3483', '#148f77'];
@@ -172,7 +174,7 @@ export function createMapView(canvas, map) {
   /**
    * The outlines at one level of detail, built the first time that level is needed.
    * @typedef {{ sea: Path2D, coast: Path2D, tints: Path2D[], sourced: Path2D, guessed: Path2D, fog: Path2D }} Level
-   * @typedef {import('./water-tiles.js').WaterTile[]} WaterLevel
+   * @typedef {WaterTile[]} WaterLevel
    */
   /** @type {(Level | null)[]} */
   const levels = LEVELS.map(() => null);
@@ -221,7 +223,8 @@ export function createMapView(canvas, map) {
   }
 
   /**
-   * The water tiles near a view box, with their paths built.
+   * The water tiles near a view box, with their lake paths built.
+   * @returns {WaterTile[]}
    * @param {WaterLevel} tiles @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1
    */
   function waterNear(tiles, x0, y0, x1, y1) {
@@ -231,11 +234,27 @@ export function createMapView(canvas, map) {
       if (!t.paths) {
         const lakes = new Path2D();
         addLines(lakes, t.lakes, true);
-        t.paths = { lakes, rivers: t.rivers.map((lines) => { const p = new Path2D(); addLines(p, lines, false); return p; }) };
+        t.paths = { lakes, rivers: t.rivers.map(() => null) };
       }
-      out.push(t.paths);
+      out.push(t);
     }
     return out;
+  }
+
+  /**
+   * One size band's rivers in a tile, built the first time that band is drawn there (small
+   * rivers only show zoomed in).
+   * @param {WaterTile} tile @param {number} band
+   */
+  function riverPath(tile, band) {
+    const paths = /** @type {TilePaths} */ (tile.paths);
+    let p = paths.rivers[band];
+    if (!p) {
+      p = new Path2D();
+      addLines(p, tile.rivers[band], false);
+      paths.rivers[band] = p;
+    }
+    return p;
   }
 
   // --- camera ---------------------------------------------------------------------------
@@ -369,18 +388,18 @@ export function createMapView(canvas, map) {
       // Only the tiles near the frame: a river wider than a few pixels never reaches past them.
       const near = waterNear(W, k.cx - halfW - 8 * px, k.cy - halfH - 8 * px, k.cx + halfW + 8 * px, k.cy + halfH + 8 * px);
       c.fillStyle = WATER;
-      for (const t of near) c.fill(t.lakes, 'evenodd');
+      for (const t of near) c.fill(/** @type {TilePaths} */ (t.paths).lakes, 'evenodd');
       c.strokeStyle = WATER;
       c.lineCap = 'round';
-      c.lineJoin = 'round';
+      c.lineJoin = 'bevel'; // as good as round at these widths, and cheaper on thousands of bends
       for (let band = 0; band < BANDS; band++) {
         if (!bandShown(band, s)) continue;
         c.lineWidth = bandWidth(band, s) * px;
-        for (const t of near) c.stroke(t.rivers[band]);
+        for (const t of near) c.stroke(riverPath(t, band));
       }
       c.strokeStyle = 'rgba(20, 35, 45, 0.45)';
       c.lineWidth = 0.6 * px;
-      for (const t of near) c.stroke(t.lakes);
+      for (const t of near) c.stroke(/** @type {TilePaths} */ (t.paths).lakes);
     }
     c.strokeStyle = 'rgba(20, 35, 45, 0.85)';
     c.lineWidth = 1.1 * px;

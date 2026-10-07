@@ -15,7 +15,10 @@ const PIECE = 48;
  * @property {number[][]} lakes rings at this level (a lake's rings stay together, so its
  *   islands stay holes)
  * @property {number[][][]} rivers per size band, lines at this level
- * @property {{ lakes: Path2D, rivers: Path2D[] } | null} paths built by the view when first drawn
+ * @property {TilePaths | null} paths built by the view when first drawn
+ *
+ * @typedef {{ lakes: Path2D, rivers: (Path2D | null)[] }} TilePaths each band's rivers are built
+ *   the first time that band is drawn in the tile
  */
 
 /**

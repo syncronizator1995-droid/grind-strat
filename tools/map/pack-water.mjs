@@ -24,8 +24,8 @@ import { DERIVED } from './resample.mjs';
 export const OSM_WATER = join(DERIVED, 'water-osm.json');
 export const OSM_NOTICE = 'Contains information from OpenStreetMap, openstreetmap.org/copyright, made available under the Open Database License (ODbL) 1.0, opendatacommons.org/licenses/odbl/1-0/';
 
-/** The close-up level keeps detail down to this many game units (100 m). */
-const BASE_TOLERANCE = 1;
+/** The close-up level keeps detail down to this many game units (150 m: at the closest zoom, 1.2 CSS px). */
+const BASE_TOLERANCE = 1.5;
 /**
  * Tolerances for the overview and middle levels, game units. Coarser than the land's: the
  * overview is drawn below 0.06 CSS px per unit and the middle level below 0.25, so 20 and 5
@@ -38,7 +38,7 @@ export const WATER_TOLERANCES = Object.freeze([20, 5]);
  * Lakes smaller than these (km²) are left out of the overview and the middle level: at those
  * zooms they would be a speck, or a triangle.
  */
-const LAKE_MIN_KM2 = [8, 1];
+const LAKE_MIN_KM2 = [10, 3];
 
 /**
  * @typedef {{ name: string, names: Record<string, string>, wikidata: string | null, lengthKm: number, lines: number[][], lineNames?: string[] }} River
