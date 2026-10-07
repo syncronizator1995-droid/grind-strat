@@ -8,9 +8,9 @@
 // - Outlines have three levels of detail, worked out when the map data was made; zoomed out,
 //   the simpler ones are drawn.
 // River and lake names are drawn into the kept frame too, so they cost nothing while panning.
-// A copy of the frame without names is kept as well: when the view settles after a pan, the
-// names are placed again for what is on screen (clear of the buttons and the screen's edges)
-// without redrawing the whole map.
+// When the view settles after a pan, the names are placed again for what is on screen (clear of
+// the buttons and the screen's edges): the map is painted again only under the old names, then
+// the new names go on top, so the whole map is not redrawn.
 
 import { simplify } from './geometry.js';
 import { bandShown, BANDS, bandWidth, indexWater, labelFont, placeWaterLabels, riverBand } from './labels.js';
@@ -130,15 +130,12 @@ export function createMapView(canvas, map) {
   const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d', { alpha: false }));
   const frame = document.createElement('canvas');
   const fctx = /** @type {CanvasRenderingContext2D} */ (frame.getContext('2d', { alpha: false }));
-  // The kept frame without names, so the names can be placed again without redrawing the map.
-  const bare = document.createElement('canvas');
-  const bctx = /** @type {CanvasRenderingContext2D} */ (bare.getContext('2d', { alpha: false }));
 
   // --- prepared once ------------------------------------------------------------------
   const t0 = performance.now();
   const tiles = paintTerrain(map.terrain, map.heights);
   const seaPicture = paintSea(map.heights);
-  const seaFill = /** @type {CanvasPattern} */ (bctx.createPattern(seaPicture, 'repeat'));
+  const seaFill = /** @type {CanvasPattern} */ (fctx.createPattern(seaPicture, 'repeat'));
   // One pattern pixel is one height cell; the pattern is placed in map units when the sea is filled.
   seaFill.setTransform(new DOMMatrix([map.heights.cell, 0, 0, map.heights.cell, 0, 0]));
   const paintMs = performance.now() - t0;
@@ -152,6 +149,9 @@ export function createMapView(canvas, map) {
   let labelMs = NaN;
   /** Where each river's names were last placed, game units, so they stay put. @type {Map<number, number[]>} */
   let anchors = new Map();
+  /** Where the names on the kept frame are drawn, CSS px on the frame, to paint over them. */
+  /** @type {{ x: number, y: number, angle: number, w: number, h: number }[]} */
+  let drawn = [];
   /** The camera the names in the kept frame were placed for, and whether all of them fit the budget. */
   /** @type {{ cx: number, cy: number, complete: boolean } | null} */
   let named = null;
@@ -247,8 +247,8 @@ export function createMapView(canvas, map) {
     cssH = Math.max(1, canvas.clientHeight);
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
-    bare.width = frame.width = Math.round(cssW * (1 + 2 * MARGIN) * dpr);
-    bare.height = frame.height = Math.round(cssH * (1 + 2 * MARGIN) * dpr);
+    frame.width = Math.round(cssW * (1 + 2 * MARGIN) * dpr);
+    frame.height = Math.round(cssH * (1 + 2 * MARGIN) * dpr);
     if (!placed) {
       // First time: centred on Lithuania, showing the Baltic core.
       placed = true;
@@ -274,12 +274,24 @@ export function createMapView(canvas, map) {
 
   /** Draws the whole map into the kept frame, for the current camera. */
   function drawFrame() {
-    const s = cam.scale;
+    kept = { cx: cam.cx, cy: cam.cy, scale: cam.scale };
+    drawn = [];
+    paintMap();
+    labelMs = drawNames(LABEL_BUDGET_MS);
+  }
+
+  /**
+   * Paints the map (everything but the names) into the kept frame, for the camera it is kept
+   * for. With a clip set, only that part changes.
+   */
+  function paintMap() {
+    const k = /** @type {Camera} */ (kept);
+    const s = k.scale;
     const fw = cssW * (1 + 2 * MARGIN);
     const fh = cssH * (1 + 2 * MARGIN);
-    const ox = fw / 2 - cam.cx * s;
-    const oy = fh / 2 + cam.cy * s;
-    const c = bctx;
+    const ox = fw / 2 - k.cx * s;
+    const oy = fh / 2 + k.cy * s;
+    const c = fctx;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.fillStyle = OUTSIDE;
     c.fillRect(0, 0, fw, fh);
@@ -299,7 +311,7 @@ export function createMapView(canvas, map) {
       const y = t.row * map.terrain.cell;
       const w = t.w * map.terrain.cell;
       const h = t.h * map.terrain.cell;
-      if (x > cam.cx + halfW || x + w < cam.cx - halfW || y > cam.cy + halfH || y + h < cam.cy - halfH) continue;
+      if (x > k.cx + halfW || x + w < k.cx - halfW || y > k.cy + halfH || y + h < k.cy - halfH) continue;
       c.drawImage(t.canvas, x, y, w, h);
     }
     if (map.provinces.length) {
@@ -349,20 +361,28 @@ export function createMapView(canvas, map) {
     }
     // Holdings: fixed-size marks, only when zoomed in enough to tell them apart.
     if (s > 0.06 && map.points.length) drawPoints(c, ox, oy, s, fw, fh);
-    kept = { cx: cam.cx, cy: cam.cy, scale: s };
-    labelMs = drawNames(LABEL_BUDGET_MS);
   }
 
   /**
-   * Copies the frame without names into the kept frame and puts the river and lake names on it,
-   * for the screen at the current camera (which may have slid since the frame was drawn).
+   * Puts the river and lake names on the kept frame for the screen at the current camera (which
+   * may have slid since the frame was drawn). Names already there are painted over first: the
+   * map is painted again, clipped to where they are. Cheaper than keeping a copy of the frame
+   * without names, which would cost a full-frame copy on every redraw.
    * Returns how long the names took to place and draw, in ms.
    * @param {number} budgetMs
    */
   function drawNames(budgetMs) {
     const k = /** @type {Camera} */ (kept);
-    fctx.setTransform(1, 0, 0, 1, 0, 0);
-    fctx.drawImage(bare, 0, 0);
+    if (drawn.length) {
+      const under = new Path2D();
+      for (const d of drawn) addBox(under, d);
+      fctx.save();
+      fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      fctx.clip(under);
+      paintMap();
+      fctx.restore();
+      drawn = [];
+    }
     const s = k.scale;
     const fw = cssW * (1 + 2 * MARGIN);
     const fh = cssH * (1 + 2 * MARGIN);
@@ -426,6 +446,7 @@ export function createMapView(canvas, map) {
     c.fillStyle = ink.fill;
     let font = '';
     for (const l of labels) {
+      drawn.push({ x: l.x, y: l.y, angle: l.angle, w: measure(l.text, l.size), h: l.size });
       if (labelFont(l.size) !== font) c.font = font = labelFont(l.size);
       c.setTransform(dpr * Math.cos(l.angle), dpr * Math.sin(l.angle), -dpr * Math.sin(l.angle), dpr * Math.cos(l.angle), l.x * dpr, l.y * dpr);
       c.strokeText(l.text, 0, 0);
@@ -433,6 +454,22 @@ export function createMapView(canvas, map) {
     }
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     return performance.now() - start;
+  }
+
+  /**
+   * Adds the box a drawn name covers (its halo included, with a little to spare) to a path.
+   * @param {Path2D} p @param {{ x: number, y: number, angle: number, w: number, h: number }} d
+   */
+  function addBox(p, d) {
+    const hw = d.w / 2 + 4;
+    const hh = d.h * 0.75 + 3;
+    const cos = Math.cos(d.angle);
+    const sin = Math.sin(d.angle);
+    const corner = (/** @type {number} */ u, /** @type {number} */ v) => [d.x + u * cos - v * sin, d.y + u * sin + v * cos];
+    const pts = [corner(-hw, -hh), corner(hw, -hh), corner(hw, hh), corner(-hw, hh)];
+    p.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < 4; i++) p.lineTo(pts[i][0], pts[i][1]);
+    p.closePath();
   }
 
   /**
