@@ -153,3 +153,59 @@ Victoria 3:
 
 Manor Lords wiki (Hooded Horse, not Paradox):
 - [Warfare](https://wiki.hoodedhorse.com/Manor_Lords/Warfare), [Regions](https://wiki.hoodedhorse.com/Manor_Lords/Regions), [Burgage plot](https://wiki.hoodedhorse.com/Manor_Lords/Burgage_plot/en), [Regional wealth](https://wiki.hoodedhorse.com/Manor_Lords/Regional_wealth)
+
+## Map data used in step 2a M2 (7 October 2026)
+
+This section replaces the status lines in "Map data collections (step 2a)" above wherever they
+differ. The machine-readable record, with the verbatim licence quotes and fingerprints, is
+`tools/map/sources.json`; `ATTRIBUTION.md` and the in-game Credits are generated from it.
+
+| Collection | What the game uses | Licence, and where it was read | Status |
+| --- | --- | --- | --- |
+| Natural Earth v5.1.2 (`ne`) | Land, coast, rivers and lakes (M2's rivers and lakes for now) | Public domain; LICENSE.md in the project's own repository, github.com/nvkelso/natural-earth-vector, tag v5.1.2 | Read |
+| GEBCO_2026 Grid (`gebco`) | Heights (2 km) and sea depths | Public domain, with credit, no endorsement, not for navigation: GEBCO_Grid_terms_of_use.pdf on dap.ceda.ac.uk (BODC/CEDA, GEBCO's official distributor). CEDA's readme also names the Open Government Licence v3.0 | Read. Data from the official tile `gebco_2026_n90.0_s0.0_w0.0_e90.0_geotiff.tif`; identical in all 22,690,248 cells to the AWS copy by the Australian Antarctic Division |
+| GLWD v2 (`glwd`) | Marsh and bog (peat-soil and wetland classes) | CC BY 4.0, with a request not to put the whole data online again in its original form: GLWD_TechDoc_v2_0.pdf section 4.1 on data.hydrosheds.org (the owner's host; the same file, by md5, as in the copy) | Read. Data from the unofficial Source Cooperative copy (Boettiger lab), not compared with the official figshare zips: TO CHECK |
+| ESA WorldCover 2021 v200 (`worldcover`) | Today's land cover, as a guide for forest edges, dunes and today's open bogs | CC BY 4.0: Product User Manual v2.0 sections 5.1 and 5.2, on ESA's own esa-worldcover bucket | Read |
+| SpatioCompo, time window 4 (`spatiocompo`) | Conifer, broadleaf and open-land shares per 1° cell, about AD 750 to 1250 | CC BY-SA 4.0 in the README of the author's own repository, github.com/BehnazP/SpatioCompo_entireHolocene, commit 894d44d | Read, but TO CHECK: the same repository has a GPL-3.0 LICENSE file; Ignas is asking the author |
+
+Citations:
+- GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain
+  model for oceans and land at 15 arc-second intervals. NERC EDS British Oceanographic Data Centre
+  NOC. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa
+  (https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/)
+- Lehner, B. et al. (2025). Mapping the world's inland surface waters: an upgrade to the Global
+  Lakes and Wetlands Database (GLWD v2). Earth System Science Data. Data:
+  https://doi.org/10.6084/m9.figshare.28519994 (the article's volume and pages: TO CHECK)
+- Zanaga, D. et al. (2022). ESA WorldCover 10 m 2021 v200. https://doi.org/10.5281/zenodo.7254221
+- Githumbi, E., Pirzamanbein, B. et al. (2022). Pollen-Based Maps of Past Regional Vegetation
+  Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and
+  Evolution 10:795794. https://doi.org/10.3389/fevo.2022.795794. Data: "Land-cover maps based on
+  pollen observations for Europe" by Behnaz Pirzamanbein.
+
+What is estimated, not measured (the game says so in "About this map"):
+- Forest share per 1° cell comes from pollen; in the east (most of Belarus, north-west Russia and
+  Ukraine) a statistical model filled the gaps. The exact forest edges are placed by a rule.
+- Marsh comes from today's peat-soil and wetland maps plus today's open bogs. The Uppsala plain
+  reads partly marshy (drained peat in its valleys; the land there stood several metres lower in
+  1219). This is left as the data shows: TO CHECK.
+- Heights and sea depths are today's. Under modern reservoirs the land shows flat, at today's water
+  level.
+- Which lakes are modern reservoirs: `tools/map/ne-water-1219.json` lists each decision. Dam dates
+  are not used; any entry not confirmed by a source is marked TO CHECK.
+- Where the peat maps show more bog than the pollen's open share allows (25 one-degree squares in
+  north-west Russia, south-east Finland and east Estonia), bog wins, so forest there is up to 32
+  points below the pollen share. The game's "About this map" says so.
+- Natural Earth river names repaired in the same reviewed list, each with its reason: Nemunas
+  (Natural Earth says Neman), Dnipro (one river, where Natural Earth splits it), Göta älv,
+  Klarälven, Motala ström, Glåma/Glomma, Kokemäenjoki, and the Gudbrandsdalslågen pieces Natural
+  Earth calls Vorma. Today's names; names of 1219 come with the time slider.
+- The coastal dunes of the Curonian Spit and Łeba are painted as heath from today's bare sand.
+  Whether they were forested in 1219 (the drifting dunes may be later) is TO CHECK, with a source,
+  before M3.
+
+New TO CHECK items:
+- The pollen time window's exact edges (700 to 1200 BP, or 750 to 1250 BP; that is, AD 750 to
+  1250 or AD 700 to 1200).
+- The SpatioCompo licence (CC BY-SA 4.0, or the repository's GPL-3.0 file).
+- The GLWD data TIFFs against the official zips.
+- Lake Ladoga reads about 1 m in GEBCO, against a surface of about 5 m.

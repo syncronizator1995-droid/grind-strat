@@ -1,15 +1,17 @@
 // @ts-check
-// Tests for the map: projection, the packed format, geometry helpers and the built test map.
+// Tests for the map: projection, the packed format, geometry helpers and levels of detail.
+// The committed data blocks are tested in test/map-blocks.test.js.
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { deflateSync } from 'node:zlib';
 import { clipLine, clipRing, fillRings } from '../tools/map/geo.mjs';
+import { atLevel, LEVEL_COUNT, pointLevels } from '../tools/map/levels.mjs';
 import { EPSG3035, MAP } from '../tools/map/projection.mjs';
-import { bundleBlocks, decodePoints, decodeShapes, encodePoints, encodeShapes, inflate, unbundleBlocks } from '../src/ui/map/codec.js';
+import {
+  bundleBlocks, decodeGrid16, decodePoints, decodeShapes, decodeUints, encodeGrid, encodePoints, encodeShapes, encodeUints, inflate,
+  unbundleBlocks,
+} from '../src/ui/map/codec.js';
 import { simplify } from '../src/ui/map/geometry.js';
-import { loadMap } from '../src/ui/map/load.js';
 
 describe('projection', () => {
   it('matches the official EPSG:3035 test point to the centimetre', () => {
@@ -66,6 +68,25 @@ describe('packed map format', () => {
     for (const k of Object.keys(blocks)) assert.deepEqual([...back[k]], [...blocks[/** @type {keyof typeof blocks} */ (k)]]);
   });
 
+  it('round-trips lists of whole numbers', () => {
+    assert.deepEqual([...decodeUints(encodeUints([0, 5, 300, 70000, 1]))], [0, 5, 300, 70000, 1]);
+    assert.deepEqual([...decodeUints(encodeUints([]))], []);
+  });
+
+  it('round-trips height grids exactly, with sea depths, cliffs and edges', () => {
+    const cols = 7;
+    const rows = 5;
+    const values = Array.from({ length: cols * rows }, (_, i) => Math.round(Math.sin(i * 1.7) * 300 - (i % cols === 3 ? 450 : 0)));
+    values[0] = -32768;
+    values[cols * rows - 1] = 32767;
+    const back = decodeGrid16(encodeGrid(values, cols));
+    assert.equal(back.cols, cols);
+    assert.equal(back.rows, rows);
+    assert.deepEqual([...back.data], values);
+    assert.throws(() => encodeGrid([1, 2, 3], 2), /whole rows/);
+    assert.throws(() => decodeGrid16(encodeGrid(values, cols).subarray(0, 10)), /ends too early/);
+  });
+
   it('unpacks zlib data with the built-in decompression the game uses', async () => {
     const raw = new Uint8Array(5000).map((_, i) => i % 7);
     assert.deepEqual([...await inflate(new Uint8Array(deflateSync(raw)))], [...raw]);
@@ -94,37 +115,38 @@ describe('geometry', () => {
   });
 });
 
-describe('the M1 test map', () => {
-  const text = readFileSync(new URL('../src/data/map/test-map.json', import.meta.url), 'utf8');
-  const packed = JSON.parse(text);
-
-  it('is the file the map tools built (not edited by hand)', () => {
-    const prints = JSON.parse(readFileSync(new URL('../src/data/map/fingerprints.json', import.meta.url), 'utf8'));
-    assert.equal(createHash('sha256').update(text).digest('hex'), prints['test-map.json']);
-  });
-
-  it('says what is made up', () => {
-    assert.match(packed.invented, /made up/);
-  });
-
-  it('unpacks into sound layers that stay on the map', async () => {
-    const { map } = await loadMap(packed);
-    const inBounds = (/** @type {Int32Array[]} */ shapes, /** @type {string} */ name) => {
-      for (const s of shapes) {
-        for (let i = 0; i < s.length; i += 2) {
-          assert.ok(s[i] >= 0 && s[i] <= map.width && s[i + 1] >= 0 && s[i + 1] <= map.height, `${name} leaves the map`);
-        }
-      }
-    };
-    for (const name of /** @type {const} */ (['land', 'coast', 'lakes', 'rivers', 'provinces', 'borders'])) {
-      assert.ok(map[name].length > 0, `${name} is empty`);
-      inBounds(map[name], name);
+describe('levels of detail', () => {
+  /** A wiggly line and a wiggly ring, as real coasts and rivers are. */
+  const wiggle = (/** @type {number} */ n, /** @type {boolean} */ ring) => {
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const t = (i / n) * Math.PI * 2;
+      const r = 400 + 60 * Math.sin(t * 7) + 9 * Math.sin(t * 41) + 2 * Math.sin(t * 97);
+      pts.push(ring ? Math.round(1000 + r * Math.cos(t)) : i * 5, ring ? Math.round(1000 + r * Math.sin(t)) : Math.round(r));
     }
-    assert.equal(map.riverInfo.length, map.rivers.length);
-    assert.equal(map.borderKinds.length, map.borders.length);
-    assert.equal(map.pointKinds.length, map.points.length / 2);
-    assert.equal(map.terrain.data.length, map.terrain.cols * map.terrain.rows);
-    assert.equal(map.heights.data.length, map.heights.cols * map.heights.rows);
-    assert.ok(map.seen.every((i) => i >= 0 && i < map.provinces.length));
+    return pts;
+  };
+
+  it('keeps the ends always and nests: every point of a coarser level is in the finer ones', () => {
+    for (const closed of [false, true]) {
+      const pts = wiggle(600, closed);
+      const lvl = pointLevels(pts, closed);
+      assert.equal(lvl.length, pts.length / 2);
+      if (!closed) assert.equal(Math.max(lvl[0], lvl[lvl.length - 1]), 0);
+      const counts = [0, 1, 2].map((k) => atLevel(pts, lvl, k).length / 2);
+      assert.equal(LEVEL_COUNT, 3);
+      assert.ok(counts[0] < counts[1] && counts[1] < counts[2], counts.join(' < '));
+      assert.equal(counts[2], pts.length / 2, 'the close-up level keeps every point');
+      for (let i = 0; i < lvl.length; i++) assert.ok(lvl[i] <= 2);
+    }
+  });
+
+  it('pins chosen points and leaves small shapes out of coarse levels', () => {
+    const pts = wiggle(200, true);
+    const pinned = pointLevels(pts, true, { pin: (x) => x > 1400 });
+    for (let i = 0; i < pinned.length; i++) if (pts[i * 2] > 1400) assert.equal(pinned[i], 0);
+    const small = pointLevels(pts, true, { minLevel: 2 });
+    assert.equal(atLevel(pts, small, 1).length, 0);
+    assert.equal(atLevel(pts, small, 2).length, pts.length);
   });
 });

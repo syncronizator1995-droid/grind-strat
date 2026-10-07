@@ -214,6 +214,28 @@ screen 411 × 576 drawn at 2×, a 90 Hz display) passed all three targets:
 
 No drawing fixes are needed before M2.
 
+Status (7 October 2026): **M2 built, waiting for Ignas to merge.** The real map shows the land
+around 1219. It uses GEBCO heights and sea depths (checked against the official file), the 1219
+forest, marsh, heath and open land on the 1 km map, Natural Earth coast, rivers and lakes with
+modern reservoirs removed, river and lake names, and a Credits screen. Data blocks are split by
+licence, and the build refuses any source whose licence was not read on its owner's host. Ignas
+allowed three sites for this: overpass-api.de, dap.ceda.ac.uk and data.hydrosheds.org.
+
+OpenStreetMap's query server began refusing the cloud session after a small part of the rivers had
+downloaded. Ignas chose: ship M2 now with Natural Earth's simpler rivers, then add the full
+OpenStreetMap rivers.
+
+**Next: M2b, the OpenStreetMap rivers and lakes.**
+- Read Overture Maps' official copy on Amazon (theme base, type water, release 2026-09-23.1 or
+  newer). It is OpenStreetMap data under ODbL. Our own Parquet reader of about 400 lines does the
+  reading; Node 22 has zstd built in.
+- Join it with the river groupings and multilingual names already downloaded from Overpass: the
+  waterway relations, in data/raw/osm.
+- The unfinished Overpass pipeline (fetch, grouping, reservoir rules, the ODbL folder and tests)
+  waits on branch m2-water.
+
+Then M3, the time slider.
+
 **What Ignas sees on his phone at the end of 2a:**
 - **The real map** instead of the empty grid: sea, coasts, rivers, lakes, hill shading, forests
   and marshes, painted. Pinch to zoom, drag to pan; mouse wheel on a computer.
@@ -246,10 +268,10 @@ licences can't be mixed in one file.
 | Layer | Source | Notes |
 | --- | --- | --- |
 | Coast, main rivers, lakes | Natural Earth 1:10m (global layers) | Public domain (licence read at v5.1.2), reachable now. The separate Europe layers carry a JRC clause and are not used |
-| Smaller rivers, with names | OpenStreetMap (ODbL) | Lielupe, Pregolya, Nevėžis, Dubysa, Šešupė, Minija and others. Host blocked here: ask Ignas at M2 |
-| Height and sea depth | GEBCO 2026 | Hill shading, old coasts. Blocked here: ask Ignas at M2. Until then, the hills wait |
-| Forest in 1219 | REVEALS pollen reconstructions | An AD 750–1250 average, marked "estimated from pollen". Ask for PANGAEA when needed |
-| Marsh in 1219 | Peat and wetland maps | Which map is chosen at M2, licence first |
+| Smaller rivers, with names | OpenStreetMap (ODbL) | Lielupe, Pregolya, Nevėžis, Dubysa, Šešupė, Minija and others. Overpass refused the session after Ignas allowed it; M2b reads Overture's official copy on Amazon instead (same OSM data, ODbL). M2 ships Natural Earth's rivers meanwhile |
+| Height and sea depth | GEBCO 2026 | Done in M2: the official tile on dap.ceda.ac.uk (allowed by Ignas), identical to the AWS copy in every cell; terms read there |
+| Forest in 1219 | REVEALS pollen reconstructions | Done in M2: the gap-filled SpatioCompo maps (Githumbi, Pirzamanbein et al. 2022) on the author's GitHub, window AD 750–1250; CC BY-SA 4.0, TO CHECK with the author; PANGAEA not needed |
+| Marsh in 1219 | Peat and wetland maps | Done in M2: GLWD v2 (CC BY 4.0, licence read on data.hydrosheds.org) plus ESA WorldCover's wetland class; "bogs stand out" (Ignas) |
 | Water in 1219 | Today's natural lakes | Modern reservoirs removed |
 
 - Natural Earth's coast is the one base coast for every slice, so the coast doesn't jump when
@@ -313,8 +335,8 @@ every id.
   allow GEBCO and OpenStreetMap here.
 - **M3:** today, 1219 and 1 AD in full; the five ice-age previews with notes; names change with
   the slider. Ask for PANGAEA if still needed.
-- **Open question for Ignas at M2:** the 1219 forest share comes from REVEALS, on PANGAEA. Either
-  M2's 1219 terrain waits for forest until M3, or Claude asks for PANGAEA at M2. He chooses.
+- **Settled at M2:** the forest comes from the finished SpatioCompo maps on GitHub, so neither
+  waiting until M3 nor PANGAEA was needed (Ignas, 6 October 2026).
 - If M1 shows his phone is too slow, the drawing gets fixed before M2.
 - Each milestone passes npm test, soak, check and shots, and the GitHub run on its pull request,
   before it reaches him.

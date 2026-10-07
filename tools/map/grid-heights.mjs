@@ -4,22 +4,39 @@
 // lake floors here).
 
 import { bestBlock, cellAt, cellCentre, discMean, floodFill, fmtPlace, table } from './grid-checks.mjs';
-import { inputRecord, openRemoteTiff, readBox, sourceEntry } from './grid-sources.mjs';
+import { inputRecord, int16Hash, openRemoteTiff, readBox, sourceEntry } from './grid-sources.mjs';
 import { areaAverage, bilinear, writeGrid } from './resample.mjs';
 
 /** Samples per side of each 2 km cell: 250 m apart, finer than GEBCO's 460 x 250 m cells. */
 const SAMPLES = 8;
 
 /**
+ * The manifest key (and cache folder) of a GEBCO file: its file name, without any query.
+ * @param {string} url
+ */
+export const gebcoKey = (url) => `gebco-2026/${new URL(url).pathname.split('/').pop()}`;
+
+/**
+ * Opens the official GEBCO tile, or the fallback copy if the official one is gone (404). The
+ * two were compared cell by cell over the map window (compare-gebco.mjs) and agree.
+ */
+async function openGebco() {
+  const src = await sourceEntry('gebco-2026');
+  const official = await openRemoteTiff(gebcoKey(src.url), src.url, { maxChunk: src.maxRangeBytes });
+  if (official) return official;
+  if (!src.fallback) throw new Error(`GEBCO is missing at ${src.url}`);
+  console.log(`GEBCO is missing at ${src.url}: reading the fallback copy`);
+  const copy = await openRemoteTiff(gebcoKey(src.fallback.url), src.fallback.url, { maxChunk: src.fallback.maxRangeBytes });
+  if (!copy) throw new Error(`GEBCO is missing at ${src.url} and at ${src.fallback.url}`);
+  return copy;
+}
+
+/**
  * @param {import('./resample.mjs').Lattice} L the 2 km lattice
  * @param {import('./grid-sources.mjs').Box} window
  */
 export async function buildHeights(L, window) {
-  const src = await sourceEntry('gebco-2026');
-  const key = 'gebco-2026/GEBCO_2026.tif';
-  const remote = await openRemoteTiff(key, src.url);
-  if (!remote) throw new Error(`GEBCO is missing at ${src.url}`);
-  const { tiff } = remote;
+  const { key, tiff } = await openGebco();
   const image = tiff.images[0]; // full 15 arc-second resolution
   const raster = await readBox(tiff, image, window);
   const avg = areaAverage(L, SAMPLES, bilinear(raster));
@@ -35,7 +52,8 @@ export async function buildHeights(L, window) {
     cols, rows, cell, rowOrder: 'south-first', type: 'int16', unit: 'metres above sea level (sea depth negative)',
     sources: ['gebco-2026'],
     inputs: [await inputRecord(key)],
-    params: { image: 'full resolution (15 arc-seconds)', samplesPerCell: SAMPLES * SAMPLES, interpolation: 'bilinear', window, readPixels: [raster.width, raster.height] },
+    params: { image: 'full resolution (15 arc-seconds)', samplesPerCell: SAMPLES * SAMPLES, interpolation: 'bilinear', window, readPixels: [raster.width, raster.height],
+      readPixelsSha256: raster.values instanceof Int16Array ? int16Hash(raster.values) : null },
     notes: 'Each 2 km cell is the mean of an 8 x 8 lattice of bilinear GEBCO reads spread evenly over the cell (an equal-area average). Lakes hold their surface height, as in GEBCO.',
   });
   return heights;

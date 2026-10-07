@@ -332,7 +332,12 @@ export function decodeBlock(image, reader, raw, cols, rows) {
   else if (image.compression === 5) bytes = lzwDecode(raw, size);
   else if (image.compression === 8 || image.compression === 32946) bytes = inflateSync(raw);
   else throw new Error(`image ${image.index}: unsupported compression ${image.compression}`);
-  // Copy into an aligned buffer of exactly one block (a short last strip or a short stream reads as 0).
+  // A block that decodes short is damaged or was cut off in transfer. Never pad it with zeros:
+  // that would quietly read as "no marsh" or "sea level" and poison the grids.
+  if (bytes.length < size) {
+    throw new Error(`image ${image.index}: a block gave ${bytes.length} bytes, expected ${size} (damaged or truncated data)`);
+  }
+  // Copy into an aligned buffer of exactly one block.
   const own = new Uint8Array(size);
   own.set(bytes.subarray(0, size));
   if (bytesPer > 1 && reader.le !== isLittleEndianMachine()) swapBytes(own, bytesPer);
@@ -390,6 +395,13 @@ function copyBlock(block, bw, cols, rows, bx0, by0, out, x0, y0, w, h) {
  * TIFF's LZW: codes MSB-first, starting at 9 bits, with the "early change" (the code width grows
  * one code before the table fills), 256 = clear, 257 = end. Old-style (pre-1992, LSB-first) LZW
  * starts with a different bit pattern and is refused.
+ *
+ * A corrupt stream throws: a code may only name an entry already in the table, or the one being
+ * defined right now. Without that check, a bad code can make two table entries point at each
+ * other and the decoder would loop forever instead of failing.
+ *
+ * Returns the bytes decoded, at most `expected`: fewer when the stream ends early, so the caller
+ * can tell a short block from a whole one.
  * @param {Uint8Array} src @param {number} expected bytes the block should give
  * @returns {Uint8Array}
  */
@@ -420,8 +432,23 @@ export function lzwDecode(src, expected) {
     op = end;
     return first;
   };
-  /** The first byte of a code's string, by walking to its root. @param {number} code */
-  const firstByte = (code) => { let c = code; while (prefix[c] >= 0) c = prefix[c]; return suffix[c]; };
+  /**
+   * The first byte of a code's string, by walking to its root. Every entry's prefix is an older
+   * entry, so the walk is at most 4096 steps; the bound is only a second guard.
+   * @param {number} code
+   */
+  const firstByte = (code) => {
+    let c = code;
+    for (let steps = 0; prefix[c] >= 0; steps++) {
+      if (steps > 4096) throw new Error('corrupt LZW data (a loop in the code table)');
+      c = prefix[c];
+    }
+    return suffix[c];
+  };
+  /** Adds old's string plus one byte to the table. @param {number} byte */
+  const define = (byte) => {
+    if (next < 4096) { prefix[next] = old; suffix[next] = byte; length[next] = length[old] + 1; next++; }
+  };
 
   while (bitPos + bits <= totalBits && op < expected) {
     // Read `bits` bits, most significant first; at most 12 bits span at most 3 bytes.
@@ -432,21 +459,23 @@ export function lzwDecode(src, expected) {
     if (code === 257) break;
     if (code === 256) { next = 258; bits = 9; old = -1; continue; }
     if (old === -1) {
+      // Straight after a clear only a single byte can come: the table holds nothing else yet.
+      if (code > 255) throw new Error(`corrupt LZW data (code ${code} straight after a clear)`);
       emit(code);
       old = code;
       continue;
     }
     if (code < next) {
-      const first = emit(code);
-      if (next < 4096) { prefix[next] = old; suffix[next] = first; length[next] = length[old] + 1; next++; }
-    } else {
+      define(emit(code));
+    } else if (code === next && next < 4096) {
       // The code being defined right now: old's string plus its own first byte.
-      const first = firstByte(old);
-      if (next < 4096) { prefix[next] = old; suffix[next] = first; length[next] = length[old] + 1; next++; }
-      emit(next - 1);
+      define(firstByte(old));
+      emit(code);
+    } else {
+      throw new Error(`corrupt LZW data (code ${code} is not in the table, which ends at ${next - 1})`);
     }
     old = code;
     if (next + 1 >= (1 << bits) && bits < 12) bits++;
   }
-  return out;
+  return op >= expected ? out : out.subarray(0, op);
 }

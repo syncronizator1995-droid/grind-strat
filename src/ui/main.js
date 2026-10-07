@@ -1,14 +1,15 @@
 // @ts-check
-// The step 1 screen: the date, pause plus five speeds, an empty map, and saves.
+// The game screen: the date, pause plus five speeds, the map of the Baltic lands, and saves.
 // It reads the game state and calls the sim's functions; all rules live in src/sim.
 
-import testMap from '../data/map/test-map.json';
+import credits from '../data/credits.json';
 import { formatDate } from '../sim/calendar.js';
 import { advanceDay, fromSave, newGame, toSave } from '../sim/game.js';
 import { shouldAutosave } from './autosave.js';
 import { daysForFrame, FASTEST_BUDGET_MS, MAX_DAYS_PER_FRAME } from './clock.js';
 import { setUpInstall } from './install.js';
-import { loadMap } from './map/load.js';
+import { showCredits } from './credits.js';
+import { loadMap, loadWater } from './map/load.js';
 import { formatResults, runSpeedTest } from './map/speedtest.js';
 import { createMapView } from './map/view.js';
 import { askToKeepStorage, AUTOSAVE_KEY, readText, SAVE_KEY, UNREADABLE_KEY, writeText } from './storage.js';
@@ -33,7 +34,9 @@ const saveButton = $('[data-act="save"]', HTMLButtonElement);
 const loadButton = $('[data-act="load"]', HTMLButtonElement);
 const newButton = $('[data-act="new"]', HTMLButtonElement);
 const installButton = $('[data-act="install"]', HTMLButtonElement);
-const mapNote = $('#mapNote', HTMLElement);
+const creditLine = $('#mapCreditText', HTMLElement);
+const creditsSheet = $('#creditsSheet', HTMLElement);
+const creditsBody = $('#creditsBody', HTMLElement);
 const speedButton = $('[data-act="speedtest"]', HTMLButtonElement);
 const speedSheet = $('#speedSheet', HTMLElement);
 const speedResults = $('#speedResults', HTMLElement);
@@ -209,7 +212,19 @@ let mapView = null;
 /** @type {import('./map/speedtest.js').StartupTimes} */
 const startup = {
   mapOnScreenMs: NaN, scriptStartMs: performance.now(), base64Ms: NaN, inflateMs: NaN, decodeMs: NaN, paintMs: NaN, pathMs: NaN,
+  waterMs: NaN, waterOnScreenMs: NaN,
 };
+const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
+
+/**
+ * A data block the build put into the page as JSON (tools/build.mjs).
+ * @param {string} kind
+ */
+function readBlock(kind) {
+  const el = document.getElementById(`gs-${kind}`);
+  if (!el?.textContent) throw new Error(`the game file is missing its ${kind} data`);
+  return JSON.parse(el.textContent);
+}
 
 /** Shown for the moment before the map is unpacked. */
 function drawLoading() {
@@ -227,10 +242,16 @@ function drawLoading() {
   ctx.fillText('Unpacking the map…', canvas.clientWidth / 2, canvas.clientHeight / 2);
 }
 
+/**
+ * The land first, then the rivers and lakes just after the first picture is on screen: the
+ * player sees the map sooner, and the water and its names follow a moment later.
+ */
 async function showMap() {
-  const { map: data, times } = await loadMap(testMap);
+  const { map: data, times } = await loadMap(readBlock('base'), readBlock('terrain'));
   Object.assign(startup, times);
   mapView = createMapView(canvas, data);
+  mapView.setDark(darkMode.matches);
+  keepNamesClear();
   startup.paintMs = mapView.timings.paintMs;
   mapView.resize();
   mapView.prepare();
@@ -238,16 +259,24 @@ async function showMap() {
   mapView.render(true);
   // performance.now() counts from the moment the page started opening.
   startup.mapOnScreenMs = performance.now();
-  if (data.invented) {
-    mapNote.textContent = 'Test map: provinces, points and terrain are made up. Coast and rivers are real.';
-    mapNote.hidden = false;
-  }
+  document.documentElement.dataset.mapOnScreenMs = startup.mapOnScreenMs.toFixed(1);
+  await new Promise((done) => requestAnimationFrame(() => setTimeout(done, 0)));
+  const t0 = performance.now();
+  const waterTimes = { base64Ms: 0, inflateMs: 0, decodeMs: 0 };
+  mapView.setWater(await loadWater(readBlock('water'), waterTimes));
+  mapView.render(true);
+  startup.waterMs = performance.now() - t0;
+  startup.waterOnScreenMs = performance.now();
+  document.documentElement.dataset.waterOnScreenMs = startup.waterOnScreenMs.toFixed(1);
+  // For test/startup.mjs: where the start-up time goes.
+  document.documentElement.dataset.startup = JSON.stringify(startup, (_, v) => (typeof v === 'number' ? Math.round(v) : v));
 }
 
 async function speedTest() {
   if (!mapView) return;
   speedButton.disabled = true;
   speedSheet.hidden = true;
+  creditsSheet.hidden = true;
   tell('Speed test running: keep your fingers off the screen for about 12 seconds.');
   try {
     const result = await runSpeedTest(mapView);
@@ -303,10 +332,35 @@ window.addEventListener('pagehide', () => {
 });
 
 speedButton.addEventListener('click', speedTest);
+creditLine.textContent = credits.mapLine;
+for (const el of document.querySelectorAll('[data-act="credits"]')) {
+  el.addEventListener('click', () => {
+    speedSheet.hidden = true;
+    showCredits(creditsBody, credits);
+    creditsSheet.hidden = false;
+    creditsBody.scrollTop = 0;
+  });
+}
+$('[data-act="close-credits"]', HTMLButtonElement).addEventListener('click', () => { creditsSheet.hidden = true; });
+darkMode.addEventListener('change', () => mapView?.setDark(darkMode.matches));
 $('[data-act="rerun-speed"]', HTMLButtonElement).addEventListener('click', speedTest);
 $('[data-act="close-speed"]', HTMLButtonElement).addEventListener('click', () => { speedSheet.hidden = true; });
 $('[data-act="copy-speed"]', HTMLButtonElement).addEventListener('click', copyResults);
-new ResizeObserver(() => (mapView ? mapView.resize() : drawLoading())).observe(canvas);
+/** Tells the map where buttons sit over it, so no river or lake name hides under them. */
+function keepNamesClear() {
+  const map = canvas.getBoundingClientRect();
+  const rects = [...document.querySelectorAll('.map-tools, #mapCreditText')].map((el) => {
+    const r = el.getBoundingClientRect();
+    return [r.left - map.left, r.top - map.top, r.right - map.left, r.bottom - map.top];
+  });
+  mapView?.setKeepOut(rects);
+}
+
+new ResizeObserver(() => {
+  keepNamesClear();
+  if (mapView) mapView.resize();
+  else drawLoading();
+}).observe(canvas);
 drawLoading();
 showMap().catch((err) => tell(`The map could not be shown: ${err instanceof Error ? err.message : err}`, true));
 

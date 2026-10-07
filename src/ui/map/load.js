@@ -1,19 +1,16 @@
 // @ts-check
-// Turns the packed map data inside the game file into ready-to-draw shapes and grids.
-// All layers travel as one compressed bundle: one decompression at start-up instead of many.
+// Turns the data blocks inside the game page into ready-to-draw shapes and grids. Each block is
+// one compressed bundle of layers (tools/map/block.mjs writes them; the build puts each into the
+// page as <script type="application/json" id="gs-<kind>">).
 
-import { decodePoints, decodeShapes, fromBase64, inflate, unbundleBlocks } from './codec.js';
+import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleBlocks } from './codec.js';
 
 /**
- * @typedef {object} PackedMap
- * @property {string} kind
- * @property {string} [invented] what is made up, shown to the player
- * @property {{ width: number, height: number }} meta
- * @property {{ name: string, weight: number }[]} riverInfo
- * @property {number[]} seen
- * @property {{ cols: number, rows: number, cell: number }} terrain
- * @property {{ cols: number, rows: number, cell: number }} height
- * @property {string} bundle base64 of the deflated bundle of all layers
+ * @typedef {object} PackedBlock
+ * @property {string} kind @property {number} format @property {string} licence @property {string} notice
+ * @property {string[]} sources @property {boolean} [interim]
+ * @property {Record<string, any>} meta
+ * @property {string} bundle base64 of the deflated bundle of the block's layers
  */
 
 /**
@@ -23,17 +20,45 @@ import { decodePoints, decodeShapes, fromBase64, inflate, unbundleBlocks } from 
  */
 
 /**
+ * @typedef {object} HeightGrid
+ * @property {number} cols @property {number} rows @property {number} cell
+ * @property {Int16Array} data metres, sea depth negative, row 0 at the south
+ */
+
+/**
+ * @typedef {object} RiverInfo
+ * @property {string} name the name the map shows: the local one where the data has it, otherwise
+ *   the English one ('' for none)
+ * @property {Record<string, string>} names the other names, by language code; Natural Earth's
+ *   also "alt" (its other names, "|" between them) and "ne" (its main name, when another is shown)
+ * @property {string | null} wikidata @property {number} lengthKm
+ */
+
+/**
+ * @typedef {object} LakeInfo
+ * @property {string} name @property {Record<string, string>} names @property {string | null} wikidata
+ * @property {number} areaKm2 @property {[number, number]} at where its name goes
+ */
+
+/**
+ * @typedef {object} WaterData
+ * @property {Int32Array[]} rivers @property {Uint8Array} riverLevels one per point
+ * @property {Uint32Array} riverOf which river each line belongs to @property {RiverInfo[]} riverInfo
+ * @property {Int32Array[]} lakes rings @property {Uint8Array} lakeLevels
+ * @property {Uint32Array} lakeOf which lake each ring belongs to @property {LakeInfo[]} lakeInfo
+ */
+
+/**
  * @typedef {object} MapData
- * @property {string} kind
- * @property {string} invented
  * @property {number} width @property {number} height game units
- * @property {Int32Array[]} land @property {Int32Array[]} coast @property {Int32Array[]} lakes
- * @property {Int32Array[]} rivers
- * @property {{ name: string, weight: number }[]} riverInfo
+ * @property {Int32Array[]} land rings clipped to the map; their outline is the coast
+ * @property {Uint8Array} landLevels the zoom level each land point first shows at (one per point)
+ * @property {HeightGrid} heights
+ * @property {Grid} terrain
+ * @property {WaterData | null} water null until the water block is unpacked
  * @property {Int32Array[]} provinces @property {Int32Array[]} borders @property {Uint8Array} borderKinds
  * @property {Int32Array} points @property {Uint8Array} pointKinds
- * @property {number[]} seen
- * @property {Grid} terrain @property {Grid} heights land height, 0 to 255
+ * @property {number[]} seen provinces the player has seen (fog of war)
  */
 
 /**
@@ -41,42 +66,96 @@ import { decodePoints, decodeShapes, fromBase64, inflate, unbundleBlocks } from 
  * @property {number} base64Ms @property {number} inflateMs @property {number} decodeMs
  */
 
+/** A start-up timer that adds up across blocks. @returns {LoadTimes} */
+export const noTimes = () => ({ base64Ms: 0, inflateMs: 0, decodeMs: 0 });
+
 /**
- * @param {PackedMap} packed
- * @returns {Promise<{ map: MapData, times: LoadTimes }>}
+ * Inflates data blocks' bundles into their named layers. The blocks are inflated side by side:
+ * the browser decompresses streams in the background, so two take little longer than one.
+ * @param {PackedBlock[]} blocks
+ * @param {LoadTimes} times added to
  */
-export async function loadMap(packed) {
+async function unpackBlocks(blocks, times) {
   const t0 = performance.now();
-  const compressed = fromBase64(packed.bundle);
+  const compressed = blocks.map((block) => {
+    if (block.format !== 1) throw new Error(`the ${block.kind} data is in a format this game can't read (${block.format})`);
+    return fromBase64(block.bundle);
+  });
   const t1 = performance.now();
-  const b = unbundleBlocks(await inflate(compressed));
-  const t2 = performance.now();
+  const inflated = await Promise.all(compressed.map((bytes) => inflate(bytes)));
+  times.base64Ms += t1 - t0;
+  times.inflateMs += performance.now() - t1;
+  return blocks.map((block, k) => layerReader(block, unbundleBlocks(inflated[k])));
+}
+
+/**
+ * @param {PackedBlock} block @param {Record<string, Uint8Array>} layers
+ */
+function layerReader(block, layers) {
   /** @param {string} name */
-  const block = (name) => {
-    const bytes = b[name];
-    if (!bytes) throw new Error(`the map is missing its ${name} layer`);
+  return (name) => {
+    const bytes = layers[name];
+    if (!bytes) throw new Error(`the ${block.kind} data is missing its ${name} layer`);
     return bytes;
   };
+}
+
+/**
+ * Unpacks the land, heights and terrain: everything the first picture of the map needs.
+ * Provinces and points return in step 2b; until then the map has none.
+ * @param {PackedBlock} base @param {PackedBlock} terrain
+ * @returns {Promise<{ map: MapData, times: LoadTimes }>}
+ */
+export async function loadMap(base, terrain) {
+  const times = noTimes();
+  const [b, t] = await unpackBlocks([base, terrain], times);
+  const t0 = performance.now();
+  const heights = decodeGrid16(b('heights'));
+  const tg = terrain.meta.terrain;
   /** @type {MapData} */
   const map = {
-    kind: packed.kind,
-    invented: packed.invented ?? '',
-    width: packed.meta.width,
-    height: packed.meta.height,
-    land: decodeShapes(block('land')),
-    coast: decodeShapes(block('coast')),
-    lakes: decodeShapes(block('lakes')),
-    rivers: decodeShapes(block('rivers')),
-    riverInfo: packed.riverInfo,
-    provinces: decodeShapes(block('provinces')),
-    borders: decodeShapes(block('borders')),
-    borderKinds: block('borderKinds'),
-    points: decodePoints(block('points')),
-    pointKinds: block('pointKinds'),
-    seen: packed.seen,
-    terrain: { ...packed.terrain, data: block('terrain') },
-    heights: { ...packed.height, data: block('height') },
+    width: base.meta.width,
+    height: base.meta.height,
+    land: decodeShapes(b('land')),
+    landLevels: b('landLevels'),
+    heights: { ...heights, cell: base.meta.heights.cell },
+    terrain: { cols: tg.cols, rows: tg.rows, cell: tg.cell, data: t('terrain') },
+    water: null,
+    provinces: [],
+    borders: [],
+    borderKinds: new Uint8Array(0),
+    points: new Int32Array(0),
+    pointKinds: new Uint8Array(0),
+    seen: [],
   };
-  const t3 = performance.now();
-  return { map, times: { base64Ms: t1 - t0, inflateMs: t2 - t1, decodeMs: t3 - t2 } };
+  if (map.terrain.data.length !== tg.cols * tg.rows) throw new Error('the terrain data is the wrong size');
+  times.decodeMs += performance.now() - t0;
+  return { map, times };
+}
+
+/**
+ * Unpacks the rivers and lakes.
+ * @param {PackedBlock & { riverInfo: RiverInfo[], lakeInfo: LakeInfo[] }} block
+ * @param {LoadTimes} times added to
+ * @returns {Promise<WaterData>}
+ */
+export async function loadWater(block, times) {
+  const [w] = await unpackBlocks([block], times);
+  const t0 = performance.now();
+  /** @type {WaterData} */
+  const water = {
+    rivers: decodeShapes(w('rivers')),
+    riverLevels: w('riverLevels'),
+    riverOf: decodeUints(w('riverOf')),
+    riverInfo: block.riverInfo,
+    lakes: decodeShapes(w('lakes')),
+    lakeLevels: w('lakeLevels'),
+    lakeOf: decodeUints(w('lakeOf')),
+    lakeInfo: block.lakeInfo,
+  };
+  if (water.riverOf.length !== water.rivers.length || water.lakeOf.length !== water.lakes.length) {
+    throw new Error('the water data does not add up');
+  }
+  times.decodeMs += performance.now() - t0;
+  return water;
 }

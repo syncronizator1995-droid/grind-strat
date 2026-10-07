@@ -117,7 +117,57 @@ describe('TIFF reader', () => {
   });
 });
 
+describe('damaged data', () => {
+  /** The test image and a source that cuts every read short once `cut` is set. */
+  async function cutSource(/** @type {1 | 5 | 8} */ compression) {
+    const values = picture(32, 32, 8, false);
+    const file = writeTiff({ images: [{ width: 32, height: 32, values, bits: 8, tile: [16, 16], compression }] });
+    const inner = memorySource(file);
+    const state = { cut: false };
+    const source = { read: async (/** @type {number} */ o, /** @type {number} */ n) => (await inner.read(o, n)).subarray(0, state.cut ? Math.ceil(n / 2) : n) };
+    return { tiff: await openTiff(source), state };
+  }
+
+  for (const compression of /** @type {const} */ ([1, 5, 8])) {
+    it(`throws on a block that comes in cut short (compression ${compression}), never reads it as zeros`, async () => {
+      const { tiff, state } = await cutSource(compression);
+      await tiff.readWindow(tiff.images[0], 0, 0, 32, 32); // whole: fine, and loads the block tables
+      state.cut = true;
+      await assert.rejects(tiff.readWindow(tiff.images[0], 0, 0, 32, 32), /expected 256|unexpected end/);
+    });
+  }
+});
+
+/** Packs 9-bit LZW codes, most significant bit first. @param {number[]} codes */
+function packCodes9(codes) {
+  const bytes = new Uint8Array(Math.ceil((codes.length * 9) / 8));
+  codes.forEach((code, k) => {
+    for (let b = 0; b < 9; b++) {
+      if ((code >> (8 - b)) & 1) { const bit = k * 9 + b; bytes[bit >> 3] |= 0x80 >> (bit & 7); }
+    }
+  });
+  return bytes;
+}
+
 describe('LZW', () => {
+  it('throws on a corrupt stream instead of looping forever', () => {
+    // Codes 260 and 259 are not in the table yet: a careless decoder links them to each other
+    // and then walks that loop for ever.
+    assert.throws(() => lzwDecode(packCodes9([256, 65, 260, 259, 260, 65, 260, 263, 257]), 1024), /corrupt LZW/);
+    // Straight after a clear only a single byte may come.
+    assert.throws(() => lzwDecode(packCodes9([256, 300, 257]), 16), /corrupt LZW/);
+  });
+
+  it('reports a stream that ends early by giving fewer bytes', () => {
+    const data = new Uint8Array(400).map((_, i) => (i * 7) & 0xff);
+    const whole = lzwEncode(data);
+    assert.equal(lzwDecode(whole, data.length).length, data.length);
+    const short = lzwDecode(whole.subarray(0, whole.length >> 1), data.length);
+    assert.ok(short.length < data.length);
+    assert.deepEqual(short, data.subarray(0, short.length));
+  });
+
+
   it('decodes long input that fills the code table and clears it', () => {
     // Pseudo-random bytes (a fixed linear congruential sequence) fill the table fast.
     const data = new Uint8Array(50000);

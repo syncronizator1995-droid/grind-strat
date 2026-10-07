@@ -3,13 +3,20 @@
 // code, styles, the font and any data. Next to it go the files that let the website version
 // install like an app: index.html (the same game), manifest.webmanifest, sw.js and the icons.
 //
-//   node tools/build.mjs          minified release build into dist/
-//   node tools/build.mjs --dev    readable code, for debugging
+//   node tools/build.mjs                  minified release build into dist/
+//   node tools/build.mjs --dev            readable code, for debugging
 //   node tools/build.mjs --out <folder>
+//   node tools/build.mjs --allow-interim  a local preview with stand-in data (never in CI)
 //
 // It stops with an error if the script would break the page (`</script`) or if the page would
 // load anything over the network. Only the install files listed in src/ui/install.js may be
 // referenced, and only by the website version (install.js skips them when opened as a file).
+//
+// The map data blocks (tools/map/block.mjs) go into the page as JSON, each in its own
+// <script type="application/json" id="gs-<kind>">, not into the code: the browser never parses
+// them as code, so the game starts faster. The licence guard stops the build if a block names a
+// source whose licence was not read on its owner's own host, if a block is an interim stand-in,
+// or if a block mixes licences that must stay apart.
 
 import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -17,6 +24,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as esbuild from 'esbuild';
 import { INSTALL_FILES } from '../src/ui/install.js';
+import { BLOCK_FILES, shippedBlockFiles } from './map/block.mjs';
+import { rawSources } from './map/fetch.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const UI = join(ROOT, 'src', 'ui');
@@ -102,6 +111,97 @@ export function findNetworkUses(html, js) {
 }
 
 /**
+ * @typedef {{ kind: string, text: string }} BlockText a data block as it is on disk
+ * @typedef {{ id: string, collection: string, licenceStatus: string, credit: { licenceName: string } }} SourceRecord
+ */
+
+/**
+ * The licence guard: problems that stop a release build.
+ * @param {BlockText[]} blocks
+ * @param {SourceRecord[]} sources tools/map/sources.json
+ * @param {{ allowInterim?: boolean }} [options]
+ * @returns {string[]}
+ */
+export function licenceProblems(blocks, sources, { allowInterim = false } = {}) {
+  /** @type {string[]} */
+  const problems = [];
+  const byId = new Map(sources.map((s) => [s.id, s]));
+  const kinds = new Set();
+  for (const { kind, text } of blocks) {
+    /** @type {any} */
+    let block;
+    try {
+      block = JSON.parse(text);
+    } catch {
+      problems.push(`the ${kind} block is not valid JSON`);
+      continue;
+    }
+    const name = `the ${kind} block`;
+    if (block.kind !== kind) problems.push(`${name} says it is "${block.kind}"`);
+    if (kinds.has(kind)) problems.push(`two blocks are "${kind}"`);
+    kinds.add(kind);
+    if (!Array.isArray(block.sources) || !block.sources.length) problems.push(`${name} names no sources`);
+    if (typeof block.licence !== 'string' || !block.licence) problems.push(`${name} names no licence`);
+    if (typeof block.notice !== 'string' || !block.notice) problems.push(`${name} has no notice`);
+    if (block.interim && !allowInterim) {
+      problems.push(`${name} is interim (a stand-in, not the real data): pack the real data with npm run map:pack, or preview locally with --allow-interim`);
+    }
+    for (const id of block.sources ?? []) {
+      const s = byId.get(id);
+      if (!s) problems.push(`${name} names the source "${id}", which is not in tools/map/sources.json`);
+      else if (s.licenceStatus !== 'read') problems.push(`${name} uses "${id}", whose licence has not been read on its owner's own host (licenceStatus "${s.licenceStatus}")`);
+    }
+    const used = (block.sources ?? []).map((/** @type {string} */ id) => byId.get(id)).filter(Boolean);
+    // OpenStreetMap data (ODbL) never shares a block with anything else, and only sits in an
+    // ODbL block. Share-alike blocks must say so. Public-domain blocks hold only public domain.
+    const osm = used.filter((/** @type {SourceRecord} */ s) => s.collection === 'osm');
+    if (osm.length && (block.licence !== 'ODbL-1.0' || osm.length !== used.length)) problems.push(`${name} mixes OpenStreetMap data with other data or licences`);
+    if (block.licence === 'public-domain' && used.some((/** @type {SourceRecord} */ s) => !/^public domain/i.test(s.credit.licenceName))) {
+      problems.push(`${name} says public domain but uses data under another licence`);
+    }
+    if (used.some((/** @type {SourceRecord} */ s) => /BY-SA/i.test(s.credit.licenceName)) && block.licence !== 'CC-BY-SA-4.0') {
+      problems.push(`${name} holds share-alike data but is not under CC BY-SA 4.0`);
+    }
+  }
+  return problems;
+}
+
+/**
+ * Web addresses in the data blocks. The notices write addresses without a scheme
+ * (openstreetmap.org/copyright), and packed data never contains a dot, so anything that looks
+ * like an address is a mistake.
+ * @param {BlockText[]} blocks
+ */
+export function findAddressesInData(blocks) {
+  /** @type {string[]} */
+  const problems = [];
+  for (const { kind, text } of blocks) {
+    for (const m of text.matchAll(/(?:https?:)?\/\/[\w-]+\.[\w.-]+[^"\s]*/gi)) problems.push(`the ${kind} block contains the address ${m[0].slice(0, 80)}`);
+  }
+  return problems;
+}
+
+/**
+ * The data blocks as page elements, in a fixed order. Every "<" is written as \u003c, so no text
+ * inside can end the element early.
+ * @param {BlockText[]} blocks
+ */
+export function dataElements(blocks) {
+  return blocks.map(({ kind, text }) => `<script type="application/json" id="gs-${kind}">${text.trim().replace(/</g, '\\u003c')}</script>`).join('\n');
+}
+
+/**
+ * The blocks the game ships, read from disk, in build order.
+ * @returns {Promise<BlockText[]>}
+ */
+export async function shippedBlocks() {
+  const files = shippedBlockFiles();
+  const missing = Object.keys(BLOCK_FILES).filter((k) => !files.some((f) => f.kind === k));
+  if (missing.length) throw new Error(`build stopped: no ${missing.join(', ')} data block: run npm run map:pack`);
+  return Promise.all(files.map(async ({ kind, path }) => ({ kind, text: await readFile(join(ROOT, path), 'utf8') })));
+}
+
+/**
  * Replaces a {{NAME}} placeholder. A function replacement keeps "$" in the code from being read
  * as a special replacement pattern.
  * @param {string} text
@@ -115,10 +215,15 @@ function fill(text, name, value) {
 }
 
 /**
- * @param {{ dev?: boolean, out?: string, entry?: string }} [options] `entry` is for tests
- * @returns {Promise<{ file: string, bytes: number, build: string }>}
+ * @param {{ dev?: boolean, out?: string, entry?: string, allowInterim?: boolean, blocks?: BlockText[],
+ *   sources?: SourceRecord[] }} [options] `entry`, `blocks` and `sources` are for tests
+ * @returns {Promise<{ file: string, bytes: number, build: string, blocks: { kind: string, bytes: number, interim: boolean }[] }>}
  */
-export async function build({ dev = false, out = join(ROOT, 'dist'), entry = join(UI, 'main.js') } = {}) {
+export async function build({ dev = false, out = join(ROOT, 'dist'), entry = join(UI, 'main.js'), allowInterim = false, blocks, sources } = {}) {
+  const data = blocks ?? await shippedBlocks();
+  const guard = licenceProblems(data, sources ?? await rawSources(), { allowInterim });
+  if (guard.length) throw new Error(`build stopped by the licence guard:\n- ${guard.join('\n- ')}`);
+
   const bundle = await esbuild.build({
     entryPoints: [entry],
     bundle: true,
@@ -139,9 +244,11 @@ export async function build({ dev = false, out = join(ROOT, 'dist'), entry = joi
   let html = await readFile(join(UI, 'index.html'), 'utf8');
   html = fill(html, 'ICON', `data:image/png;base64,${icon}`);
   html = fill(html, 'CSS', css);
+  const elements = dataElements(data);
+  html = fill(html, 'DATA', elements);
   html = fill(html, 'SCRIPT', js);
 
-  const problems = [...findScriptBreakers(js), ...findNetworkUses(html, js)];
+  const problems = [...findScriptBreakers(js), ...findNetworkUses(html.replace(elements, ''), js), ...findAddressesInData(data)];
   if (problems.length) throw new Error(`build stopped:\n- ${problems.join('\n- ')}`);
 
   // The build id names the offline cache, so it must change whenever ANY published file changes:
@@ -163,15 +270,21 @@ export async function build({ dev = false, out = join(ROOT, 'dist'), entry = joi
   await writeFile(join(out, 'sw.js'), sw);
   await writeFile(join(out, '.nojekyll'), '');
   for (const name of ICONS) await copyFile(join(UI, 'icons', name), join(out, name));
-  return { file, bytes: Buffer.byteLength(html), build: buildId };
+  return {
+    file,
+    bytes: Buffer.byteLength(html),
+    build: buildId,
+    blocks: data.map(({ kind, text }) => ({ kind, bytes: Buffer.byteLength(text), interim: Boolean(JSON.parse(text).interim) })),
+  };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2);
   const outAt = args.indexOf('--out');
   try {
-    const result = await build({ dev: args.includes('--dev'), out: outAt >= 0 ? resolve(args[outAt + 1]) : undefined });
+    const result = await build({ dev: args.includes('--dev'), out: outAt >= 0 ? resolve(args[outAt + 1]) : undefined, allowInterim: args.includes('--allow-interim') });
     console.log(`built ${result.file} (${(result.bytes / 1024).toFixed(1)} KB, build ${result.build})`);
+    for (const b of result.blocks) console.log(`  data block ${b.kind}: ${(b.bytes / 1024).toFixed(1)} KB${b.interim ? ' (INTERIM, preview only)' : ''}`);
   } catch (err) {
     console.error(err instanceof Error ? err.message : err);
     process.exit(1);

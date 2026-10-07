@@ -360,9 +360,8 @@ and holdings, planned with him after 2a. The approved 2a plan is in docs/HANDOFF
   own licence note, because ODbL and CC BY-SA can't be mixed in one file.
 - `.gitattributes` keeps map files byte-identical on Windows. Tests check the committed files
   against their recorded fingerprints, and rebuild a small sample to prove the same bytes come out.
-- Tools are plain Node scripts written for the project (projection, GeoJSON reader, GEBCO
-  text-grid reader, packers). No new dev dependencies. Rivers come from data, never traced by
-  computer.
+- Tools are plain Node scripts written for the project (projection, GeoJSON reader, TIFF reader,
+  resamplers, packers). No new dev dependencies. Rivers come from data, never traced by computer.
 
 **Formats:**
 - Lines (coasts, rivers, lakes, later province borders): whole-number coordinates, shared borders
@@ -418,6 +417,41 @@ names by era. A proposed shape:
 - A placeholder fog-of-war layer is in the speed test from the start, so its cost is known.
 - Speed targets on his phone: 95% of frames under 16.7 ms while panning, a full redraw under
   50 ms, first map in under 3 s from the saved copy.
+
+**As built in M2 (7 October 2026):**
+- **Raw data** goes in `data/raw/` (gitignored), fetched by range requests with retries and a
+  cache. `data/raw/manifest.json` records every file's link, size and fingerprint. Raw GLWD files
+  are never committed: their authors ask that the data not be put online again in its original
+  form.
+- **Derived grids** go in `data/raw/derived/` (gitignored), each with a `.json` sidecar of inputs and
+  parameters: heights (2 km, from GEBCO's official tile), land cover (1 km, ESA WorldCover), marsh
+  (1 km, GLWD v2 plus WorldCover's wetland class), pollen shares (1°, SpatioCompo), and the 1219
+  terrain classes (1 km). The tools are plain Node: a small TIFF and BigTIFF reader, area-averaging
+  resamplers, and a PNG writer for preview pictures.
+- **The 1219 terrain rule.** The pollen forest and conifer shares are smoothed between 1° cell
+  centres. Marsh comes first (cells at 50% marsh or more), then dunes and heath; both come out of
+  the pollen "open" share. Forest is then chosen by a score: today's tree cover, height, roughness,
+  distance from rivers, wetness and a fixed hash. Score thresholds are smoothed so that each 1°
+  cell meets its pollen share within 3 points with no visible steps. Conifer versus broadleaf
+  follows the same method. It is a rule, not evidence, and the game says so.
+- **Data blocks, split by licence.** The packer (`npm run map:pack`) writes committed JSON blocks,
+  each `{kind, format, licence, notice, sources, meta, bundle}`. The bundle is the M1 packed format,
+  deflated and base64.
+  - `src/data/map/base.json`: public domain. Natural Earth land and coast, GEBCO heights.
+  - `src/data/by-sa/terrain-1219.json`: CC BY-SA 4.0, because of the pollen maps. Its inputs are CC
+    BY and public domain, never OpenStreetMap: ODbL and CC BY-SA cannot be mixed in one file.
+  - The water block: Natural Earth for M2, public domain. Then the OpenStreetMap block
+    (`src/data/odbl/`, ODbL 1.0) in the next milestone.
+
+  Lakes are never written into the terrain grid; the game draws them from the water block at load.
+- **The build** inlines each block as its own `<script type="application/json" id="gs-<kind>">`
+  element. The browser doesn't parse these as code, which keeps start-up fast.
+- **The licence guard.** The build fails if a block names a source whose `licenceStatus` in
+  `tools/map/sources.json` is not 'read', or if a block is an interim stand-in. The only way round
+  it is `--allow-interim`, for local previews, never in CI.
+- **Credits.** `tools/map/sources.json` holds every source's licence quote, where it was read, its
+  credit and its changes. From it, `tools/map/attribution.mjs` generates `ATTRIBUTION.md` and
+  `src/data/credits.json` (the Credits screen). Tests fail if either is stale.
 
 **Provinces, borders and holdings (2b):**
 - **Per province:** id, names by era, other-language names, outline, centre, terrain (plains,

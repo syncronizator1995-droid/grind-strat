@@ -22,7 +22,7 @@ import { inputRecord } from './grid-sources.mjs';
 import { cornerLattice, DERIVED, GRID_1KM, GRID_2KM, mapWindow } from './resample.mjs';
 
 /** Degrees of margin round the map rectangle, so edge cells have data on every side. */
-const MARGIN = 0.3;
+export const MARGIN = 0.3;
 
 /**
  * spatiocompo-tw4.json: every 1 degree cell of the pollen map that touches the window, as it is.
