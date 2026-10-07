@@ -1,7 +1,8 @@
 // @ts-check
-// Builds the OpenStreetMap rivers and lakes of the 1219 map from the answers that
-// tools/map/fetch-osm.mjs cached in data/raw/osm/, and writes data/raw/derived/water-osm.json
-// (git ignores it; a later step simplifies and packs it into the game under src/data/odbl/).
+// Builds the OpenStreetMap rivers and lakes of the 1219 map from Overture's copy of OSM (the rows
+// tools/map/fetch-overture.mjs extracted into data/raw/overture/) and the OSM river relations
+// cached in data/raw/osm/, and writes data/raw/derived/water-osm.json (git ignores it), which
+// tools/map/pack-water.mjs simplifies and packs into src/data/odbl/water.json.
 // The output is OSM-only on purpose (the OSMF rule on mixing sources in one layer): nothing from
 // Natural Earth or any other source goes into it. Natural Earth land is only drawn under the
 // preview pictures, for orientation.
@@ -9,66 +10,70 @@
 //   node tools/map/build-water.mjs [preview-dir]
 //
 // Output, in whole game units (100 m) projected with MAP.toUnits and clipped to the map:
-//   { source: 'osm', licence: 'ODbL-1.0', osmBase, window, thresholds,
-//     rivers: [{ id, name, names, wikidata, lengthKm, lines: [[x0, y0, x1, y1, ...], ...] }],
+//   { source: 'osm', licence: 'ODbL-1.0', osmBase, overture, thresholds,
+//     rivers: [{ id, name, names, wikidata, lengthKm, lines: [[x0, y0, ...], ...], lineNames }],
 //     lakes:  [{ id, name, names, wikidata, areaKm2, rings: [[...], ...] }],
 //     dropped: [{ id, name, wikidata, why }], checks: {...} }
-// Lake rings: outer rings run counter-clockwise and holes (islands) clockwise, with y growing
-// north; each outer ring comes before its own holes; no ring repeats its first point at the end.
-// Nothing is simplified here; only points that repeat after rounding to 100 m are dropped.
+// lineNames[i] is the local name of lines[i] (OSM's name where that stretch lies), '' where the
+// stretch has none of its own. Lake rings: outer rings counter-clockwise and holes clockwise
+// (y grows north), each outer ring before its own holes, the first point not repeated.
 
-import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readRaw } from './fetch.mjs';
-import { elementsOf, RUN_FILE } from './fetch-osm.mjs';
 import { clipLine, clipRing, featuresIn, fillRings, openRing, project } from './geo.mjs';
+import { lakeCandidate, overtureRun, riverRelations, riverWay, waterRows } from './overture-water.mjs';
 import { encodePng } from './png.mjs';
 import { MAP } from './projection.mjs';
 import { DERIVED } from './resample.mjs';
 import {
-  classifyLake, dropRepeats, KM2_PER_UNIT2, KM_PER_UNIT, lengthInside, lineLength, namesOf, orient, reservoirKeywordHits,
-  reviewIndex, ringsArea, ringsFromMembers, stitch, THRESHOLDS, groupRivers, bboxAreaKm2, isReservoirTagged,
+  classifyLake, dropRepeats, groupRivers, KM2_PER_UNIT2, KM_PER_UNIT, lengthInside, lineLength, localNames, namesOf, orient,
+  pointInRings, reviewIndex, riverMainName, ringsArea, stitch, THRESHOLDS,
 } from './water-rules.mjs';
 
-const REVIEW_FILE = fileURLToPath(new URL('./reservoirs-1219.json', import.meta.url));
+const REVIEW_FILE = fileURLToPath(new URL('./osm-water-1219.json', import.meta.url));
 const OUT = join(DERIVED, 'water-osm.json');
-const CANDIDATES = join(DERIVED, 'reservoir-candidates.json');
 const DEFAULT_PREVIEWS = join(DERIVED, 'previews');
 
 /** @typedef {number[]} Flat */
 /** @typedef {Record<string, string>} Tags */
+/** @typedef {import('./water-rules.mjs').RiverWay} RiverWay */
 
 /**
  * Rivers that must be on the map, with the names they may carry in OSM (local names first).
- * Matching is on "name" and every name:xx, ignoring case.
+ * Matching is on the river's name, its line names and its name:xx, ignoring case.
+ * @type {[string, string[]][]}
  */
-/** @type {[string, string[]][]} */
 export const MUST_HAVE_RIVERS = [
-  ['Nemunas / Neman', ['Nemunas', 'Неман', 'Нёман', 'Njemen', 'Memel', 'Neman', 'Niemen']],
-  ['Neris / Viliya', ['Neris', 'Вилия', 'Вілія', 'Wilia', 'Viliya']],
+  ['Nemunas', ['Nemunas', 'Нёман', 'Неман', 'Niemen', 'Memel']], ['Neris', ['Neris', 'Вілія', 'Вилия']],
   ['Nevėžis', ['Nevėžis']], ['Dubysa', ['Dubysa']], ['Šešupė', ['Šešupė', 'Шешупе']], ['Minija', ['Minija']],
-  ['Jūra', ['Jūra']], ['Merkys', ['Merkys']], ['Šventoji (Neris)', ['Šventoji']], ['Mūša', ['Mūša']],
-  ['Nemunėlis', ['Nemunėlis', 'Mēmele']], ['Lielupe', ['Lielupe']], ['Venta', ['Venta', 'Ventа']],
-  ['Daugava / Western Dvina', ['Daugava', 'Западная Двина', 'Заходняя Дзвіна', 'Western Dvina']],
-  ['Gauja', ['Gauja', 'Koiva']], ['Aiviekste', ['Aiviekste']], ['Salaca', ['Salaca', 'Salatsi']],
-  ['Emajõgi', ['Emajõgi']], ['Pärnu', ['Pärnu jõgi', 'Pärnu']], ['Narva', ['Narva', 'Narva jõgi', 'Нарва']],
-  ['Velikaya', ['Великая', 'Velikaya']], ['Lovat', ['Ловать', 'Lovat']], ['Volkhov', ['Волхов', 'Volkhov']],
-  ['Luga', ['Луга', 'Luga']], ['Neva', ['Нева', 'Neva']], ['Pregolya / Pregel', ['Преголя', 'Pregola', 'Pregel', 'Pregolya']],
-  ['Łyna / Lava', ['Łyna', 'Лава', 'Lava', 'Alle']], ['Pasłęka / Passarge', ['Pasłęka', 'Passarge']],
-  ['Vistula / Wisła', ['Wisła', 'Vistula', 'Weichsel']], ['Narew', ['Narew', 'Нарва', 'Нараў']],
-  ['Western Bug', ['Bug', 'Західний Буг', 'Заходні Буг', 'Western Bug', 'Буг']], ['Oder / Odra (east part)', ['Odra', 'Oder']],
-  ['Shchara', ['Шчара', 'Щара', 'Shchara']], ['Berezina (Dnieper basin)', ['Бярэзіна', 'Березина', 'Berezina']],
-  ['Pripyat', ['Прыпяць', 'Прип\'ять', 'Припять', 'Pripyat', 'Прип’ять']], ['Dnieper', ['Дняпро', 'Дніпро', 'Днепр', 'Dnieper']],
-  ['Desna', ['Десна', 'Desna']],
+  ['Jūra', ['Jūra']], ['Merkys', ['Merkys']], ['Šventoji', ['Šventoji']], ['Mūša', ['Mūša']],
+  ['Nemunėlis', ['Nemunėlis', 'Mēmele']], ['Lielupe', ['Lielupe']], ['Venta', ['Venta']],
+  ['Daugava', ['Daugava', 'Заходняя Дзвіна', 'Западная Двина']], ['Gauja', ['Gauja']], ['Aiviekste', ['Aiviekste']],
+  ['Salaca', ['Salaca']], ['Emajõgi', ['Emajõgi']], ['Pärnu', ['Pärnu jõgi', 'Pärnu']], ['Narva', ['Narva jõgi']],
+  ['Velikaya', ['Великая']], ['Lovat', ['Ловать', 'Ловаць']], ['Volkhov', ['Волхов']], ['Luga', ['Луга']], ['Neva', ['Нева']],
+  ['Pregolya', ['Преголя']], ['Łyna', ['Łyna', 'Лава']], ['Pasłęka', ['Pasłęka']], ['Vistula', ['Wisła']],
+  ['Narew', ['Narew', 'Нараў', 'Нарев']], ['Western Bug', ['Bug', 'Західний Буг', 'Заходні Буг', 'Западный Буг']],
+  ['Oder', ['Odra', 'Oder']], ['Pripyat', ['Прыпяць', "Прип'ять", 'Припять', 'Prypeć']],
+  ['Dnieper', ['Дняпро', 'Дніпро', 'Днепр']], ['Berezina', ['Бярэзіна', 'Березина']],
 ];
 
-/** Lagoons that must be on the map as lakes. */
-/** @type {[string, string[]][]} */
-const MUST_HAVE_LAGOONS = [
-  ['Curonian Lagoon', ['Kuršių marios', 'Куршский залив', 'Curonian Lagoon']],
-  ['Vistula Lagoon', ['Zalew Wiślany', 'Калининградский залив', 'Vistula Lagoon']],
+/**
+ * Lakes that must be on the map (natural lakes and lagoons), and modern reservoirs that must not.
+ * @type {[string, string[]][]}
+ */
+export const MUST_HAVE_LAKES = [
+  ['Lubāns', ['Lubāns']], ['Drūkšiai', ['Drūkšiai']], ['Dysnai', ['Dysnai']], ['Rāzna', ['Rāznas']], ['Burtnieks', ['Burtnieks']],
+  ['Usma', ['Usmas']], ['Võrtsjärv', ['Võrtsjärv']], ['Peipus', ['Peipsi', 'Чудское']], ['Ilmen', ['Ильмень']], ['Ladoga', ['Ладожское']],
+  ['Śniardwy', ['Śniardwy']], ['Mamry', ['Mamry']], ['Niegocin', ['Niegocin']], ['Curonian Lagoon', ['Kuršių marios']], ['Vistula Lagoon', ['Zalew Wiślany']],
+];
+/** @type {[string, RegExp][]} */
+export const MUST_BE_ABSENT = [
+  ['Kauno marios', /Kauno marios/], ['Pļaviņas reservoir', /Pļaviņ|Плявин/], ['Ķegums reservoir', /Ķegum|Кегум/],
+  ['Rīga HES reservoir', /Rīgas HES|Rīgas ūdenskrātuve|Рижск.*водохр/], ['Narva reservoir', /Narva veehoidla|Нарвское/], ['Kyiv reservoir', /Київське водосх|Киевское водохр/],
+  ['Kaniv reservoir', /Канівське водосх|Каневское водохр/], ['Vileyka reservoir', /Вілейск|Вилейск/], ['Zaslawye (Minsk Sea)', /Заслаўск|Заславск/],
+  ['Elektrėnai', /Elektrėn/], ['Włocławek', /Włocławsk/], ['Zegrze', /Zegrzyńsk/], ['Jeziorsko', /^Jeziorsko/], ['Sulejów', /Sulejowsk/],
 ];
 
 /** lon/lat pairs from a flat lon/lat list. @param {Flat} flat */
@@ -79,66 +84,59 @@ const pairs = (flat) => {
   return out;
 };
 
-/** A way's geometry as a flat lon/lat list. @param {any} el */
-const wayCoords = (el) => (el.geometry ?? []).flatMap((/** @type {any} */ p) => (p ? [p.lon, p.lat] : []));
-
-/** All names of a feature, for matching, in lower case. @param {Tags} tags */
-const allNames = (tags) => Object.entries(tags).filter(([k]) => k === 'name' || k.startsWith('name:')).map(([, v]) => v.toLowerCase());
+/** Projects and clips a lon/lat line into clean game-unit pieces. @param {Flat} line */
+function projectLine(line) {
+  /** @type {Flat[]} */
+  const out = [];
+  for (const part of clipLine(dropRepeats(project(pairs(line))))) {
+    const clean = dropRepeats(part);
+    if (clean.length >= 4) out.push(clean);
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------------------------------------
 // Rivers.
 
 /**
- * Builds every river group, projected and clipped, with its length inside the map.
- * @param {any[]} wayEls @param {any[]} relEls
+ * Builds every river group, projected and clipped, with its length inside the map and a local
+ * name for each of its lines.
+ * @param {Map<number, RiverWay>} ways @param {import('./water-rules.mjs').RiverRelation[]} relations
  */
-function buildRivers(wayEls, relEls) {
-  /** @type {Map<number, import('./water-rules.mjs').RiverWay>} */
-  const ways = new Map();
-  for (const el of wayEls) {
-    if (el.type !== 'way' || ways.has(el.id)) continue;
-    if (!['river', 'stream', 'canal'].includes(el.tags?.waterway)) continue;
-    const coords = wayCoords(el);
-    if (coords.length >= 4) ways.set(el.id, { id: el.id, tags: el.tags ?? {}, coords });
-  }
-  /** @type {import('./water-rules.mjs').RiverRelation[]} */
-  const relations = relEls.filter((r) => r.type === 'relation').map((r) => ({ id: r.id, tags: r.tags ?? {}, members: r.members ?? [] }));
+function buildRivers(ways, relations) {
   const relById = new Map(relations.map((r) => [r.id, r]));
-  // Plain canals only join a river through its relation: a canal by itself is not a 1219 river.
-  for (const [id, w] of ways) {
-    if (w.tags.waterway === 'canal' && !relations.some((r) => r.members.some((m) => m.type === 'way' && m.ref === id))) ways.delete(id);
-  }
-  const groups = groupRivers(ways, relations);
-  return groups.map((g) => {
-    const members = g.ways.map((id) => /** @type {import('./water-rules.mjs').RiverWay} */ (ways.get(id)));
+  return groupRivers(ways, relations).map((g) => {
+    const members = g.ways.map((id) => /** @type {RiverWay} */ (ways.get(id)));
     const rel = g.relation !== null ? relById.get(g.relation) : undefined;
-    const lines = [];
-    for (const line of stitch(members.map((w) => w.coords))) {
-      for (const part of clipLine(dropRepeats(project(pairs(line))))) {
-        const clean = dropRepeats(part);
-        if (clean.length >= 4) lines.push(clean);
+    const local = localNames(members, rel?.tags);
+    /** @type {Map<string, RiverWay[]>} */
+    const byName = new Map();
+    for (const w of members) {
+      const n = local.get(w.id) ?? '';
+      const list = byName.get(n);
+      if (list) list.push(w); else byName.set(n, [w]);
+    }
+    /** @type {Flat[]} */ const lines = [];
+    /** @type {string[]} */ const lineNames = [];
+    /** @type {Map<string, number>} */ const lengthByName = new Map();
+    for (const [n, list] of [...byName.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+      for (const line of stitch(list.map((w) => w.coords))) {
+        for (const piece of projectLine(line)) {
+          lines.push(piece);
+          lineNames.push(n);
+          lengthByName.set(n, (lengthByName.get(n) ?? 0) + lineLength(piece));
+        }
       }
     }
-    const lengthKm = lines.reduce((s, l) => s + lineLength(l), 0) * KM_PER_UNIT;
-    const byLength = [...members].sort((a, b) => b.coords.length - a.coords.length);
-    const name = rel?.tags.name ?? mostCommonName(members);
-    /** @type {Record<string, string>} */
-    const names = { ...namesOf(rel?.tags ?? {}) };
-    for (const w of byLength) for (const [k, v] of Object.entries(namesOf(w.tags))) if (!(k in names) && w.tags.name === name) names[k] = v;
-    const id = g.relation !== null ? `relation/${g.relation}` : `way/${g.ways[0]}`;
+    const lengthKm = Math.round(lines.reduce((s, l) => s + lineLength(l), 0) * KM_PER_UNIT * 10) / 10;
+    const name = riverMainName(rel?.tags.name, lengthByName);
     /** @type {Tags} */
-    const tags = { ...(rel?.tags ?? {}), name: name ?? '' };
-    for (const w of byLength) for (const [k, v] of Object.entries(w.tags)) if (k.startsWith('name:') && !(k in tags)) tags[k] = v;
-    return { id, name: name ?? '', names, wikidata: g.wikidata, lengthKm: Math.round(lengthKm * 10) / 10, lines, by: g.by, tags, wayCount: members.length };
+    const names = { ...namesOf(rel?.tags ?? {}) };
+    const byLength = [...members].sort((a, b) => b.coords.length - a.coords.length || a.id - b.id);
+    for (const w of byLength) if (local.get(w.id) === name) for (const [k, v] of Object.entries(namesOf(w.tags))) if (!(k in names)) names[k] = v;
+    const id = g.relation !== null ? `relation/${g.relation}` : `way/${g.ways[0]}`;
+    return { id, name, names, wikidata: g.wikidata, lengthKm, lines, lineNames, by: g.by, wayCount: members.length };
   });
-}
-
-/** The name carried by the most length of ways in a group. @param {import('./water-rules.mjs').RiverWay[]} members */
-function mostCommonName(members) {
-  /** @type {Map<string, number>} */
-  const weight = new Map();
-  for (const w of members) if (w.tags.name) weight.set(w.tags.name, (weight.get(w.tags.name) ?? 0) + w.coords.length);
-  return [...weight.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
 }
 
 /** Whether a river passes the keep rule. @param {{ name: string, wikidata: string | null, lengthKm: number }} r */
@@ -151,33 +149,31 @@ export function keepRiver(r) {
 // Lakes.
 
 /**
- * The rings of a lake (a closed way or a multipolygon relation), projected, oriented by role,
- * clipped to the map, without repeated points.
- * @param {any} el
- * @returns {{ rings: Flat[], open: number }}
+ * A lake's rings, projected, oriented by role (outer counter-clockwise, holes clockwise),
+ * clipped to the map, without repeated points, each outer ring followed by its holes.
+ * @param {import('./overture-water.mjs').LakeCandidate['polygons']} polygons lon/lat
+ * @returns {Flat[]}
  */
-export function lakeRings(el) {
-  /** @type {{ hole: boolean, coords: Flat }[]} */
-  let raw = [];
-  let open = 0;
-  if (el.type === 'way') {
-    const c = wayCoords(el);
-    const n = c.length;
-    if (n >= 8 && c[0] === c[n - 2] && c[1] === c[n - 1]) raw = [{ hole: false, coords: c.slice(0, -2) }];
-    else open = 1;
-  } else {
-    const members = (el.members ?? []).filter((/** @type {any} */ m) => m.type === 'way' && m.geometry)
-      .map((/** @type {any} */ m) => ({ role: m.role === 'inner' ? 'inner' : 'outer', coords: wayCoords(m) }));
-    ({ rings: raw, open } = ringsFromMembers(members));
+export function lakeRings(polygons) {
+  /** @type {Flat[]} */
+  const out = [];
+  for (const p of polygons) {
+    const outer = ringIn(p.outer, false);
+    if (!outer) continue;
+    out.push(outer);
+    for (const h of p.holes) {
+      const hole = ringIn(h, true);
+      if (hole) out.push(hole);
+    }
   }
-  /** @type {{ hole: boolean, ring: Flat }[]} */
-  const done = [];
-  for (const r of raw) {
-    const projected = orient(dropRepeats(openRing(project(pairs(r.coords)))), r.hole);
-    const clipped = closeRepeats(dropRepeats(clipRing(projected)));
-    if (clipped.length >= 6 && Math.abs(ringsArea([clipped])) > 0) done.push({ hole: r.hole, ring: clipped });
-  }
-  return { rings: orderRings(done), open };
+  return out;
+}
+
+/** @param {Flat} lonLat @param {boolean} hole @returns {Flat | null} */
+function ringIn(lonLat, hole) {
+  const projected = orient(dropRepeats(openRing(project(pairs(lonLat)))), hole);
+  const clipped = closeRepeats(dropRepeats(clipRing(projected)));
+  return clipped.length >= 6 && Math.abs(ringsArea([clipped])) > 0 ? clipped : null;
 }
 
 /** Drops a last point equal to the first. @param {Flat} ring */
@@ -187,39 +183,133 @@ const closeRepeats = (ring) => {
   return r;
 };
 
-/**
- * Puts each hole right after the outer ring that holds it (by its first point), so a reader can
- * walk "outer, its holes, next outer, ...". Holes whose outer cannot be found go at the end.
- * @param {{ hole: boolean, ring: Flat }[]} rings
- */
-function orderRings(rings) {
-  const outers = rings.filter((r) => !r.hole).map((r) => r.ring);
-  const holes = rings.filter((r) => r.hole).map((r) => r.ring);
-  /** @type {Flat[][]} */
-  const byOuter = outers.map(() => []);
-  /** @type {Flat[]} */
-  const orphans = [];
-  for (const h of holes) {
-    const k = outers.findIndex((o) => pointInRing(h[0], h[1], o));
-    if (k >= 0) byOuter[k].push(h); else orphans.push(h);
-  }
-  return [...outers.flatMap((o, k) => [o, ...byOuter[k]]), ...orphans];
-}
-
-/** Even-odd point in one ring. @param {number} x @param {number} y @param {Flat} ring */
-function pointInRing(x, y, ring) {
-  let inside = false;
-  const n = ring.length / 2;
-  for (let i = 0, j = n - 1; i < n; j = i++) {
-    const yi = ring[i * 2 + 1]; const yj = ring[j * 2 + 1];
-    if ((yi > y) !== (yj > y) && x < ring[i * 2] + ((y - yi) * (ring[j * 2] - ring[i * 2])) / (yj - yi)) inside = !inside;
-  }
-  return inside;
-}
-
-/** Whether a lake passes the size rule. @param {{ name: string, wikidata: string | null, areaKm2: number }} l */
+/** Whether a lake passes the size rule. Every lake kept has a name. @param {{ name: string, wikidata: string | null, areaKm2: number }} l */
 export function keepLakeBySize(l) {
-  return (Boolean(l.name) && l.areaKm2 >= THRESHOLDS.MIN_LAKE_KM2) || (l.wikidata !== null && l.areaKm2 >= THRESHOLDS.MIN_LAKE_WIKIDATA_KM2);
+  if (!l.name) return false;
+  return l.areaKm2 >= THRESHOLDS.MIN_LAKE_KM2 || (l.wikidata !== null && l.areaKm2 >= THRESHOLDS.MIN_LAKE_WIKIDATA_KM2);
+}
+
+/**
+ * @typedef {object} Lake
+ * @property {string} id @property {string} name @property {Tags} names @property {string | null} wikidata
+ * @property {number} areaKm2 @property {Flat[]} rings @property {string} water @property {string[]} pieces OSM ids
+ */
+
+/**
+ * Joins pieces of one lake (the same Wikidata id) into one lake, biggest piece first.
+ * @param {Lake[]} pieces
+ * @returns {Lake[]}
+ */
+function joinPieces(pieces) {
+  /** @type {Map<string, Lake>} */
+  const byWd = new Map();
+  /** @type {Lake[]} */
+  const out = [];
+  for (const p of [...pieces].sort((a, b) => b.areaKm2 - a.areaKm2 || (a.id < b.id ? -1 : 1))) {
+    const into = p.wikidata ? byWd.get(p.wikidata) : undefined;
+    if (!into) {
+      const lake = { ...p, rings: [...p.rings], pieces: [p.id] };
+      if (p.wikidata) byWd.set(p.wikidata, lake);
+      out.push(lake);
+      continue;
+    }
+    into.rings.push(...p.rings);
+    into.areaKm2 = Math.round((into.areaKm2 + p.areaKm2) * 100) / 100;
+    into.pieces.push(p.id);
+  }
+  return out;
+}
+
+/**
+ * Leaves out lakes that lie inside a bigger lake (OSM sometimes maps a part of a big lake again,
+ * as Peipus proper inside Peipus-Pskov): the smaller one's points all inside the bigger one.
+ * @param {Lake[]} lakes biggest first
+ * @returns {{ kept: Lake[], inside: { id: string, name: string, wikidata: string | null, why: string }[] }}
+ */
+function dropNested(lakes) {
+  /** @type {Lake[]} */
+  const kept = [];
+  const inside = [];
+  const boxes = new Map();
+  const box = (/** @type {Lake} */ l) => {
+    if (!boxes.has(l)) {
+      const xs = l.rings.flatMap((r) => r.filter((_, i) => i % 2 === 0));
+      const ys = l.rings.flatMap((r) => r.filter((_, i) => i % 2 === 1));
+      boxes.set(l, [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]);
+    }
+    return boxes.get(l);
+  };
+  for (const l of lakes) {
+    const b = box(l);
+    const samples = insidePoints(l.rings, b);
+    const outer = kept.find((k) => {
+      const kb = box(k);
+      if (b[0] < kb[0] - 1 || b[1] < kb[1] - 1 || b[2] > kb[2] + 1 || b[3] > kb[3] + 1 || !samples.length) return false;
+      // Points inside the smaller lake (not on its shore, which it may share with the bigger one).
+      return samples.filter(([x, y]) => pointInRings(x, y, k.rings)).length >= samples.length * 0.9;
+    });
+    if (outer) inside.push({ id: l.id, name: l.name, wikidata: l.wikidata, why: `inside the bigger lake ${outer.name} (${outer.id}): OSM maps it twice` });
+    else kept.push(l);
+  }
+  return { kept, inside };
+}
+
+/**
+ * Up to about 60 points inside a lake, on a grid over its box.
+ * @param {Flat[]} rings @param {number[]} b [x0, y0, x1, y1]
+ * @returns {number[][]}
+ */
+function insidePoints(rings, b) {
+  const out = [];
+  const n = 8;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const x = b[0] + ((b[2] - b[0]) * (i + 0.5)) / n;
+      const y = b[1] + ((b[3] - b[1]) * (j + 0.5)) / n;
+      if (pointInRings(x, y, rings)) out.push([x, y]);
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Reading the rows.
+
+/**
+ * Reads the extract: the river ways, and the lake candidates with their rings and verdicts.
+ * @param {string} path @param {ReturnType<typeof reviewIndex>} review
+ */
+async function readWater(path, review) {
+  /** @type {Map<number, RiverWay>} */
+  const ways = new Map();
+  /** @type {Lake[]} */
+  const lakePieces = [];
+  /** @type {{ id: string, name: string, wikidata: string | null, why: string, areaKm2: number, rings: Flat[] }[]} */
+  const droppedLakes = [];
+  /** @type {{ id: string, name: string, areaKm2: number, flags: string[] }[]} */
+  const flagged = [];
+  const seen = new Set();
+  let tooSmall = 0; let outside = 0; let unnamed = 0;
+  for await (const row of waterRows(path)) {
+    const way = riverWay(row);
+    if (way) { ways.set(way.id, way); continue; }
+    const c = lakeCandidate(row);
+    if (!c) continue;
+    seen.add(c.osmId);
+    const rings = lakeRings(c.polygons);
+    if (!rings.length) { outside++; continue; }
+    const areaKm2 = Math.round(ringsArea(rings) * KM2_PER_UNIT2 * 100) / 100;
+    const base = { id: c.osmId, name: c.tags.name ?? '', wikidata: c.tags.wikidata ?? null, areaKm2 };
+    const verdict = classifyLake(c.osmId, { ...c.tags, ...(c.subtype === 'reservoir' ? { water: 'reservoir' } : {}) }, review);
+    if (!verdict.keep) {
+      if (areaKm2 >= THRESHOLDS.MIN_LAKE_WIKIDATA_KM2) droppedLakes.push({ ...base, why: verdict.why, rings });
+      continue;
+    }
+    if (!keepLakeBySize(base)) { if (base.name) tooSmall++; else unnamed++; continue; }
+    if (verdict.flags.length && !verdict.reviewed) flagged.push({ id: c.osmId, name: base.name, areaKm2, flags: verdict.flags });
+    lakePieces.push({ ...base, names: namesOf(c.tags), rings, water: c.tags.water ?? '', pieces: [c.osmId] });
+  }
+  return { ways, lakePieces, droppedLakes, flagged, seen, counts: { lakesTooSmall: tooSmall, lakesUnnamed: unnamed, lakesOutsideMap: outside } };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -279,147 +369,26 @@ async function landRings() {
   return rings;
 }
 
-// ---------------------------------------------------------------------------------------------
-
-async function main() {
-  const previewDir = process.argv[2] ?? DEFAULT_PREVIEWS;
-  if (!existsSync(RUN_FILE)) throw new Error('no OSM download yet: run npm run map:osm');
-  const run = JSON.parse(await readFile(RUN_FILE, 'utf8'));
-  const review = existsSync(REVIEW_FILE) ? JSON.parse(await readFile(REVIEW_FILE, 'utf8')) : { reservoirs: [] };
-  const rIndex = reviewIndex(review.reservoirs);
-
-  // Rivers.
-  const allRivers = buildRivers([...(await elementsOf(run.files.riverWays)), ...(await elementsOf(run.files.memberWays))], await elementsOf(run.files.riverRelations));
-  const rivers = allRivers.filter(keepRiver).sort((a, b) => b.lengthKm - a.lengthKm);
-
-  // Lakes.
-  /** @type {any[]} */
-  const lakes = [];
-  /** @type {{ id: string, name: string, wikidata: string | null, why: string }[]} */
-  const dropped = [];
-  /** @type {{ id: string, name: string, areaKm2: number, keywords: string[] }[]} */
-  const flagged = [];
-  const seenLake = new Set();
-  let openRings = 0; let tooSmall = 0; let outside = 0;
-  for (const el of await elementsOf(run.files.lakeGeometry)) {
-    const id = `${el.type}/${el.id}`;
-    if (seenLake.has(id)) continue;
-    seenLake.add(id);
-    const tags = el.tags ?? {};
-    const { rings, open } = lakeRings(el);
-    openRings += open;
-    const areaKm2 = Math.round(ringsArea(rings) * KM2_PER_UNIT2 * 100) / 100;
-    const lake = { id, name: tags.name ?? '', names: namesOf(tags), wikidata: tags.wikidata ?? null, areaKm2, rings, water: tags.water ?? '' };
-    const verdict = classifyLake(id, tags, rIndex);
-    if (!verdict.keep) { if (areaKm2 > 0) dropped.push({ id, name: lake.name, wikidata: lake.wikidata, why: verdict.why }); continue; }
-    if (!rings.length) { outside++; continue; }
-    if (!keepLakeBySize(lake)) { tooSmall++; continue; }
-    if (verdict.flags.length && !verdict.reviewed) flagged.push({ id, name: lake.name, areaKm2, keywords: verdict.flags });
-    lakes.push(lake);
-  }
-  lakes.sort((a, b) => b.areaKm2 - a.areaKm2);
-
-  // Reservoirs: the review candidates, and the reviewed ones that are dropped.
-  const resEls = await elementsOf(run.files.reservoirs);
-  const candidates = reservoirCandidates(resEls);
-  await mkdir(DERIVED, { recursive: true });
-  await writeFile(CANDIDATES, `${JSON.stringify(candidates, null, 1)}\n`);
-  const presentIds = new Set([...resEls.map((e) => `${e.type}/${e.id}`), ...seenLake]);
-  const reviewMissing = review.reservoirs.filter((/** @type {any} */ e) => e.osmIds.some((/** @type {string} */ i) => !presentIds.has(i))).map((/** @type {any} */ e) => ({ name: e.name, osmIds: e.osmIds.filter((/** @type {string} */ i) => !presentIds.has(i)) }));
-  for (const e of review.reservoirs) if (e.decision === 'drop') dropped.push({ id: e.osmIds.join(' '), name: e.name, wikidata: e.wikidata, why: `reviewed: ${e.why}` });
-
-  // Rivers through dropped reservoirs: the OSM line runs down the reservoir's middle, which is
-  // only an approximation of the river before the dam.
-  const resGeo = await elementsOf(run.files.reservoirGeometry ?? []);
-  const reservoirShapes = resGeo.map((el) => ({ id: `${el.type}/${el.id}`, name: el.tags?.name ?? '', rings: lakeRings(el).rings }));
-  const through = riversThrough(rivers, reservoirShapes);
-
-  // Must-haves.
-  const mustHave = MUST_HAVE_RIVERS.map(([label, wanted]) => matchRiver(label, wanted, rivers, allRivers));
-  const lagoons = MUST_HAVE_LAGOONS.map(([label, wanted]) => {
-    const want = wanted.map((n) => n.toLowerCase());
-    const hit = lakes.find((l) => [l.name, ...Object.values(l.names)].some((n) => want.includes(String(n).toLowerCase())));
-    return { label, found: Boolean(hit), id: hit?.id ?? null, name: hit?.name ?? null, areaKm2: hit?.areaKm2 ?? 0, water: hit?.water ?? null };
-  });
-
-  const wdCount = new Map();
-  for (const l of lakes) if (l.wikidata) wdCount.set(l.wikidata, (wdCount.get(l.wikidata) ?? 0) + 1);
-  const checks = {
-    osmBaseRange: [run.osmBaseOldest, run.osmBase],
-    counts: {
-      riverGroups: allRivers.length,
-      riversKept: rivers.length,
-      riversKeptBy50km: rivers.filter((r) => r.lengthKm >= THRESHOLDS.MIN_RIVER_KM).length,
-      riversKeptByWikidata: rivers.filter((r) => r.lengthKm < THRESHOLDS.MIN_RIVER_KM).length,
-      riverGroupsUnnamed: allRivers.filter((r) => !r.name).length,
-      lakeCandidatesFetched: seenLake.size,
-      lakesKept: lakes.length,
-      lakesKeptByWikidataOnly: lakes.filter((l) => !(l.name && l.areaKm2 >= THRESHOLDS.MIN_LAKE_KM2)).length,
-      lakesTooSmall: tooSmall,
-      lakesOutsideMap: outside,
-      lakesDroppedAsReservoirs: dropped.filter((d) => !d.why.startsWith('reviewed') || seenLake.has(d.id)).length,
-      reservoirsTaggedInWindow: resEls.length,
-      reviewedReservoirs: review.reservoirs.length,
-      multipolygonPiecesThatNeverClosed: openRings,
-    },
-    mustHaveRivers: mustHave,
-    lagoons,
-    flaggedForReview: flagged,
-    reviewedButNotFoundInOsm: reviewMissing,
-    riversThroughDroppedReservoirs: through,
-    lakesSharingWikidata: [...wdCount.entries()].filter(([, n]) => n > 1).map(([wd, n]) => ({ wikidata: wd, lakes: n })),
-  };
-  const out = {
-    source: 'osm',
-    licence: 'ODbL-1.0',
-    attribution: '© OpenStreetMap contributors, ODbL 1.0 (openstreetmap.org/copyright)',
-    osmBase: run.osmBase,
-    window: run.window,
-    projection: MAP.meta(),
-    thresholds: THRESHOLDS,
-    rivers: rivers.map(({ id, name, names, wikidata, lengthKm, lines }) => ({ id, name, names, wikidata, lengthKm, lines })),
-    lakes: lakes.map(({ id, name, names, wikidata, areaKm2, rings }) => ({ id, name, names, wikidata, areaKm2, rings })),
-    dropped,
-    checks,
-  };
-  const text = JSON.stringify(out);
-  await writeFile(OUT, text);
-  report(out, text.length, allRivers);
-
-  // Pictures.
-  await mkdir(previewDir, { recursive: true });
+/** @param {string} dir @param {any[]} rivers @param {Lake[]} lakes @param {Flat[][]} dropped */
+async function pictures(dir, rivers, lakes, dropped) {
+  await mkdir(dir, { recursive: true });
   const land = await landRings();
   const lakeRingsAll = lakes.map((l) => l.rings);
   const riverLines = rivers.map((r) => r.lines);
-  const dropRings = reservoirShapes.map((r) => r.rings);
-  await writeFile(join(previewDir, 'water-all.png'), picture({ x0: 0, y0: 0, x1: MAP.width, y1: MAP.height, upp: 10 }, land, lakeRingsAll, riverLines, dropRings));
+  await writeFile(join(dir, 'water-all.png'), picture({ x0: 0, y0: 0, x1: MAP.width, y1: MAP.height, upp: 10 }, land, lakeRingsAll, riverLines, dropped));
   const [ax, ay] = MAP.toUnits(20.6, 53.7);
   const [bx, by] = MAP.toUnits(28.4, 58.2);
   const [cx] = MAP.toUnits(20.6, 58.2);
   const [dx] = MAP.toUnits(28.4, 53.7);
-  await writeFile(join(previewDir, 'water-lt-lv.png'), picture({ x0: Math.min(ax, cx), y0: ay, x1: Math.max(bx, dx), y1: by, upp: 3 }, land, lakeRingsAll, riverLines, dropRings));
+  await writeFile(join(dir, 'water-lt-lv.png'), picture({ x0: Math.min(ax, cx), y0: ay, x1: Math.max(bx, dx), y1: by, upp: 3 }, land, lakeRingsAll, riverLines, dropped));
   const [kx, ky] = MAP.toUnits(23.6, 54.7);
   const [lx, ly] = MAP.toUnits(24.4, 55.05);
-  await writeFile(join(previewDir, 'water-kaunas.png'), picture({ x0: kx, y0: ky, x1: lx, y1: ly, upp: 0.5 }, land, lakeRingsAll, riverLines, dropRings));
-  console.log(`previews in ${previewDir}`);
+  await writeFile(join(dir, 'water-kaunas.png'), picture({ x0: kx, y0: ky, x1: lx, y1: ly, upp: 0.5 }, land, lakeRingsAll, riverLines, dropped));
+  console.log(`previews in ${dir}`);
 }
 
-/**
- * The reservoir review list: named or Wikidata-tagged reservoirs, biggest box first.
- * @param {any[]} els
- */
-function reservoirCandidates(els) {
-  return els.filter((e) => e.bounds || e.type === 'node').map((e) => ({
-    osmId: `${e.type}/${e.id}`,
-    name: e.tags?.name ?? '',
-    names: namesOf(e.tags ?? {}),
-    wikidata: e.tags?.wikidata ?? null,
-    bboxKm2: e.bounds ? Math.round(bboxAreaKm2(e.bounds) * 10) / 10 : 0,
-    center: e.center ? [e.center.lon, e.center.lat] : e.lat !== undefined ? [e.lon, e.lat] : null,
-    tagged: isReservoirTagged(e.tags ?? {}),
-    keywords: reservoirKeywordHits(e.tags ?? {}),
-  })).sort((a, b) => b.bboxKm2 - a.bboxKm2);
-}
+// ---------------------------------------------------------------------------------------------
+// Checks.
 
 /**
  * Kept rivers that run through dropped reservoirs, with the length inside each (over 1 km).
@@ -428,7 +397,6 @@ function reservoirCandidates(els) {
 function riversThrough(rivers, shapes) {
   const out = [];
   for (const s of shapes) {
-    if (!s.rings.length) continue;
     const xs = s.rings.flatMap((r) => r.filter((_, i) => i % 2 === 0));
     const ys = s.rings.flatMap((r) => r.filter((_, i) => i % 2 === 1));
     const box = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
@@ -446,40 +414,126 @@ function riversThrough(rivers, shapes) {
   return out;
 }
 
+/** All names of a feature, lower case. @param {{ name: string, names: Tags, lineNames?: string[] }} f */
+const namesOfFeature = (f) => [f.name, ...Object.values(f.names), ...(f.lineNames ?? [])].map((n) => n.toLowerCase());
+
 /**
- * Finds a must-have river among the kept ones (the longest match), else among all groups.
- * @param {string} label @param {string[]} wanted
- * @param {{ id: string, name: string, tags: Tags, lengthKm: number }[]} kept
- * @param {{ id: string, name: string, tags: Tags, lengthKm: number }[]} all
+ * Finds a must-have river or lake among the kept ones (the biggest match), else among all.
+ * @template {{ id: string, name: string, names: Tags, lineNames?: string[] }} T
+ * @param {string} label @param {string[]} wanted @param {T[]} kept @param {T[]} all @param {(f: T) => number} size
  */
-function matchRiver(label, wanted, kept, all) {
+function findWanted(label, wanted, kept, all, size) {
   const want = wanted.map((n) => n.toLowerCase());
-  const hit = (/** @type {{ tags: Tags, name: string }} */ r) => [r.name.toLowerCase(), ...allNames(r.tags)].some((n) => want.includes(n));
-  const k = kept.filter(hit).sort((a, b) => b.lengthKm - a.lengthKm)[0];
-  if (k) return { label, found: true, id: k.id, name: k.name, lengthKm: k.lengthKm };
-  const a = all.filter(hit).sort((x, y) => y.lengthKm - x.lengthKm)[0];
-  return { label, found: false, id: a?.id ?? null, name: a?.name ?? null, lengthKm: a?.lengthKm ?? 0 };
+  const hit = (/** @type {T} */ f) => namesOfFeature(f).some((n) => want.some((w) => n === w || n.startsWith(`${w} `) || n.includes(` ${w}`) || n.startsWith(`${w}-`)));
+  const k = kept.filter(hit).sort((a, b) => size(b) - size(a))[0];
+  if (k) return { label, found: true, f: k };
+  const a = all.filter(hit).sort((x, y) => size(y) - size(x))[0];
+  return { label, found: false, f: a ?? null };
 }
 
-/** Prints the size summary and the tables. @param {any} out @param {number} bytes @param {any[]} allRivers */
-function report(out, bytes, allRivers) {
+// ---------------------------------------------------------------------------------------------
+
+async function main() {
+  const previewDir = process.argv[2] ?? DEFAULT_PREVIEWS;
+  const run = await overtureRun();
+  const review = JSON.parse(await readFile(REVIEW_FILE, 'utf8'));
+  const rIndex = reviewIndex(review.entries);
+  const rel = await riverRelations();
+  console.log(`Overture ${run.release}; OSM river relations from ${rel.osmBase} (${rel.relations.length})`);
+
+  const water = await readWater(run.rows, rIndex);
+  const allRivers = buildRivers(water.ways, rel.relations);
+  const rivers = allRivers.filter(keepRiver).sort((a, b) => b.lengthKm - a.lengthKm || (a.name < b.name ? -1 : 1));
+
+  const joined = joinPieces(water.lakePieces).filter((l) => keepLakeBySize(l));
+  const { kept: lakes, inside } = dropNested(joined.sort((a, b) => b.areaKm2 - a.areaKm2 || (a.id < b.id ? -1 : 1)));
+  const dropped = [
+    ...water.droppedLakes.map(({ id, name, wikidata, why, areaKm2 }) => ({ id, name, wikidata, why, areaKm2 })),
+    ...inside,
+  ];
+
+  const reservoirs = water.droppedLakes.filter((d) => d.areaKm2 >= 2);
+  const through = riversThrough(rivers, reservoirs);
+  const mustRivers = MUST_HAVE_RIVERS.map(([label, wanted]) => {
+    const m = findWanted(label, wanted, rivers, allRivers, (r) => r.lengthKm);
+    return { label, found: m.found, id: m.f?.id ?? null, name: m.f?.name ?? null, wikidata: m.f?.wikidata ?? null, lengthKm: m.f?.lengthKm ?? 0, lineNames: [...new Set(m.f?.lineNames ?? [])].filter(Boolean) };
+  });
+  const mustLakes = MUST_HAVE_LAKES.map(([label, wanted]) => {
+    const m = findWanted(label, wanted, lakes, [], (l) => l.areaKm2);
+    return { label, found: m.found, id: m.f?.id ?? null, name: m.f?.name ?? null, areaKm2: m.f?.areaKm2 ?? 0 };
+  });
+  const absent = MUST_BE_ABSENT.map(([label, re]) => {
+    const shown = lakes.find((l) => [l.name, ...Object.values(l.names)].some((n) => re.test(n)));
+    const gone = water.droppedLakes.find((d) => re.test(d.name));
+    return { label, absent: !shown, shownAs: shown?.name ?? null, droppedAs: gone ? `${gone.name} (${gone.id}): ${gone.why}` : null };
+  });
+  const reviewMissing = review.entries.filter((/** @type {any} */ e) => e.osmIds.some((/** @type {string} */ i) => !water.seen.has(i)))
+    .map((/** @type {any} */ e) => ({ name: e.name, osmIds: e.osmIds.filter((/** @type {string} */ i) => !water.seen.has(i)) }));
+
+  const checks = {
+    counts: {
+      riverWays: water.ways.size,
+      riverGroups: allRivers.length,
+      riverGroupsUnnamed: allRivers.filter((r) => !r.name).length,
+      riversKept: rivers.length,
+      riversKeptBy50km: rivers.filter((r) => r.lengthKm >= THRESHOLDS.MIN_RIVER_KM).length,
+      riversKeptByWikidata: rivers.filter((r) => r.lengthKm < THRESHOLDS.MIN_RIVER_KM).length,
+      riversGroupedByRelation: rivers.filter((r) => r.by === 'relation').length,
+      lakePiecesKept: water.lakePieces.length,
+      lakesKept: lakes.length,
+      lakesKeptByWikidataRule: lakes.filter((l) => l.areaKm2 < THRESHOLDS.MIN_LAKE_KM2).length,
+      lakesDroppedAsReservoirs: water.droppedLakes.length,
+      lakesInsideBiggerLakes: inside.length,
+      ...water.counts,
+      reviewedEntries: review.entries.length,
+    },
+    mustHaveRivers: mustRivers,
+    mustHaveLakes: mustLakes,
+    mustBeAbsent: absent,
+    flaggedForReview: water.flagged.sort((a, b) => b.areaKm2 - a.areaKm2),
+    reviewedButNotFound: reviewMissing,
+    riversThroughDroppedReservoirs: through,
+  };
+  const osmSnapshot = Object.keys(run.meta.osmSnapshots ?? {}).sort().pop() ?? null;
+  const out = {
+    source: 'osm',
+    licence: 'ODbL-1.0',
+    attribution: '© OpenStreetMap contributors, Overture Maps Foundation. ODbL 1.0 (openstreetmap.org/copyright)',
+    osmBase: osmSnapshot,
+    overture: { release: run.release, osmSnapshots: run.meta.osmSnapshots, relationsOsmBase: rel.osmBase },
+    projection: MAP.meta(),
+    thresholds: THRESHOLDS,
+    rivers: rivers.map(({ id, name, names, wikidata, lengthKm, lines, lineNames }) => ({ id, name, names, wikidata, lengthKm, lines, lineNames })),
+    lakes: lakes.map(({ id, name, names, wikidata, areaKm2, rings, pieces }) => ({ id, name, names, wikidata, areaKm2, rings, pieces })),
+    dropped,
+    checks,
+  };
+  await mkdir(DERIVED, { recursive: true });
+  const text = JSON.stringify(out);
+  await writeFile(OUT, text);
+  report(out, text.length);
+  await pictures(previewDir, rivers, lakes, reservoirs.map((r) => r.rings));
+}
+
+/** Prints the size summary and the tables. @param {any} out @param {number} bytes */
+function report(out, bytes) {
   const pts = (/** @type {Flat[]} */ ls) => ls.reduce((s, l) => s + l.length / 2, 0);
-  const riverPts = out.rivers.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + pts(r.lines), 0);
-  const lakePts = out.lakes.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + pts(l.rings), 0);
-  console.log(`OSM data as of ${out.osmBase}`);
-  console.log(`rivers: ${out.rivers.length} kept of ${allRivers.length} groups, ${out.rivers.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.lines.length, 0)} lines, ${riverPts} points`);
-  console.log(`lakes: ${out.lakes.length}, ${out.lakes.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + l.rings.length, 0)} rings, ${lakePts} points`);
+  const c = out.checks;
+  console.log(`rivers: ${out.rivers.length}, ${out.rivers.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.lines.length, 0)} lines, ${out.rivers.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + pts(r.lines), 0)} points`);
+  console.log(`lakes: ${out.lakes.length}, ${out.lakes.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + l.rings.length, 0)} rings, ${out.lakes.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + pts(l.rings), 0)} points`);
   console.log(`dropped: ${out.dropped.length}; file ${(bytes / 1e6).toFixed(1)} MB`);
-  console.log('counts', out.checks.counts);
+  console.log('counts', c.counts);
   console.log('\nmust-have rivers:');
-  for (const m of out.checks.mustHaveRivers) console.log(`  ${m.found ? 'found  ' : 'MISSING'} ${m.label.padEnd(28)} ${String(m.name ?? '-').padEnd(24)} ${m.lengthKm} km ${m.id ?? ''}`);
-  console.log('\nlagoons:');
-  for (const l of out.checks.lagoons) console.log(`  ${l.found ? 'found  ' : 'MISSING'} ${l.label} ${l.name ?? ''} ${l.areaKm2} km² water=${l.water}`);
-  console.log(`\nflagged for review (kept): ${out.checks.flaggedForReview.length}`);
-  for (const f of out.checks.flaggedForReview.slice(0, 40)) console.log(`  ${f.id} ${f.name} ${f.areaKm2} km² [${f.keywords.join(', ')}]`);
-  console.log(`reviewed but not found: ${JSON.stringify(out.checks.reviewedButNotFoundInOsm)}`);
+  for (const m of c.mustHaveRivers) console.log(`  ${m.found ? 'found  ' : 'MISSING'} ${m.label.padEnd(12)} ${String(m.name ?? '-').padEnd(22)} ${String(m.lengthKm).padStart(6)} km  ${m.wikidata ?? '-'}  ${m.lineNames.join(' | ')}`);
+  console.log('\nmust-have lakes:');
+  for (const m of c.mustHaveLakes) console.log(`  ${m.found ? 'found  ' : 'MISSING'} ${m.label.padEnd(16)} ${String(m.name ?? '-').padEnd(44)} ${m.areaKm2} km²`);
+  console.log('\nmust be absent:');
+  for (const m of c.mustBeAbsent) console.log(`  ${m.absent ? 'absent ' : 'SHOWN  '} ${m.label.padEnd(26)} ${m.shownAs ?? ''}${m.droppedAs ? `dropped: ${m.droppedAs}` : 'not in the data as a lake'}`);
+  console.log(`\nflagged for review (kept): ${c.flaggedForReview.length}`);
+  for (const f of c.flaggedForReview.slice(0, 40)) console.log(`  ${f.id} ${f.name} ${f.areaKm2} km² [${f.flags.join(', ')}]`);
+  console.log(`reviewed but not found: ${JSON.stringify(c.reviewedButNotFound)}`);
   console.log('rivers through dropped reservoirs:');
-  for (const t of out.checks.riversThroughDroppedReservoirs) console.log(`  ${t.river} through ${t.reservoir}: ${t.km} km`);
+  for (const t of c.riversThroughDroppedReservoirs) console.log(`  ${t.river} through ${t.reservoir}: ${t.km} km`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

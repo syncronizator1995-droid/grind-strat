@@ -15,8 +15,8 @@ export const KM2_PER_UNIT2 = 0.01;
 /**
  * Keep rules (tuned on the real data, see the counts in build-water's report): a river is kept
  * when its length inside the map is at least MIN_RIVER_KM, or it has a Wikidata id and is at
- * least MIN_RIVER_WIKIDATA_KM. A lake is kept at MIN_LAKE_KM2 with a name, or at
- * MIN_LAKE_WIKIDATA_KM2 with a Wikidata id (a sign someone found it notable).
+ * least MIN_RIVER_WIKIDATA_KM. A lake is kept at MIN_LAKE_KM2, or at MIN_LAKE_WIKIDATA_KM2 with a
+ * Wikidata id (a sign someone found it notable). Every river and lake kept has a name.
  */
 export const THRESHOLDS = {
   MIN_RIVER_KM: 50,
@@ -71,9 +71,95 @@ export function isReservoirTagged(tags) {
 }
 
 /**
- * Name pieces that often mean a man-made reservoir. They only FLAG a lake for review, never
- * drop it: "marios" is both Kauno marios (a reservoir) and Kuršių marios (the natural Curonian
- * Lagoon). Decisions live in tools/map/reservoirs-1219.json.
+ * Why OSM's own tags show a lake was made by people after 1219, or null: a flooded quarry or
+ * mine (lake=quarry, was:lake=quarry, a resource tag), or a start_date after 1219.
+ * @param {Tags} tags
+ * @returns {string | null}
+ */
+export function madeAfter1219(tags) {
+  if (tags.lake === 'quarry' || tags['was:lake'] === 'quarry') return 'OSM tags it as a flooded quarry or open-cast mine (lake=quarry)';
+  for (const k of ['old_resource', 'was:resource', 'resource']) if (tags[k]) return `OSM tags it as a flooded mine (${k}=${tags[k]})`;
+  const year = /\b(\d{3,4})\b/.exec(tags.start_date ?? '')?.[1];
+  if (year && Number(year) > 1219) return `OSM gives it start_date=${tags.start_date}: made after 1219`;
+  return null;
+}
+
+/**
+ * Whether a name is two (or more) names in one, as OpenStreetMap writes features on a border:
+ * "Nemunas / Неман", "Łyna/Лава", "Zalew Wiślany - Калининградский залив". A hyphen inside a
+ * word ("Peipsi-Pihkva") does not count; a slash always does.
+ * @param {string} name
+ */
+export const isTwoLanguageName = (name) => /\s[–-]\s|\//.test(name);
+
+/** The single names in a name like "Nemunas / Неман". @param {string} name */
+export const splitNames = (name) => name.split(/\s[/–-]\s|\s\/|\/\s|\//).map((p) => p.trim()).filter(Boolean);
+
+/**
+ * The name a river is known by in the game's data (its info, and its label wherever a stretch
+ * has no name of its own): the river relation's name when its ways carry it too (so it is a
+ * local name, not a name for the whole river in another language, like "Dnieper"); else the
+ * single name its ways carry over the most length on the map; else the relation's name.
+ * @param {string | undefined} relationName
+ * @param {Map<string, number>} lengthByName the length of the river's ways by their own name
+ */
+export function riverMainName(relationName, lengthByName) {
+  if (relationName && !isTwoLanguageName(relationName) && lengthByName.has(relationName)) return relationName;
+  const single = [...lengthByName.entries()].filter(([n]) => n && !isTwoLanguageName(n))
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+  if (single.length) return single[0][0];
+  const any = [...lengthByName.entries()].filter(([n]) => n).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+  return relationName || (any[0]?.[0] ?? '');
+}
+
+/**
+ * Gives each unnamed way of one river the name of a named way it touches (end to end), spreading
+ * outwards, so the river's lines break where its local name changes and nowhere else. Ways that
+ * touch no named way keep ''.
+ * A way's own name counts only if it is a single name, or several names in one of which at
+ * least one is a name of this river: OSM sometimes puts other text on a border stretch
+ * ("Россия - Lietuva"), and such a stretch takes its neighbour's name instead.
+ * @param {RiverWay[]} ways one river's ways
+ * @param {Tags} [relationTags] the river relation's tags, whose names are this river's names
+ * @returns {Map<number, string>} way id to local name
+ */
+export function localNames(ways, relationTags = {}) {
+  const known = new Set();
+  /** @param {string} n */
+  const addParts = (n) => { for (const part of splitNames(n)) known.add(part.toLowerCase()); };
+  for (const [k, v] of Object.entries(relationTags)) if (k === 'name' || k.startsWith('name:')) addParts(v);
+  for (const w of ways) if (w.tags.name && !isTwoLanguageName(w.tags.name)) known.add(w.tags.name.toLowerCase());
+  /** @param {string} n */
+  const usable = (n) => !isTwoLanguageName(n) || splitNames(n).some((part) => known.has(part.toLowerCase()));
+  /** @type {Map<number, string>} */
+  const name = new Map(ways.map((w) => [w.id, w.tags.name && usable(w.tags.name) ? w.tags.name : '']));
+  /** @type {Map<string, RiverWay[]>} */
+  const atEnd = new Map();
+  for (const w of ways) {
+    const n = w.coords.length;
+    for (const k of [endKey(w.coords[0], w.coords[1]), endKey(w.coords[n - 2], w.coords[n - 1])]) {
+      const list = atEnd.get(k);
+      if (list) list.push(w); else atEnd.set(k, [w]);
+    }
+  }
+  const byId = [...ways].sort((a, b) => a.id - b.id);
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const w of byId) {
+      if (name.get(w.id)) continue;
+      const n = w.coords.length;
+      const touching = [...(atEnd.get(endKey(w.coords[0], w.coords[1])) ?? []), ...(atEnd.get(endKey(w.coords[n - 2], w.coords[n - 1])) ?? [])];
+      const named = touching.map((t) => name.get(t.id) ?? '').filter(Boolean).sort();
+      if (named.length) { name.set(w.id, named[0]); changed = true; }
+    }
+  }
+  return name;
+}
+
+/**
+ * Name pieces that often mean a man-made reservoir or a flooded mine, and a start_date tag. They
+ * only FLAG a lake for review, never drop it: "marios" is both Kauno marios (a reservoir) and Kuršių marios (the natural Curonian
+ * Lagoon). Decisions live in tools/map/osm-water-1219.json.
  */
 export const RESERVOIR_KEYWORDS = [
   { word: 'marios', re: /marios/i },
@@ -88,12 +174,19 @@ export const RESERVOIR_KEYWORDS = [
   { word: 'reservoir', re: /reservoir/i },
   { word: 'HES', re: /\bHES\b/ },
   { word: 'ГЭС', re: /ГЭС/ },
+  { word: 'nádrž', re: /nádrž|nadrž/i },
+  { word: 'tvenkinys', re: /tvenkin|\btv\./i },
+  { word: 'dīķis', re: /dīķ/i },
+  { word: 'mine lake', re: /tagebau|restsee|bergbau|odkrywk|kopalni|карьер|кар'єр|kar'?jer/i },
 ];
 
 /** The reservoir keywords found in any of a feature's names. @param {Tags} tags */
 export function reservoirKeywordHits(tags) {
   const names = Object.entries(tags).filter(([k]) => k === 'name' || k.startsWith('name:') || k === 'alt_name' || k === 'old_name').map(([, v]) => v);
-  return RESERVOIR_KEYWORDS.filter((k) => names.some((n) => k.re.test(n))).map((k) => k.word);
+  const hits = RESERVOIR_KEYWORDS.filter((k) => names.some((n) => k.re.test(n))).map((k) => k.word);
+  // A creation date on a lake is a sign it was made, not found.
+  if (tags.start_date) hits.push('start_date');
+  return hits;
 }
 
 /**
@@ -120,8 +213,10 @@ export function reviewIndex(entries) {
 
 /**
  * Decides whether a lake candidate stays on the 1219 map.
- * Order: reservoir tags (always drop), then a reviewed decision by OSM id or Wikidata id, then
- * keep, flagging any reservoir-like name for review.
+ * Order: a reviewed decision by OSM id or Wikidata id (so a natural lake that OSM tags as a
+ * reservoir can be kept, and a reservoir tagged as a lake dropped), then reservoir tags (drop),
+ * then tags that show the lake was made after 1219 (drop), then keep, flagging any
+ * reservoir-like name for review.
  * @param {string} osmId "way/123" or "relation/123"
  * @param {Tags} tags
  * @param {ReturnType<typeof reviewIndex>} review
@@ -130,8 +225,10 @@ export function reviewIndex(entries) {
 export function classifyLake(osmId, tags, review) {
   const flags = reservoirKeywordHits(tags);
   const reviewed = review.byOsm.get(osmId) ?? (tags.wikidata ? review.byWikidata.get(tags.wikidata) : undefined) ?? null;
-  if (isReservoirTagged(tags)) return { keep: false, why: 'tagged as a reservoir in OSM', flags, reviewed };
   if (reviewed) return { keep: reviewed.decision === 'keep', why: `reviewed: ${reviewed.why}`, flags, reviewed };
+  if (isReservoirTagged(tags)) return { keep: false, why: 'tagged as a reservoir in OSM', flags, reviewed };
+  const made = madeAfter1219(tags);
+  if (made) return { keep: false, why: made, flags, reviewed };
   return { keep: true, why: '', flags, reviewed: null };
 }
 

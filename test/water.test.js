@@ -108,14 +108,11 @@ describe('lengths and areas in game units', () => {
 
   it('projects a real lake and subtracts its island', () => {
     // A 0.1° x 0.05° box near Vilnius with an island of a quarter of its size (by degrees).
-    const el = {
-      type: 'relation', id: 1, tags: { name: 'Testas', natural: 'water' },
-      members: [
-        { type: 'way', role: 'outer', geometry: [[25, 54.6], [25.1, 54.6], [25.1, 54.65], [25, 54.65], [25, 54.6]].map(([lon, lat]) => ({ lon, lat })) },
-        { type: 'way', role: 'inner', geometry: [[25.025, 54.6125], [25.025, 54.6375], [25.075, 54.6375], [25.075, 54.6125], [25.025, 54.6125]].map(([lon, lat]) => ({ lon, lat })) },
-      ],
-    };
-    const { rings } = lakeRings(el);
+    // As Overture gives it: the outer ring first, then the hole, closed, in either direction.
+    const rings = lakeRings([{
+      outer: [25, 54.6, 25.1, 54.6, 25.1, 54.65, 25, 54.65, 25, 54.6],
+      holes: [[25.025, 54.6125, 25.025, 54.6375, 25.075, 54.6375, 25.075, 54.6125, 25.025, 54.6125]],
+    }]);
     assert.equal(rings.length, 2);
     assert.ok(signedArea2(rings[0]) > 0 && signedArea2(rings[1]) < 0, 'outer first, then its hole');
     assert.ok(rings.flat().every(Number.isInteger));
@@ -136,7 +133,8 @@ describe('lengths and areas in game units', () => {
     assert.ok(!keepRiver({ name: '', wikidata: 'Q1', lengthKm: 500 }), 'a river needs a name');
     assert.ok(keepLakeBySize({ name: 'A', wikidata: null, areaKm2: 1 }));
     assert.ok(!keepLakeBySize({ name: 'A', wikidata: null, areaKm2: 0.9 }));
-    assert.ok(keepLakeBySize({ name: '', wikidata: 'Q1', areaKm2: 0.5 }));
+    assert.ok(keepLakeBySize({ name: 'A', wikidata: 'Q1', areaKm2: 0.5 }));
+    assert.ok(!keepLakeBySize({ name: '', wikidata: 'Q1', areaKm2: 5 }), 'a lake needs a name');
   });
 
   it('skips lake candidates whose box is too small to hold a kept lake', () => {
@@ -187,8 +185,9 @@ describe('modern reservoirs', () => {
   });
 });
 
-describe('the reviewed reservoir list', () => {
-  const file = JSON.parse(readFileSync(new URL('../tools/map/reservoirs-1219.json', import.meta.url), 'utf8'));
+describe('the reviewed list of 1219 water', () => {
+  const file = JSON.parse(readFileSync(new URL('../tools/map/osm-water-1219.json', import.meta.url), 'utf8'));
+  file.reservoirs = file.entries;
 
   it('has a complete entry for each water body', () => {
     assert.ok(file.reservoirs.length > 10);
@@ -203,7 +202,8 @@ describe('the reviewed reservoir list', () => {
 
   it('drops the must-drop reservoirs and keeps the natural lakes', () => {
     const decision = (/** @type {RegExp} */ re) => file.reservoirs.filter((/** @type {{ name: string }} */ e) => re.test(e.name)).map((/** @type {{ decision: string }} */ e) => e.decision);
-    for (const re of [/Kauno marios/, /Pļaviņ/, /Ķegum/, /Rīg/, /Narva|Нарвск/, /Vilei|Вілей|Вилей/, /Zasl|Заслаў|Заслав/, /Elektrėn/, /Włocław/, /Zegrz/]) {
+    for (const re of [/Kauno marios/, /Pļaviņ/, /Ķegum/, /Rīg/, /Narva|Нарвск/, /Vilei|Вілей|Вилей/, /Zasl|Заслаў|Заслав/, /Elektrėn/, /Włocław/, /Zegrz/,
+      /Київськ/, /Канівськ/, /Jeziorsko/, /Sulejow/]) {
       const d = decision(re);
       assert.ok(d.length && d.every((/** @type {string} */ x) => x === 'drop'), `${re}: ${d}`);
     }
