@@ -9,6 +9,7 @@ import { describe, it } from 'node:test';
 import { attributionInputs, creditsText, makeAttribution } from '../tools/map/attribution.mjs';
 import { BLOCK_FILES, FINGERPRINTS, presentBlockFiles, ROOT, sha256, shippedBlockFiles } from '../tools/map/block.mjs';
 import { loadMap, loadWater, noTimes } from '../src/ui/map/load.js';
+import { SPECKLE_LIMITS, speckleTest } from '../tools/map/terrain-checks.mjs';
 
 /** @param {string} path */
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
@@ -80,6 +81,12 @@ describe('the data blocks', () => {
     for (const v of seen) assert.ok([0, 2, 3, 4, 5, 6].includes(v), `terrain class ${v}`);
     assert.ok(seen.has(0) && seen.has(3) && seen.has(5), 'sea, conifer forest and marsh are all there');
     assert.deepEqual([map.provinces.length, map.points.length], [0, 0], 'no made-up provinces or points ship');
+  });
+
+  it('paint the 1219 land in coherent patches, not salt and pepper', async () => {
+    const { map } = await loadMap(shipped('base').block, shipped('terrain').block);
+    const s = speckleTest(map.terrain.data, map.terrain.cols, map.terrain.rows);
+    for (const [key, limit] of Object.entries(SPECKLE_LIMITS)) assert.ok(s[/** @type {keyof typeof SPECKLE_LIMITS} */ (key)] <= limit, `${key}: ${JSON.stringify(s)}`);
   });
 
   it('unpack into rivers and lakes with their names and levels', async () => {
