@@ -11,9 +11,10 @@ import { fileURLToPath } from 'node:url';
 import { DERIVED_INPUTS, NE_INPUTS, PREVIEW_COLOURS, TERRAIN_SOURCES } from '../tools/map/build-terrain-1219.mjs';
 import { blendAll, latticePlaces, pollenLattice } from '../tools/map/pollen-field.mjs';
 import { solveQuota } from '../tools/map/quota.mjs';
-import { buildTerrain1219, CLASS, CLASS_NAMES } from '../tools/map/terrain-1219.mjs';
-import { classTotals, seamTest, squareChecks } from '../tools/map/terrain-checks.mjs';
-import { distanceTo, hash01, maskedBlur, upsample } from '../tools/map/terrain-fields.mjs';
+import { buildTerrain1219, CLASS, CLASS_NAMES, TERRAIN_PARAMS } from '../tools/map/terrain-1219.mjs';
+import { classTotals, seamTest, speckleTest, squareChecks, SPECKLE_LIMITS } from '../tools/map/terrain-checks.mjs';
+import { distanceTo, hash01, maskedBlur, upsample, valueNoise } from '../tools/map/terrain-fields.mjs';
+import { absorbSmallPatches, edgeScore } from '../tools/map/tidy.mjs';
 import { TERRAIN } from '../src/ui/map/terrain.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -45,17 +46,18 @@ function syntheticInput() {
       lon[i] = 20 + (c + 0.5) / per;
       lat[i] = 54 + (r + 0.5) / per;
       land[i] = c >= 6 ? 1 : 0;
-      // Blobs on lattices that do not line up with the 1 degree lines (40 cells), so any seam
-      // the test finds comes from the rules, not from the made-up inputs.
-      const blob = hash01(Math.floor((c + 3) / 7), Math.floor((r + 5) / 7), 7);
+      // Round blobs (smooth value noise), so any seam the test finds comes from the rules, not
+      // from the made-up inputs. Square blobs would not do: their straight edges fell one cell
+      // from the 1 degree lines, and once the rules smooth the score, they show.
+      const blob = valueNoise(c + 3, r + 5, 7, 7);
       cover.tree[i] = Math.round(100 * blob * hash01(c, r, 1));
       cover.crop[i] = Math.round((100 - cover.tree[i]) * hash01(c, r, 2));
       if (c >= 6 && c < 8) cover.bare[i] = 60; // a dune strip on the coast
       if (c >= 60 && c < 70 && r >= 60 && r < 70) marsh[i] = 80;
       if (c >= 90 && c < 100 && r >= 20 && r < 30) cover.water[i] = 100; // a lake today
       marshRaw[i] = Math.round(30 * hash01(c, r, 3));
-      height[i] = 200 * hash01(Math.floor((c + 5) / 13), Math.floor((r + 2) / 13), 4);
-      rough[i] = 20 * hash01(Math.floor((c + 5) / 13), Math.floor((r + 2) / 13), 5);
+      height[i] = 200 * valueNoise(c + 5, r + 2, 13, 4);
+      rough[i] = 20 * valueNoise(c + 5, r + 2, 13, 5);
       if (r === 75) rivers[i] = 1;
     }
   }
@@ -109,7 +111,9 @@ describe('1219 terrain: rules on made-up inputs', () => {
   });
 
   it('would catch squares: a square-by-square pick of the same shares fails the seam test', () => {
-    // The naive way: in each square, the cells with most tree cover today become forest.
+    // The naive way: in each square, the cells with most tree cover around them today become
+    // forest (smoothed, as the rules smooth their score).
+    const tree = maskedBlur(input.cover.tree, input.land, input.cols, input.rows, 3);
     const blocky = built.terrain.slice();
     /** @type {Map<number, number[]>} */
     const bySquare = new Map();
@@ -120,12 +124,26 @@ describe('1219 terrain: rules on made-up inputs', () => {
       bySquare.set(g, [...(bySquare.get(g) ?? []), i]);
     }
     for (const [g, cells] of bySquare) {
-      cells.sort((a, b) => input.cover.tree[b] - input.cover.tree[a] || a - b);
+      cells.sort((a, b) => tree[b] - tree[a] || a - b);
       const want = Math.round(built.lattice.forest[g] * built.forest.domainCount[g]);
       for (const i of cells.slice(0, want)) blocky[i] = CLASS.mixed;
     }
     const s = seamTest({ terrain: blocky, domain: built.domain }, input);
     assert.ok(s.ratio > 1.25, `seam ratio ${s.ratio}`);
+  });
+
+  it('paints coherent patches, not salt and pepper', () => {
+    const s = speckleTest(built.terrain, input.cols, input.rows);
+    for (const [key, limit] of Object.entries(SPECKLE_LIMITS)) assert.ok(s[/** @type {keyof typeof SPECKLE_LIMITS} */ (key)] <= limit, `${key} ${JSON.stringify(s)}`);
+    assert.ok(s.meanPatch >= 100, `patches of ${s.meanPatch} cells`);
+  });
+
+  it('would catch salt and pepper: the same rules without smoothing or tidying fail the speckle test', () => {
+    const p = { ...TERRAIN_PARAMS, minPatch: 0, forest: { ...TERRAIN_PARAMS.forest, smoothKm: 0 }, conifer: { ...TERRAIN_PARAMS.conifer, smoothKm: 0 } };
+    // The tuned numbers are frozen literals in their type; these are deliberately different.
+    const rough = buildTerrain1219(input, /** @type {typeof TERRAIN_PARAMS} */ (/** @type {unknown} */ (p)));
+    const s = speckleTest(rough.terrain, input.cols, input.rows);
+    assert.ok(s.lone > SPECKLE_LIMITS.lone && s.smallPatch > SPECKLE_LIMITS.smallPatch, JSON.stringify(s));
   });
 
   it('keeps the sea, puts marsh first, dunes as heath, and fills today\'s water from its shores', () => {
@@ -187,6 +205,31 @@ describe('1219 terrain: helpers', () => {
     assert.equal(b[0], 15); assert.equal(b[2], 20);
     const up = upsample([0, 10, 0, 10], 2, 2, 4, 4, 2);
     assert.deepEqual([...up.subarray(0, 4)], [0, 2.5, 7.5, 10]);
+  });
+
+  it('joins small islands to their surroundings, but not islets walled in by bog', () => {
+    // 7 x 5 cells: a forest field with a lone open cell, a 2-cell clearing, and a forest cell
+    // walled in by cells that take no part (bog).
+    const cols = 7; const rows = 5;
+    const chosen = new Uint8Array(cols * rows).fill(1);
+    const eligible = new Uint8Array(cols * rows).fill(1);
+    chosen[1 * cols + 1] = 0;
+    chosen[3 * cols + 3] = 0; chosen[3 * cols + 4] = 0;
+    for (const i of [1 * cols + 4, 1 * cols + 6, 0 * cols + 5, 2 * cols + 5]) eligible[i] = 0;
+    chosen[1 * cols + 5] = 0; // inside the bog ring: nothing to join
+    const r = absorbSmallPatches(chosen, eligible, cols, rows, 3);
+    assert.deepEqual(r, { islands: 2, cells: 3 });
+    assert.equal(chosen[1 * cols + 1], 1);
+    assert.equal(chosen[3 * cols + 3] + chosen[3 * cols + 4], 2);
+    assert.equal(chosen[1 * cols + 5], 0);
+  });
+
+  it('ranks cells by depth inside their patch, so a quota moves edges, not cells deep inside', () => {
+    const cols = 6; const rows = 1;
+    const chosen = Uint8Array.from([1, 1, 1, 0, 0, 0]);
+    const all = new Uint8Array(cols).fill(1);
+    const e = edgeScore(chosen, all, new Float32Array(cols), cols, rows);
+    assert.deepEqual([...e].map((v) => Math.round(v * 2) / 2), [2.5, 1.5, 0.5, -0.5, -1.5, -2.5]);
   });
 
   it('hashes the same way every time', () => {

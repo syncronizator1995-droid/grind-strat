@@ -31,8 +31,10 @@ export function terrainChecks(built, grid) {
     waterToday: built.water,
     squares: squareChecks(built),
     solver: { forestRounds: built.forest.rounds, forestWorst: round(built.forest.worst, 4), coniferRounds: built.conifer.rounds, coniferWorst: round(built.conifer.worst, 4) },
+    tidy: built.tidy,
     boxes: boxChecks(built, grid),
     seams: seamTest(built, grid),
+    speckle: speckleTest(built.terrain, grid.cols, grid.rows),
   };
 }
 
@@ -186,6 +188,87 @@ export function seamTest(built, grid) {
   };
 }
 
+/**
+ * The most speckle a 1219 terrain grid may show (see speckleTest). The first real grid, cut cell
+ * by cell from today's land cover, had 2.7%, 1.3% and 5.7%: it looked like camouflage.
+ */
+export const SPECKLE_LIMITS = Object.freeze({ lone: 0.01, loneForest: 0.006, smallPatch: 0.02 });
+
+/**
+ * Speckle test: how much of the land looks like salt and pepper rather than coherent patches.
+ *   lone:       share of land cells whose class differs from every side-by-side land neighbour
+ *   loneForest: the same for forest against not forest (the speckle the eye sees most)
+ *   smallPatch: share of land cells in a patch (side-by-side cells of one class) under 5 cells
+ *   meanPatch:  land cells per patch
+ * Sea cells are not land and have no class to match; a land cell with no land neighbour at all
+ * (a lone islet) is not counted.
+ * @param {Uint8Array} terrain @param {number} cols @param {number} rows
+ */
+export function speckleTest(terrain, cols, rows) {
+  const forestOf = (/** @type {number} */ t) => (t === CLASS.conifer || t === CLASS.mixed ? 1 : 0);
+  let land = 0; let lone = 0; let loneForest = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      const t = terrain[i];
+      if (t === CLASS.sea) continue;
+      let near = 0; let same = 0; let sameForest = 0;
+      for (const j of sideNeighbours(i, c, r, cols, rows)) {
+        if (j < 0 || terrain[j] === CLASS.sea) continue;
+        near++;
+        if (terrain[j] === t) same++;
+        if (forestOf(terrain[j]) === forestOf(t)) sameForest++;
+      }
+      if (!near) continue;
+      land++;
+      if (!same) lone++;
+      if (!sameForest) loneForest++;
+    }
+  }
+  const { count, small } = patchSizes(terrain, cols, rows, 5);
+  return {
+    land,
+    lone: round(lone / (land || 1), 4),
+    loneForest: round(loneForest / (land || 1), 4),
+    smallPatch: round(small / (land || 1), 4),
+    meanPatch: round(land / (count || 1), 1),
+  };
+}
+
+/** The four side-by-side neighbours of cell i, -1 off the grid. @param {number} i @param {number} c @param {number} r @param {number} cols @param {number} rows */
+function sideNeighbours(i, c, r, cols, rows) {
+  return [c > 0 ? i - 1 : -1, c < cols - 1 ? i + 1 : -1, r > 0 ? i - cols : -1, r < rows - 1 ? i + cols : -1];
+}
+
+/**
+ * Patches of side-by-side land cells of one class: how many, and how many cells sit in patches
+ * smaller than `under` cells.
+ * @param {Uint8Array} terrain @param {number} cols @param {number} rows @param {number} under
+ */
+function patchSizes(terrain, cols, rows, under) {
+  const seen = new Uint8Array(terrain.length);
+  const stack = new Int32Array(terrain.length);
+  let count = 0; let small = 0;
+  for (let s = 0; s < terrain.length; s++) {
+    if (seen[s] || terrain[s] === CLASS.sea) continue;
+    const t = terrain[s];
+    seen[s] = 1;
+    let top = 0; let size = 0;
+    stack[top++] = s;
+    while (top) {
+      const i = stack[--top];
+      size++;
+      const c = i % cols;
+      for (const j of sideNeighbours(i, c, (i - c) / cols, cols, rows)) {
+        if (j >= 0 && !seen[j] && terrain[j] === t) { seen[j] = 1; stack[top++] = j; }
+      }
+    }
+    count++;
+    if (size < under) small += size;
+  }
+  return { count, small };
+}
+
 /** @param {number} x @param {number} digits */
 const round = (x, digits) => Math.round(x * 10 ** digits) / 10 ** digits;
 
@@ -204,9 +287,13 @@ export function formatChecks(k) {
   lines.push(`  forest share error: max ${pc(q.forestError.max)}, mean ${pc(q.forestError.mean)}; conifer share error: max ${pc(q.coniferError.max)}, mean ${pc(q.coniferError.mean)}`);
   lines.push(`  squares with land but no pollen value (filled from the nearest): ${q.unmeasuredWithLand.join(' ') || 'none'}`);
   lines.push(`solver rounds: forest ${k.solver.forestRounds} (worst ${pc(k.solver.forestWorst)}), conifer ${k.solver.coniferRounds} (worst ${pc(k.solver.coniferWorst)})`);
+  const td = k.tidy;
+  lines.push(`tidy: forest/open ${td.forest.islands} islands (${td.forest.islandCells} cells) joined their surroundings, ${td.forest.edgeCells} edge cells moved back to quota; conifer/mixed ${td.conifer.islands} (${td.conifer.islandCells} cells), ${td.conifer.edgeCells} edge cells`);
   lines.push('rough boxes (forest | pollen squares | pollen blended | conifer of forest | pollen conifer | marsh):');
   for (const b of k.boxes) lines.push(`  ${b.name.padEnd(22)} ${pc(b.forest).padStart(6)} | ${pc(b.pollenSquares).padStart(6)} | ${pc(b.pollenBlended).padStart(6)} | ${pc(b.coniferOfForest).padStart(6)} | ${pc(b.pollenConiferOfForest).padStart(6)} | ${pc(b.marsh).padStart(6)}   (${b.box}, ${b.landCells} cells)`);
   const s = k.seams;
   lines.push(`seam test: class changes ${pc(s.edgeChangeRate)} across 1 degree lines vs ${pc(s.controlChangeRate)} across control lines 0.05-0.1 degree away (ratio ${s.ratio}; ${pc(s.insideChangeRate)} deep inside squares); forest/not ${pc(s.edgeForestChangeRate)} vs ${pc(s.controlForestChangeRate)}`);
+  const sp = k.speckle;
+  lines.push(`speckle: ${pc(sp.lone)} of land cells differ from every neighbour (forest/not ${pc(sp.loneForest)}); ${pc(sp.smallPatch)} in patches under 5 cells; ${sp.meanPatch} cells per patch`);
   return lines;
 }

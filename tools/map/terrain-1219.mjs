@@ -9,7 +9,9 @@
 //    is conifer, comes from SpatioCompo and is met cell by cell.
 //   "Exact forest edges: placed by a rule from today's land cover, terrain and rivers; not a
 //    historical map" - WHICH 1 km cells inside a 1 degree cell are forest, and which forest is
-//    conifer, is decided by the scores below. Nobody mapped the forest edges of 1219.
+//    conifer, is decided by the scores below. Nobody mapped the forest edges of 1219. The scores
+//    are smoothed over a few km and tiny islands are tidied away (tools/map/tidy.mjs), so the
+//    rule paints forest blocks and clearings, not single cells.
 //
 // Licence: the pollen map is CC BY-SA 4.0, so this grid is too. It may also use CC BY inputs
 // (WorldCover, GLWD) and public-domain ones (GEBCO, Natural Earth), but never OpenStreetMap
@@ -19,6 +21,7 @@
 import { blendAll, latticePlaces, pollenLattice } from './pollen-field.mjs';
 import { solveQuota } from './quota.mjs';
 import { cellNoise, distanceTo, maskedBlur } from './terrain-fields.mjs';
+import { absorbSmallPatches, edgeScore } from './tidy.mjs';
 
 /** Class codes, as M1's map stores them (src/ui/map/terrain.js). 1 (lake) is not used here. */
 export const CLASS = Object.freeze({ sea: 0, open: 2, conifer: 3, mixed: 4, marsh: 5, heath: 6 });
@@ -38,6 +41,8 @@ export const TERRAIN_PARAMS = Object.freeze({
   riverMarshKm: 2, // ...and favours marsh when this close to a Natural Earth river
   riverMarshVote: 3, // how much a marsh neighbour's vote counts there
   tolerance: 0.005, // the quota solver aims for every square within half a point
+  minPatch: 8, // forest, clearings, and pine or broadleaf stands smaller than this many cells
+  // join what surrounds them; each square then gets its share back by moving patch edges
   forest: Object.freeze({
     tree: 3, // today's tree cover: strong. Old forest that survives today was surely forest then.
     crop: -1.5, // today's cropland: the best soils, cleared first and longest
@@ -47,8 +52,10 @@ export const TERRAIN_PARAMS = Object.freeze({
     riverFar: 0.6, // per 10 km from a river or lake: settlement followed the water
     wet: 0.5, // marsh-raw share: wet ground under trees (swamp forest), moderately
     pollen: 1, // the blended pollen forest share itself: leans towards the neighbouring squares
-    noise: 0.5, // soft blobs where nothing else tells cells apart
+    noise: 0.25, // soft blobs where nothing else tells cells apart (smoothing leaves few ties)
     blurKm: 2, // tree and crop are read over a 5 x 5 km window as well as the cell itself
+    smoothKm: 3, // the whole score is then smoothed (two box passes of this radius, near a
+    // Gaussian of this width), so the quota cuts out coherent blocks, not single cells
     seed: 1219,
   }),
   conifer: Object.freeze({
@@ -59,7 +66,8 @@ export const TERRAIN_PARAMS = Object.freeze({
     wet: 0.8,
     north: 0.3, // per 6 degrees of latitude above 54N
     pollen: 1, // the blended pollen conifer share
-    noise: 0.5,
+    noise: 0.25,
+    smoothKm: 3, // as for the forest score: pine stands and oak woods, not single cells
     lowM: 120, // "low" means under about this many metres
     seaKm: 40, // "coastal plain" means within this distance of the sea
     riverFarKm: 15, // "outwash away from rivers" means this far from one
@@ -124,17 +132,36 @@ export function buildTerrain1219(input, p = TERRAIN_PARAMS, onRound = undefined)
     if (terrain[i] === CLASS.open) eligible[i] = 1;
   }
   const forestScore = forestScores(input, eligible, forestField, waterDist, p.forest);
-  const forest = solveQuota({ score: forestScore, eligible, domain, places, target: lattice.forest, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('forest', r, w)) });
+  const forestCut = solveQuota({ score: forestScore, eligible, domain, places, target: lattice.forest, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('forest', r, w)) });
+  const forestIslands = absorbSmallPatches(forestCut.chosen, eligible, cols, rows, p.minPatch);
+  const forest = solveQuota({ score: edgeScore(forestCut.chosen, eligible, forestScore, cols, rows), eligible, domain, places, target: lattice.forest, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('forest edges', r, w)) });
 
   // Conifer or mixed, among the forest just chosen, to each square's conifer share.
   const coniferScore = coniferScores(input, forest.chosen, coniferField, seaDist, waterDist, p.conifer);
-  const conifer = solveQuota({ score: coniferScore, eligible: forest.chosen, domain: forest.chosen, places, target: lattice.coniferShare, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('conifer', r, w)) });
+  const coniferCut = solveQuota({ score: coniferScore, eligible: forest.chosen, domain: forest.chosen, places, target: lattice.coniferShare, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('conifer', r, w)) });
+  const coniferIslands = absorbSmallPatches(coniferCut.chosen, forest.chosen, cols, rows, p.minPatch);
+  const conifer = solveQuota({ score: edgeScore(coniferCut.chosen, forest.chosen, coniferScore, cols, rows), eligible: forest.chosen, domain: forest.chosen, places, target: lattice.coniferShare, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('conifer edges', r, w)) });
   for (let i = 0; i < n; i++) {
     if (forest.chosen[i]) terrain[i] = conifer.chosen[i] ? CLASS.conifer : CLASS.mixed;
   }
 
   const water = fillWaterToday(terrain, waterToday, riverDist, cols, rows, km, p);
-  return { terrain, waterToday, domain, lattice, places, forestField, coniferField, forest, conifer, water };
+  const tidy = { forest: tidyStats(forestCut, forestIslands, forest), conifer: tidyStats(coniferCut, coniferIslands, conifer) };
+  return { terrain, waterToday, domain, lattice, places, forestField, coniferField, forest, conifer, tidy, water };
+}
+
+/**
+ * What the tidy step did, for the checks: the first cut's solver rounds, the islands joined,
+ * and how many cells the edge re-solve then changed.
+ * @param {ReturnType<typeof solveQuota>} cut @param {{ islands: number, cells: number }} islands
+ * @param {ReturnType<typeof solveQuota>} final
+ */
+function tidyStats(cut, islands, final) {
+  let changed = 0;
+  // cut.chosen was changed in place by absorbSmallPatches, so it holds the cut with the islands
+  // joined: the difference from the final choice is the edge cells moved to meet the quotas.
+  for (let i = 0; i < final.chosen.length; i++) if (cut.chosen[i] !== final.chosen[i]) changed++;
+  return { cutRounds: cut.rounds, islands: islands.islands, islandCells: islands.cells, edgeCells: changed };
 }
 
 /**
@@ -179,11 +206,49 @@ function forestScores(input, eligible, pollenForest, riverKm, w) {
         + w.rough * clamp01(input.rough[i] / 25)
         + w.riverFar * clamp01(riverKm[i] / 10)
         + w.wet * (input.marshRaw[i] / 100)
-        + w.pollen * pollenForest[i]
-        + w.noise * cellNoise(c, r, w.seed);
+        + w.pollen * pollenForest[i];
+    }
+  }
+  return smoothThenNoise(score, eligible, cols, rows, Math.round(w.smoothKm / input.cellKm), w.noise, w.seed);
+}
+
+/**
+ * Smooths a score over the cells where `mask` is set, then adds the noise. Today's land cover
+ * changes from one 1 km cell to the next (a field, a wood lot, a village), and cutting a raw
+ * score at a threshold turns that into salt and pepper. Smoothed, the same cut follows the lie
+ * of the land and leaves forest blocks and clearings a few km across.
+ * Smoothing also narrows the spread of the scores. The narrower it is, the more the quota
+ * threshold (one value per square, blended between square centres) decides where the edges go
+ * instead of the land, and the more the squares' pattern could show. So the smoothed score is
+ * stretched back to the raw score's spread (same mean, same standard deviation).
+ * The noise is added after, because it is already smooth; its small per-cell part only breaks ties.
+ * @param {Float32Array} score changed in place @param {Uint8Array} mask
+ * @param {number} cols @param {number} rows @param {number} radius cells; 0 leaves it as it is
+ * @param {number} noise weight @param {number} seed
+ */
+function smoothThenNoise(score, mask, cols, rows, radius, noise, seed) {
+  if (radius > 0) {
+    const smooth = maskedBlur(maskedBlur(score, mask, cols, rows, radius), mask, cols, rows, radius);
+    const raw = spread(score, mask);
+    const now = spread(smooth, mask);
+    const k = now.sd > 0 ? raw.sd / now.sd : 1;
+    for (let i = 0; i < score.length; i++) if (mask[i]) score[i] = raw.mean + (smooth[i] - now.mean) * k;
+  }
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      score[i] = mask[i] ? score[i] + noise * cellNoise(c, r, seed) : 0;
     }
   }
   return score;
+}
+
+/** Mean and standard deviation over the masked cells. @param {Float32Array} v @param {Uint8Array} mask */
+function spread(v, mask) {
+  let n = 0; let s = 0; let s2 = 0;
+  for (let i = 0; i < v.length; i++) if (mask[i]) { n++; s += v[i]; s2 += v[i] * v[i]; }
+  const mean = n ? s / n : 0;
+  return { mean, sd: n ? Math.sqrt(Math.max(0, s2 / n - mean * mean)) : 0 };
 }
 
 /**
@@ -207,11 +272,10 @@ function coniferScores(input, forest, pollenConifer, seaKm, riverKm, w) {
       score[i] = w.sandy * sandy
         + w.wet * (input.marshRaw[i] / 100)
         + w.north * clamp01((input.lat[i] - 54) / 6)
-        + w.pollen * pollenConifer[i]
-        + w.noise * cellNoise(c, r, w.seed);
+        + w.pollen * pollenConifer[i];
     }
   }
-  return score;
+  return smoothThenNoise(score, forest, cols, rows, Math.round(w.smoothKm / input.cellKm), w.noise, w.seed);
 }
 
 /**
