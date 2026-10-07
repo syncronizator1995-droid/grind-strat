@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { readRaw } from './fetch.mjs';
 import { clipRing, featuresIn, fillRings, openRing, project } from './geo.mjs';
 import { COVER_PLANES } from './grid-cover.mjs';
+import { keptLakeCollection, readReview } from './ne-water-1219.mjs';
 import { encodePng } from './png.mjs';
 import { DERIVED, GRID_1KM, GRID_2KM } from './resample.mjs';
 import { MAP } from './projection.mjs';
@@ -26,8 +27,9 @@ async function landMask() {
   for (const [id, value] of /** @type {const} */ ([['ne-land', 1], ['ne-lakes', 0]])) {
     const geo = JSON.parse((await readRaw(id)).data.toString('utf8'));
     /** @type {number[][]} */ const rings = [];
-    for (const f of featuresIn(geo, 'polygon')) {
-      if (id === 'ne-lakes' && String(f.props.featurecla).toLowerCase().includes('reservoir')) continue;
+    // Only the lakes of 1219, as the reviewed list keeps them (the water block draws the same).
+    const shapes = id === 'ne-lakes' ? keptLakeCollection(geo, await readReview()) : geo;
+    for (const f of featuresIn(shapes, 'polygon')) {
       for (const part of f.parts) {
         const ring = clipRing(openRing(project(part)), cols * cell, rows * cell);
         if (ring.length) rings.push(ring);

@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url';
 import { clipRing, featuresIn, openRing, project } from './geo.mjs';
 
 export const REVIEW_FILE = 'tools/map/ne-water-1219.json';
+/** The list's full path on disk. */
+export const REVIEW_PATH = fileURLToPath(new URL('./ne-water-1219.json', import.meta.url));
 
 /**
  * @typedef {object} LakeEntry one reviewed lake polygon
@@ -35,7 +37,7 @@ export const REVIEW_FILE = 'tools/map/ne-water-1219.json';
 
 /** @returns {Promise<Review>} */
 export async function readReview() {
-  return JSON.parse(await readFile(fileURLToPath(new URL('./ne-water-1219.json', import.meta.url)), 'utf8'));
+  return JSON.parse(await readFile(REVIEW_PATH, 'utf8'));
 }
 
 /** @param {any} geometry @returns {number[][][][]} each polygon's rings, outer ring first */

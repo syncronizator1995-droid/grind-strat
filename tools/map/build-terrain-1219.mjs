@@ -9,6 +9,7 @@
 // in DERIVED_INPUTS and NE_INPUTS below. It must never read OpenStreetMap data (ODbL cannot be
 // mixed into CC BY-SA); test/map-terrain.test.js checks this file's imports for that.
 
+import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +18,7 @@ import { clipLine, clipRing, featuresIn, fillRings, openRing, project, ringArea2
 import { inputRecord } from './grid-sources.mjs';
 import { encodePng } from './png.mjs';
 import { crop } from './preview-grids.mjs';
+import { keptLakeCollection, readReview, REVIEW_FILE, REVIEW_PATH } from './ne-water-1219.mjs';
 import { MAP } from './projection.mjs';
 import { DERIVED, GRID_1KM, GRID_2KM, writeGrid } from './resample.mjs';
 import { buildTerrain1219, CLASS, CLASS_NAMES, TERRAIN_PARAMS } from './terrain-1219.mjs';
@@ -94,9 +96,10 @@ function landMask(land) {
 }
 
 /**
- * Cells touched by Natural Earth river centre lines, and by Natural Earth lakes (reservoirs left
- * out: they were not there in 1219), for "distance from water".
- * @param {any} rivers @param {any} lakes
+ * Cells touched by Natural Earth river centre lines, and by Natural Earth lakes, for "distance
+ * from water". The lakes are only the ones of 1219, as the reviewed list keeps them (modern
+ * reservoirs out, natural lakes in), the same lakes the water block draws.
+ * @param {any} rivers @param {any} lakes only the kept lakes
  */
 function waterMasks(rivers, lakes) {
   const { cols, rows, cell } = GRID_1KM;
@@ -118,7 +121,6 @@ function waterMasks(rivers, lakes) {
   mask = new Uint8Array(cols * rows);
   /** @type {number[][]} */ const rings = [];
   for (const f of featuresIn(lakes, 'polygon')) {
-    if (String(f.props.featurecla).toLowerCase().includes('reservoir')) continue;
     for (const part of f.parts) {
       const ring = openRing(project(part));
       walk([...ring, ring[0], ring[1]]);
@@ -172,7 +174,7 @@ export async function loadInputs() {
     return cover.data.subarray(k * cells, (k + 1) * cells);
   };
   const land = landMask(await readNe('ne-land'));
-  const { rivers, lakes } = waterMasks(await readNe('ne-rivers'), await readNe('ne-lakes'));
+  const { rivers, lakes } = waterMasks(await readNe('ne-rivers'), keptLakeCollection(await readNe('ne-lakes'), await readReview()));
   const height = upsample(h2, GRID_2KM.cols, GRID_2KM.rows, cols, rows, 2);
   for (let i = 0; i < height.length; i++) if (height[i] < 0) height[i] = 0; // land below sea level: polders
   const rough = upsample(roughness(h2, GRID_2KM.cols, GRID_2KM.rows), GRID_2KM.cols, GRID_2KM.rows, cols, rows, 2);
@@ -272,6 +274,8 @@ async function main() {
     inputs.push({ file: `data/raw/derived/${name}`, sources: meta.sources, sidecarParams: meta.params });
   }
   for (const id of NE_INPUTS) inputs.push({ source: id, ...(await inputRecord(id)) });
+  const review = await readFile(REVIEW_PATH);
+  inputs.push({ file: REVIEW_FILE, what: 'which Natural Earth lakes count for 1219', sha256: createHash('sha256').update(review).digest('hex') });
   await writeGrid(OUT_NAME, built.terrain, {
     cols: GRID_1KM.cols,
     rows: GRID_1KM.rows,
@@ -280,7 +284,7 @@ async function main() {
     type: 'uint8',
     unit: 'terrain class',
     classes: CLASS_NAMES,
-    classNotes: 'Class 1 (lake) is not used: the game draws lakes from the separate OpenStreetMap block, which must never be mixed into this CC BY-SA grid. Cells that are water today but land on the Natural Earth coast carry the class of their dry neighbours.',
+    classNotes: 'Class 1 (lake) is not used: the game draws lakes from the separate water block (from Natural Earth in M2, from OpenStreetMap later), which must never be mixed into this CC BY-SA grid. Cells that are water today but land on the Natural Earth coast carry the class of their dry neighbours.',
     sources: TERRAIN_SOURCES,
     licence: 'CC-BY-SA-4.0',
     licenceNote: 'Share-alike because the forest shares come from SpatioCompo (CC BY-SA 4.0). Also uses CC BY 4.0 (ESA WorldCover, GLWD v2) and public-domain (GEBCO, Natural Earth) inputs. No OpenStreetMap data.',
