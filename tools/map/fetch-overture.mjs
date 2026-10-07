@@ -19,7 +19,7 @@
 // and only ever goes into src/data/odbl/.
 
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ensureProxy, getWithRetry, loadManifest, mergeRanges, RAW, saveManifest, sha256, traffic } from './fetch-grids.mjs';
@@ -344,6 +344,20 @@ async function chooseRelease(newest) {
   return run;
 }
 
+/**
+ * What the cache holds for a release: one window per request that was ever made for it.
+ * @param {string} release
+ */
+async function cachedTotals(release) {
+  const m = await loadManifest();
+  let requests = 0; let bytes = 0;
+  for (const [k, e] of Object.entries(m)) {
+    if (!k.startsWith(`${MANIFEST_PREFIX}/${release}/`)) continue;
+    for (const w of Object.keys(e.windows ?? {})) { requests++; bytes += Number(w.split('+')[1]); }
+  }
+  return { requests, bytes };
+}
+
 /** @param {number} bytes */
 const mb = (bytes) => `${(bytes / 1e6).toFixed(1)} MB`;
 
@@ -384,7 +398,10 @@ async function main() {
   await Promise.all([worker(), worker(), worker()]);
   // Same order on every run, whatever order the files finished in.
   lines.sort();
-  await writeFile(`${outPath}.tmp`, `${lines.join('\n')}\n`);
+  // Line by line: the whole text is bigger than the longest string JavaScript allows.
+  const out = await open(`${outPath}.tmp`, 'w');
+  for (let i = 0; i < lines.length; i += 1000) await out.write(`${lines.slice(i, i + 1000).join('\n')}\n`);
+  await out.close();
   await rename(`${outPath}.tmp`, outPath);
   const meta = {
     release: run.release,
@@ -401,6 +418,7 @@ async function main() {
     licences: Object.fromEntries(tally.licences),
     subtypeClassInWindow: Object.fromEntries([...tally.scanned.entries()].sort((a, b) => b[1] - a[1])),
     lastRun: { requests: traffic.requests, bytes: traffic.bytes },
+    cached: await cachedTotals(run.release),
   };
   await writeFile(join(outDir, 'water-rows.meta.json'), `${JSON.stringify(meta, null, 1)}\n`);
   console.log(`${lines.length} rows (${JSON.stringify(rowsBySubtype)}) from ${groups} of ${groupsTotal} row groups`);
