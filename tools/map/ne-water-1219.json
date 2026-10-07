@@ -93,6 +93,18 @@
     { "from": "Klarlven", "to": "Klarälven", "why": "Natural Earth lost the letter ä" },
     { "from": "Motala strm", "to": "Motala ström", "why": "Natural Earth lost the letter ö" },
     { "from": "Glma", "to": "Glåma", "why": "Natural Earth lost the letter å (Glåma is the other Norwegian name of the Glomma)" },
-    { "from": "Dnepre", "to": "Dnepr", "why": "a typing slip in Natural Earth: the upper Dnieper, in Russia, is the Dnepr" }
+    { "from": "Dnepre", "to": "Dnipro", "why": "a typing slip in Natural Earth for the upper Dnieper, in Russia; shown under the name Natural Earth gives the rest of the river (Dnipro), so the map has one Dnieper, not two" },
+    { "from": "Kokemenjoki", "to": "Kokemäenjoki", "why": "Natural Earth lost the letter ä" },
+    { "from": "Neman", "to": "Nemunas", "keepOld": true, "why": "Natural Earth's own English and other names for this river are Nemunas, the local name; its main name, Neman (the Russian and Belarusian name), stays among the other names" }
+  ],
+  "riverPartsAbout": "River pieces that Natural Earth gives the wrong river's name, matched by that name and the piece's first and last points (lon, lat, 2 decimals). show: the name to show ('' for none). The pack fails if an entry matches no piece on the map. Natural Earth's 'Vorma' covers three rivers: the real Vorma (Minnesund to Årnes, 11.23,60.41 to 11.46,60.16) keeps its name.",
+  "riverParts": [
+    { "name": "Vorma", "ends": [[12.03, 60.52], [11.13, 59.91]], "show": "Glomma", "why": "the Glomma from Kongsvinger (where Natural Earth's own Glomma ends) down to Øyeren" },
+    { "name": "Vorma", "ends": [[11.22, 59.65], [11.13, 59.91]], "show": "Glomma", "why": "the line through Øyeren, which the Glomma flows through" },
+    { "name": "Vorma", "ends": [[11.22, 59.65], [11.22, 59.48]], "show": "Glomma", "why": "the Glomma below Øyeren" },
+    { "name": "Vorma", "ends": [[11.17, 59.39], [11.22, 59.48]], "show": "Glomma", "why": "the line through the lake east of Sarpsborg, on the Glomma's course" },
+    { "name": "Vorma", "ends": [[11.17, 59.39], [10.94, 59.18]], "show": "Glomma", "why": "the Glomma down to the sea at Fredrikstad" },
+    { "name": "Vorma", "ends": [[8.44, 62.24], [10.43, 61.12]], "show": "Gudbrandsdalslågen", "why": "the river down Gudbrandsdalen from Lesja to Lillehammer, where it enters Mjøsa" },
+    { "name": "Vorma", "ends": [[11.23, 60.41], [10.43, 61.12]], "show": "", "why": "the line through Mjøsa, from Lillehammer to Minnesund: the lake carries its own name" }
   ]
 }

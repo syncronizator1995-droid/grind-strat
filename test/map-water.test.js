@@ -103,6 +103,32 @@ describe('the reviewed lakes of 1219', () => {
     assert.throws(() => reviewLakes(lakes, /** @type {any} */ (bare)), /says no "why"[\s\S]*needs "what"/);
   });
 
+  it('shows a river under its local name when Natural Earth has it, keeping the main name among the others', () => {
+    const { lakes, rivers, review } = sample();
+    const fixed = { ...review, riverNames: [...review.riverNames, { from: 'Neman', to: 'Nemunas', keepOld: true, why: 'local name' }] };
+    const water = neWaterFrom(rivers, lakes, fixed);
+    assert.deepEqual(water.rivers[1].name, 'Nemunas');
+    assert.deepEqual(water.rivers[1].names, { en: 'Nemunas', ne: 'Neman' });
+  });
+
+  it('renames one piece of a river by its ends, joins it to the river it belongs to, and stops on a piece that is not there', () => {
+    const { lakes, review } = sample();
+    const twoPieces = {
+      type: 'Feature', properties: { name: 'Vorma', name_en: 'Vorma' },
+      geometry: { type: 'MultiLineString', coordinates: [[[23, 54.5], [23.5, 54.8]], [[24, 55], [24.5, 55.3]]] },
+    };
+    const rivers = collection([twoPieces, river('Glomma', { name_en: 'Glåma' })]);
+    /** @type {Review} */
+    const fixed = { ...review, riverNames: [], riverParts: [{ name: 'Vorma', ends: [[24, 55], [24.5, 55.3]], show: 'Glomma', why: 'the lower Glomma' }] };
+    const water = neWaterFrom(rivers, lakes, fixed);
+    const byName = Object.fromEntries(water.rivers.map((r) => [r.name, r]));
+    assert.equal(byName.Vorma.lines.length, 1, 'the other piece keeps its name');
+    assert.equal(byName.Glomma.lines.length, 2, 'the renamed piece joins the Glomma');
+    assert.deepEqual(byName.Glomma.names, { en: 'Glåma' }, 'and brings none of the wrong river\'s names');
+    const gone = { ...fixed, riverParts: [{ name: 'Vorma', ends: /** @type {[[number, number], [number, number]]} */ ([[1, 2], [3, 4]]), show: 'x', why: 'y' }] };
+    assert.throws(() => neWaterFrom(rivers, lakes, gone), /renames river pieces that are not on the map: Vorma 1,2 to 3,4/);
+  });
+
   it('stops on a river-name repair that matches no river', () => {
     const { lakes, rivers, review } = sample();
     assert.throws(() => neWaterFrom(rivers, lakes, { ...review, riverNames: [{ from: 'Nowhere', to: 'x', why: 'y' }] }), /repairs river names that are not on the map: Nowhere/);

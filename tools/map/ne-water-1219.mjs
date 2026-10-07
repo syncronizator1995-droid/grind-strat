@@ -9,6 +9,7 @@
 // matches nothing, stops the build with a list of what to review. A new Natural Earth release
 // therefore cannot slip an unreviewed reservoir onto the map.
 
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { clipRing, featuresIn, openRing, project } from './geo.mjs';
@@ -27,8 +28,13 @@ export const REVIEW_PATH = fileURLToPath(new URL('./ne-water-1219.json', import.
  * @property {number} [copies] identical copies of the polygon in Natural Earth
  * @property {string} [toCheck]
  *
- * @typedef {{ from: string, to: string, why: string }} NameFix
- * @typedef {{ lakes: LakeEntry[], riverNames: NameFix[] }} Review
+ * @typedef {{ from: string, to: string, why: string, keepOld?: boolean }} NameFix keepOld: Natural
+ *   Earth's main name was not broken, only not the one to show: it stays among the other names
+ * @typedef {object} PartFix a river piece that Natural Earth gives the wrong river's name
+ * @property {string} name Natural Earth's (repaired) name for it
+ * @property {[[number, number], [number, number]]} ends its first and last points, lon and lat, 2 decimals
+ * @property {string} show the name to show ('' for none) @property {string} why
+ * @typedef {{ lakes: LakeEntry[], riverNames: NameFix[], riverParts?: PartFix[] }} Review
  *
  * @typedef {object} ReviewedLake a kept Natural Earth lake feature
  * @property {any} feature the GeoJSON feature @property {LakeEntry} entry
@@ -39,6 +45,13 @@ export const REVIEW_PATH = fileURLToPath(new URL('./ne-water-1219.json', import.
 export async function readReview() {
   return JSON.parse(await readFile(REVIEW_PATH, 'utf8'));
 }
+
+/**
+ * A fingerprint of the list's lakes only (not its river names): what the 1219 terrain grid reads.
+ * The grid and the terrain block record it, so a grid built from an older lake list is caught.
+ * @param {Review} review
+ */
+export const lakeListSha256 = (review) => createHash('sha256').update(JSON.stringify(review.lakes)).digest('hex');
 
 /** @param {any} geometry @returns {number[][][][]} each polygon's rings, outer ring first */
 const polygonsOf = (geometry) => (geometry?.type === 'Polygon' ? [geometry.coordinates] : geometry?.type === 'MultiPolygon' ? geometry.coordinates : []);
@@ -159,6 +172,21 @@ export function fixRiverNames(props, fixes) {
     if (fix) out[key] = fix.to;
   }
   return out;
+}
+
+/**
+ * The repair for one piece of a river, matched by its name and both ends: a name repair alone
+ * would rename every piece, and Natural Earth's "Vorma" also covers the lower Glomma and the
+ * Gudbrandsdalslågen.
+ * @param {string} name the piece's name after fixRiverNames @param {number[][]} part lon/lat points
+ * @param {PartFix[]} fixes
+ * @returns {PartFix | undefined}
+ */
+export function partFix(name, part, fixes) {
+  const first = part[0].map(round2);
+  const last = part[part.length - 1].map(round2);
+  const same = (/** @type {number[]} */ a, /** @type {number[]} */ b) => a[0] === b[0] && a[1] === b[1];
+  return fixes.find((f) => f.name === name && same(f.ends[0], first) && same(f.ends[1], last));
 }
 
 /**

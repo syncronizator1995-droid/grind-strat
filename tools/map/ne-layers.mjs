@@ -7,7 +7,7 @@
 
 import { readRaw } from './fetch.mjs';
 import { clipLine, clipRing, featuresIn, openRing, project, ringArea2, simplify, simplifyRing } from './geo.mjs';
-import { fixRiverNames, readReview, reviewLakes, unusedRiverFixes } from './ne-water-1219.mjs';
+import { fixRiverNames, partFix, readReview, reviewLakes, unusedRiverFixes } from './ne-water-1219.mjs';
 
 /** Islets and ponds smaller than this many square game units are left out (about 0.4 km²). */
 const MIN_AREA = 40;
@@ -93,14 +93,35 @@ export function neWaterFrom(riverData, lakeData, review) {
   if (stale.length) throw new Error(`tools/map/ne-water-1219.json repairs river names that are not on the map: ${stale.map((f) => f.from).join(', ')}`);
   /** @type {Map<string, { name: string, names: Record<string, string>, wikidata: string | null, lines: number[][] }>} */
   const rivers = new Map();
-  for (const f of onMapRivers) {
+  const partFixes = review.riverParts ?? [];
+  /** @type {Set<import('./ne-water-1219.mjs').PartFix>} */
+  const usedParts = new Set();
+  onMapRivers.forEach((f, featureIndex) => {
     const props = fixRiverNames(f.props, review.riverNames);
-    const name = String(props.name ?? '');
-    const key = name || `unnamed-${rivers.size}`;
-    const river = rivers.get(key) ?? { name, names: neNames(props, name), wikidata: props.wikidataid ?? null, lines: /** @type {number[][]} */ ([]) };
-    for (const part of f.parts) for (const line of clipLine(simplify(project(part), 1))) if (line.length >= 4) river.lines.push(line);
-    if (river.lines.length) rivers.set(key, river);
-  }
+    for (const part of f.parts) {
+      const lines = clipLine(simplify(project(part), 1)).filter((line) => line.length >= 4);
+      if (!lines.length) continue;
+      const fix = partFix(String(props.name ?? ''), part, partFixes);
+      if (fix) usedParts.add(fix);
+      // A piece renamed by place belongs to another river: Natural Earth's other names for it
+      // (and its Wikidata id) are the wrong river's, so it brings none.
+      const name = fix ? fix.show : String(props.name ?? '');
+      // Unnamed pieces stay grouped by the feature (or the repair) they come from.
+      const key = name || (fix ? `unnamed-repair-${partFixes.indexOf(fix)}` : `unnamed-${featureIndex}`);
+      const river = rivers.get(key) ?? { name, names: {}, wikidata: null, lines: /** @type {number[][]} */ ([]) };
+      if (!fix) {
+        // Pieces of one river may carry different extra names: keep the first piece's, add the rest.
+        /** @type {Record<string, string>} */
+        const old = review.riverNames.some((x) => x.keepOld && x.from === f.props.name) ? { ne: String(f.props.name) } : {};
+        river.names = { ...neNames(props, name), ...old, ...river.names };
+        river.wikidata ??= props.wikidataid ?? null;
+      }
+      river.lines.push(...lines);
+      rivers.set(key, river);
+    }
+  });
+  const unusedParts = partFixes.filter((f) => !usedParts.has(f));
+  if (unusedParts.length) throw new Error(`tools/map/ne-water-1219.json renames river pieces that are not on the map: ${unusedParts.map((f) => `${f.name} ${f.ends.map((e) => e.join(',')).join(' to ')}`).join('; ')}`);
   /** @type {Map<string, { name: string, names: Record<string, string>, wikidata: string | null, rings: number[][], area2: number }>} */
   const joined = new Map();
   for (const { feature, entry, show } of reviewLakes(lakeData, review)) {
