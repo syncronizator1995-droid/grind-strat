@@ -23,8 +23,8 @@ export const BLOCK_FORMAT = 1;
 
 /**
  * Every block the pack tool can write, by kind, in the order the build inlines them. A kind with
- * several files ships the first one that exists: the OpenStreetMap water once it has been built,
- * until then the interim Natural Earth water.
+ * several files ships the first one that exists: the OpenStreetMap water once it has been built
+ * (the next milestone), until then the Natural Earth water M2 ships.
  */
 export const BLOCK_FILES = Object.freeze({
   base: ['src/data/map/base.json'],

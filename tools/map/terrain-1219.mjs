@@ -285,7 +285,7 @@ function coniferScores(input, forest, pollenConifer, seaKm, riverKm, w) {
  * because river edges were wet meadow before dams and drainage. Cells further out, inside big
  * lakes, all take the class most common on that water body's shore band: spreading neighbours
  * inwards cell by cell would draw star-shaped streaks across a lake like Ladoga. Natural lakes
- * are drawn over this by the OpenStreetMap lake layer anyway.
+ * are drawn over this by the water block's lakes anyway.
  * @param {Uint8Array} terrain changed in place @param {Uint8Array} waterToday
  * @param {Float32Array} riverKm @param {number} cols @param {number} rows @param {number} km
  * @param {typeof TERRAIN_PARAMS} p

@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { licenceProblems } from '../tools/build.mjs';
 import { attributionInputs, creditsText, makeAttribution } from '../tools/map/attribution.mjs';
 import { BLOCK_FILES, FINGERPRINTS, presentBlockFiles, ROOT, sha256, shippedBlockFiles } from '../tools/map/block.mjs';
 import { loadMap, loadWater, noTimes } from '../src/ui/map/load.js';
@@ -41,6 +42,12 @@ describe('the data blocks', () => {
       assert.ok(!b.notice.includes('//'), `${path}: the notice may not contain "//"`);
       for (const id of b.sources) assert.ok(sourceOf(id), `${path} names unknown source ${id}`);
     }
+  });
+
+  it('are all the real data: none is an interim stand-in, and the strict licence guard passes', () => {
+    const blocks = shippedBlockFiles().map(({ kind, path }) => ({ kind, text: read(path) }));
+    for (const { kind, text } of blocks) assert.ok(!JSON.parse(text).interim, `the ${kind} block is interim`);
+    assert.deepEqual(licenceProblems(blocks, sources), []);
   });
 
   it('keep the licences apart: OpenStreetMap only in the ODbL folder, share-alike in by-sa', () => {
@@ -105,6 +112,14 @@ describe('the data blocks', () => {
       assert.ok(lake.at[0] >= 0 && lake.at[0] <= 15724 && lake.at[1] >= 0 && lake.at[1] <= 13272, lake.name);
       assert.ok(lake.areaKm2 > 0, lake.name);
     }
+    // Lakes around 1219: modern reservoirs out, natural lakes in, whatever Natural Earth's class says.
+    const lakes = water.lakeInfo.map((l) => l.name);
+    for (const gone of ['Kauno marios', 'Kiev Reservoir', 'Kremenchuk Reservoir']) assert.ok(!lakes.includes(gone), `${gone} is a modern reservoir`);
+    assert.ok(!lakes.some((n) => /reservoir/i.test(n)), 'no reservoir by name');
+    if (block.sources.includes('ne-lakes')) {
+      for (const must of ['Lake Ilmen', 'Mjøsa', 'Vistula Lagoon', 'Lake Peipus', 'Võrtsjärv']) assert.ok(lakes.includes(must), `no lake called ${must}`);
+      assert.equal(lakes.filter((n) => n === 'Vistula Lagoon').length, 1, 'the lagoon\'s two halves are one lake');
+    }
     // Biggest first: names are placed in this order.
     for (let i = 1; i < water.riverInfo.length; i++) assert.ok(water.riverInfo[i - 1].lengthKm >= water.riverInfo[i].lengthKm);
     for (let i = 1; i < water.lakeInfo.length; i++) assert.ok(water.lakeInfo[i - 1].areaKm2 >= water.lakeInfo[i].areaKm2);
@@ -132,7 +147,16 @@ describe('the credits', () => {
     if (shippedBlockFiles().some((f) => f.path.startsWith('src/data/odbl/'))) {
       assert.match(credits.mapLine, /^© OpenStreetMap contributors/);
       assert.ok(credits.odblOffer?.includes('src/data/odbl/'));
+    } else {
+      // The map line names what is shown: no OpenStreetMap while none of its data ships.
+      assert.doesNotMatch(credits.mapLine, /OpenStreetMap/);
+      assert.equal(credits.odblOffer, null);
     }
+    if (shipped('water').block.sources.includes('ne-rivers')) {
+      assert.match(credits.mapLine, /Natural Earth/, 'the rivers, lakes and coast shown are Natural Earth\'s');
+      assert.ok(credits.about.some((/** @type {string} */ l) => /Natural Earth's simpler set/.test(l) && /OpenStreetMap come next/.test(l)));
+    }
+    assert.equal(credits.interim.length, 0, 'no interim warning while every block is the real data');
     assert.match(credits.font.licenceName, /Open Font License/);
   });
 });

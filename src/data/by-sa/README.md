@@ -11,7 +11,7 @@ LICENSE.md in this folder).
   56°N 23°E, defined in tools/map/projection.mjs).
 - One class per cell: 0 sea, 2 open land, 3 conifer forest, 4 mixed and broadleaf forest,
   5 marsh and bog, 6 heath and dunes. (1 is not used: lakes are drawn from the separate
-  OpenStreetMap block.)
+  water block, never mixed into this grid.)
 - The file is a JSON data block: `licence`, `notice`, `sources` (ids in tools/map/sources.json)
   and `meta` in plain JSON, and the grid itself in `bundle`: base64 text of zlib-deflated bytes,
   in the bundle format of src/ui/map/codec.js (`unbundleBlocks`), layer `terrain`, one byte per

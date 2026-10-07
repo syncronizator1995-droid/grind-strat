@@ -27,7 +27,9 @@ their licences ask:
 The data is given as it is, with no warranty, and no data provider endorses Grind Strat.
 
 This folder holds nothing from OpenStreetMap: OpenStreetMap data (ODbL 1.0) cannot be mixed with
-CC BY-SA data, so the game's rivers and lakes live in their own folder, `src/data/odbl/`.
+CC BY-SA data. The game's rivers and lakes live in their own block: today Natural Earth's (public
+domain, `src/data/map/water-ne.json`); once the OpenStreetMap ones come, in their own folder,
+`src/data/odbl/`.
 
 The rest of the Grind Strat repository has its own terms (see ATTRIBUTION.md at the repository
 root for every dataset and folder).

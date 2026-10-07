@@ -27,7 +27,10 @@ import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleB
 
 /**
  * @typedef {object} RiverInfo
- * @property {string} name today's local name @property {Record<string, string>} names
+ * @property {string} name the name the map shows: the local one where the data has it, otherwise
+ *   the English one ('' for none)
+ * @property {Record<string, string>} names the other names, by language code; Natural Earth's
+ *   also "alt" (its other names, "|" between them) and "ne" (its main name, when another is shown)
  * @property {string | null} wikidata @property {number} lengthKm
  */
 

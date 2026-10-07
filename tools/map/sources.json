@@ -18,7 +18,7 @@
         "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
         "version": "5.1.2",
         "short": "Natural Earth",
-        "onMap": false,
+        "onMap": true,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
         "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; islets under about 0.4 km² dropped.",
@@ -43,10 +43,10 @@
         "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
         "version": "5.1.2",
         "short": "Natural Earth",
-        "onMap": false,
+        "onMap": true,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
-        "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA) and simplified to about 200 m.",
+        "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA) and simplified to about 200 m; five river names repaired where Natural Earth lost letters (Göta älv, Klarälven, Motala ström, Glåma) or mistyped one (Dnepre, shown as Dnepr).",
         "licenceName": "Public domain",
         "licenceUri": "www.naturalearthdata.com/about/terms-of-use/"
       }
@@ -68,10 +68,10 @@
         "owner": "Natural Earth: made by volunteer cartographers, supported by NACIS (the North American Cartographic Information Society)",
         "version": "5.1.2",
         "short": "Natural Earth",
-        "onMap": false,
+        "onMap": true,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
-        "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; reservoirs left out (not there in 1219).",
+        "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m. Every lake on the map reviewed by hand for 1219, whatever Natural Earth's own class says: modern reservoirs left out (not there in 1219), natural lakes kept even where a dam regulates them today. The two halves of the Vistula Lagoon joined under that name; Lake Il'Men' shown as Lake Ilmen; one lake whose names disagree shown unnamed.",
         "licenceName": "Public domain",
         "licenceUri": "www.naturalearthdata.com/about/terms-of-use/"
       }

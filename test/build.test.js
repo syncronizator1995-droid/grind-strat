@@ -8,9 +8,8 @@ import { describe, it } from 'node:test';
 import { build, dataElements, findAddressesInData, findNetworkUses, findScriptBreakers, ICONS, licenceProblems, MANIFEST } from '../tools/build.mjs';
 import { blockText, makeBlock } from '../tools/map/block.mjs';
 
-// The real blocks may be interim stand-ins while the data is being made; the tests that build the
-// real game preview them, and the licence guard has tests of its own below.
-const PREVIEW = { allowInterim: true };
+// The tests that build the real game build it strictly, as a release does: every real block must
+// pass the licence guard (none is an interim stand-in). The guard has tests of its own below.
 
 describe('build safety checks', () => {
   it('stops a script that contains </script', () => {
@@ -78,7 +77,7 @@ describe('build', () => {
       ]) {
         const entry = join(dir, name);
         await writeFile(entry, code);
-        await assert.rejects(build({ entry, out: join(dir, 'out'), ...PREVIEW }), /build stopped:/, name);
+        await assert.rejects(build({ entry, out: join(dir, 'out') }), /build stopped:/, name);
       }
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -89,9 +88,9 @@ describe('build', () => {
     const out = await mkdtemp(join(tmpdir(), 'grind-strat-id-'));
     const name = MANIFEST.name;
     try {
-      const first = await build({ out, ...PREVIEW });
+      const first = await build({ out });
       MANIFEST.name = `${name} (test)`;
-      const second = await build({ out, ...PREVIEW });
+      const second = await build({ out });
       assert.notEqual(first.build, second.build);
     } finally {
       MANIFEST.name = name;
@@ -102,7 +101,7 @@ describe('build', () => {
   it('makes one self-contained game file plus the install files', async () => {
     const out = await mkdtemp(join(tmpdir(), 'grind-strat-build-'));
     try {
-      const result = await build({ out, ...PREVIEW });
+      const result = await build({ out });
       const html = await readFile(result.file, 'utf8');
       assert.ok(html.startsWith('<!doctype html>'));
       assert.ok(html.includes('data:font/woff2;base64,'), 'font inlined');

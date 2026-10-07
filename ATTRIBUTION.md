@@ -6,15 +6,13 @@ hand. The game shows the same credits on its Credits sheet, and a short credit l
 
 ## Which licence covers which folder
 
-- `src/data/odbl/`: Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes (see its LICENSE.md and README.md). Nothing else is mixed into it.
 - `src/data/by-sa/`: Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid (see its LICENSE.md and README.md).
-- `src/data/map/`: Public domain data: Natural Earth and GEBCO (GEBCO asks to be credited; not for navigation).
+- `src/data/map/`: Public domain data: Natural Earth (land, coast, rivers and lakes) and GEBCO (GEBCO asks to be credited; not for navigation).
 - `src/ui/fonts/`: SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).
 - `everything else`: The code and the rest of the repository are under the repository's own licence (see README.md).
 
 The game's combined data bundle (the way the blocks are put together in the game file) is also offered
-under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/), while the contents of the ODbL block
-(`src/data/odbl/`) stay under the ODbL 1.0.
+under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). No OpenStreetMap data ships yet.
 
 All data is used as it is, with no warranty. No data provider endorses this game. The GEBCO grid
 is not for navigation or any other purpose involving safety at sea.
@@ -23,7 +21,7 @@ is not for navigation or any other purpose involving safety at sea.
 
 - `src/data/map/base.json` (public-domain): Land, coast, heights and sea depths. Notice: "Land, coast, heights and sea depths for Grind Strat. Sources: Made with Natural Earth (Public domain, www.naturalearthdata.com/about/terms-of-use/); GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa) (Public domain (GEBCO Grid terms of use), dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf). Not for navigation. Not endorsed by GEBCO, the IHO or the IOC. Made available as is."
 - `src/data/by-sa/terrain-1219.json` (CC-BY-SA-4.0): The land around 1219: forest, open land, marsh and heath. Notice: "The land around AD 1219 for Grind Strat, 1 km grid: forest share estimated from pollen, edges placed by a rule; marsh from today's peat-soil and wetland maps plus today's open bogs. Shared under CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0/). Sources: Forest around 1219: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022) (CC BY-SA 4.0, creativecommons.org/licenses/by-sa/4.0/); © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0, creativecommons.org/licenses/by/4.0/); Marsh and bog: Global Lakes and Wetlands Database v2 (Lehner et al. 2025), hydrosheds.org/products/glwd (CC BY 4.0, creativecommons.org/licenses/by/4.0/); GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa) (Public domain (GEBCO Grid terms of use), dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf); Made with Natural Earth (Public domain, www.naturalearthdata.com/about/terms-of-use/). Not for navigation. Not endorsed by GEBCO, the IHO or the IOC. Made available as is."
-- `src/data/map/water-ne.json` (public-domain, INTERIM: the release build refuses it): Rivers, lakes and their names. Notice: "INTERIM rivers and lakes for Grind Strat, until the OpenStreetMap ones are ready; reservoirs left out. Sources: Made with Natural Earth (Public domain, www.naturalearthdata.com/about/terms-of-use/)."
+- `src/data/map/water-ne.json` (public-domain): Rivers, lakes and their names. Notice: "Rivers and lakes for Grind Strat around AD 1219: Natural Earth's 1:10m set, with modern reservoirs left out and natural lakes kept, by a reviewed list. Sources: Made with Natural Earth (Public domain, www.naturalearthdata.com/about/terms-of-use/)."
 
 ## Datasets
 
@@ -37,7 +35,7 @@ is not for navigation or any other purpose involving safety at sea.
 - Licence read at: LICENSE.md at tag v5.1.2 of github.com/nvkelso/natural-earth-vector, the repository of Natural Earth's co-author Nathaniel Vaughn Kelso (the owner's own host).
 - Notice: Made with Natural Earth.
 - Citation: Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.
-- Changes we made: Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; islets under about 0.4 km² dropped. For the terrain grid, combined with the other terrain sources into one class per 1 km cell by a rule (src/data/by-sa/README.md says how). Clipped to the map, reprojected to the game's equal-area projection (LAEA) and simplified to about 200 m. Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; reservoirs left out (not there in 1219).
+- Changes we made: Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; islets under about 0.4 km² dropped. For the terrain grid, combined with the other terrain sources into one class per 1 km cell by a rule (src/data/by-sa/README.md says how). Clipped to the map, reprojected to the game's equal-area projection (LAEA) and simplified to about 200 m; five river names repaired where Natural Earth lost letters (Göta älv, Klarälven, Motala ström, Glåma) or mistyped one (Dnepre, shown as Dnepr). Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m. Every lake on the map reviewed by hand for 1219, whatever Natural Earth's own class says: modern reservoirs left out (not there in 1219), natural lakes kept even where a dam regulates them today. The two halves of the Vistula Lagoon joined under that name; Lake Il'Men' shown as Lake Ilmen; one lake whose names disagree shown unnamed.
 - Held in: `src/data/map/base.json`, `src/data/by-sa/terrain-1219.json`, `src/data/map/water-ne.json`, inlined into the game file `dist/grind-strat.html`
 
 ### GEBCO

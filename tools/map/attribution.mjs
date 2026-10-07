@@ -35,18 +35,25 @@ const ABOUT = [
   'Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today\'s land cover, terrain and rivers; they are not from a historical map.',
   'Marsh: from today\'s peat-soil and wetland maps plus today\'s open bogs.',
   'Under modern reservoirs the land shows flat, at today\'s water level.',
-  'Rivers and lakes are today\'s, with today\'s local names; modern reservoirs are left out. Heights and sea depths are today\'s.',
 ];
+/** What the rivers and lakes are, by where the shipped water comes from. */
+const ABOUT_WATER = {
+  osm: ['Rivers and lakes are today\'s, with today\'s local names; modern reservoirs are left out. Heights and sea depths are today\'s.'],
+  ne: [
+    'Rivers and lakes: for now Natural Earth\'s simpler set, with its names (the local name where it has one, otherwise today\'s English name). Fuller rivers and lakes from OpenStreetMap come next.',
+    'Rivers and lakes are today\'s; modern reservoirs are left out and natural lakes kept. Heights and sea depths are today\'s.',
+  ],
+};
 const INTERIM = /** @type {Record<string, string>} */ ({
   terrain: 'Interim: the land cover shown is a stand-in made from today\'s land cover, not yet the land around 1219.',
   water: 'Interim: the rivers and lakes are a simpler stand-in (Natural Earth) until the OpenStreetMap ones are ready.',
 });
 
-/** Which licence covers which folder of the repository. */
+/** Which licence covers which folder of the repository (the ODbL folder only once it ships). */
+const ODBL_FOLDER = ['src/data/odbl/', 'Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes (see its LICENSE.md and README.md). Nothing else is mixed into it.'];
 const FOLDERS = [
-  ['src/data/odbl/', 'Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes (see its LICENSE.md and README.md). Nothing else is mixed into it.'],
   ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid (see its LICENSE.md and README.md).'],
-  ['src/data/map/', 'Public domain data: Natural Earth and GEBCO (GEBCO asks to be credited; not for navigation).'],
+  ['src/data/map/', 'Public domain data: Natural Earth (land, coast, rivers and lakes) and GEBCO (GEBCO asks to be credited; not for navigation).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
   ['everything else', 'The code and the rest of the repository are under the repository\'s own licence (see README.md).'],
 ];
@@ -131,9 +138,11 @@ export function makeAttribution({ sources, blocks, ofl }) {
   const isOsm = (/** @type {Group} */ d) => d.ids.some((id) => sources.find((s) => s.id === id)?.collection === 'osm');
   onMap.sort((a, b) => Number(isOsm(b)) - Number(isOsm(a)));
   const odbl = blocks.find((b) => b.block.licence === 'ODbL-1.0');
+  const water = blocks.find((b) => b.kind === 'water');
+  const osmWater = Boolean(water?.block.sources.some((/** @type {string} */ id) => sources.find((s) => s.id === id)?.collection === 'osm'));
   /** @type {Credits} */
   const credits = {
-    about: ABOUT,
+    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : [])],
     interim: blocks.filter((b) => b.block.interim).map((b) => INTERIM[b.kind] ?? `Interim: the ${b.kind} data is a stand-in.`),
     mapLine: [...onMap.map(short), 'more'].join(' · '),
     datasets: all.map((d) => d.entry),
@@ -158,11 +167,13 @@ function markdownOf(credits, all, blocks) {
     '',
     '## Which licence covers which folder',
     '',
-    ...FOLDERS.map(([folder, what]) => `- \`${folder}\`: ${what}`),
+    ...(credits.odblOffer ? [ODBL_FOLDER, ...FOLDERS] : FOLDERS).map(([folder, what]) => `- \`${folder}\`: ${what}`),
     '',
     'The game\'s combined data bundle (the way the blocks are put together in the game file) is also offered',
-    'under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/), while the contents of the ODbL block',
-    `(\`src/data/odbl/\`) stay under the ODbL 1.0.${credits.odblOffer ? ` The OpenStreetMap-derived data is offered at ${credits.odblOffer}.` : ''}`,
+    ...(credits.odblOffer
+      ? ['under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/), while the contents of the ODbL block',
+        `(\`src/data/odbl/\`) stay under the ODbL 1.0. The OpenStreetMap-derived data is offered at ${credits.odblOffer}.`]
+      : ['under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). No OpenStreetMap data ships yet.']),
     '',
     'All data is used as it is, with no warranty. No data provider endorses this game. The GEBCO grid',
     'is not for navigation or any other purpose involving safety at sea.',

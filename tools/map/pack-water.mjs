@@ -3,10 +3,11 @@
 // point (tools/map/levels.mjs), which river or lake each shape belongs to, and the river and
 // lake info (names, Wikidata id, size, a lake's label point).
 //
-// From the OpenStreetMap extract (data/raw/derived/water-osm.json, made by
-// tools/map/build-water.mjs) it becomes src/data/odbl/water.json, under the ODbL 1.0 and holding
-// nothing from any other source. Until that extract exists, an interim block is made from
-// Natural Earth (public domain) at src/data/map/water-ne.json, marked interim.
+// M2 ships Natural Earth's simpler rivers and lakes (public domain) at src/data/map/water-ne.json,
+// with the lakes of 1219 chosen by the reviewed list in tools/map/ne-water-1219.json. The next
+// milestone brings fuller rivers and lakes from OpenStreetMap: once its extract exists
+// (data/raw/derived/water-osm.json), the block becomes src/data/odbl/water.json, under the
+// ODbL 1.0 and holding nothing from any other source, and the Natural Earth block is removed.
 
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -116,17 +117,18 @@ export function osmWaterBlock(osm) {
   });
 }
 
-/** The interim Natural Earth water block. */
-async function neBlock() {
+export const NE_SOURCES = Object.freeze(['ne-rivers', 'ne-lakes']);
+
+/** The Natural Earth water block, the one M2 ships. */
+export async function neWaterBlock() {
   const { rivers, lakes } = await neWater();
   const { layers, extra } = waterLayers(rivers, lakes);
-  const sources = ['ne-rivers', 'ne-lakes'];
   return makeBlock({
     kind: 'water',
     licence: 'public-domain',
-    notice: `INTERIM rivers and lakes for Grind Strat, until the OpenStreetMap ones are ready; reservoirs left out. ${await madeFrom(sources)}`,
-    sources,
-    interim: true,
+    notice: 'Rivers and lakes for Grind Strat around AD 1219: Natural Earth\'s 1:10m set, with modern reservoirs left out and natural lakes kept, by a reviewed list. '
+      + await madeFrom([...NE_SOURCES]),
+    sources: [...NE_SOURCES],
     meta: { levels: LEVEL_TOLERANCES, rivers: extra.riverInfo.length, lakes: extra.lakeInfo.length },
     layers,
     extra,
@@ -136,5 +138,5 @@ async function neBlock() {
 /** @returns {Promise<{ path: string, block: import('./block.mjs').Block }>} */
 export async function packWater() {
   if (existsSync(OSM_WATER)) return { path: 'src/data/odbl/water.json', block: osmWaterBlock(JSON.parse(await readFile(OSM_WATER, 'utf8'))) };
-  return { path: 'src/data/map/water-ne.json', block: await neBlock() };
+  return { path: 'src/data/map/water-ne.json', block: await neWaterBlock() };
 }
