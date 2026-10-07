@@ -21,7 +21,7 @@
         "onMap": true,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
-        "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m; islets under about 0.4 km² dropped.",
+        "changes": "Land and coast: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 150 m; islets under about 0.4 km² dropped.",
         "licenceName": "Public domain",
         "licenceUri": "www.naturalearthdata.com/about/terms-of-use/"
       }
@@ -46,7 +46,7 @@
         "onMap": true,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
-        "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA) and simplified to about 200 m; five river names repaired where Natural Earth lost letters (Göta älv, Klarälven, Motala ström, Glåma) or mistyped one (Dnepre, shown as Dnepr).",
+        "changes": "Rivers: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 200 m. Names repaired where Natural Earth lost letters (Göta älv, Klarälven, Motala ström, Glåma, Kokemäenjoki) or mistyped one (Dnepre, shown as Dnipro like the rest of the river). The Neman shown as Nemunas, the local name Natural Earth also gives. The pieces Natural Earth calls Vorma that are really the lower Glomma and the Gudbrandsdalslågen shown under those names.",
         "licenceName": "Public domain",
         "licenceUri": "www.naturalearthdata.com/about/terms-of-use/"
       }
@@ -71,7 +71,7 @@
         "onMap": true,
         "line": "Made with Natural Earth.",
         "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
-        "changes": "Clipped to the map, reprojected to the game's equal-area projection (LAEA), simplified to about 150 m. Every lake on the map reviewed by hand for 1219, whatever Natural Earth's own class says: modern reservoirs left out (not there in 1219), natural lakes kept even where a dam regulates them today. The two halves of the Vistula Lagoon joined under that name; Lake Il'Men' shown as Lake Ilmen; one lake whose names disagree shown unnamed.",
+        "changes": "Lakes: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 150 m. Every lake on the map reviewed by hand for 1219, whatever Natural Earth's own class says: modern reservoirs left out (not there in 1219), natural lakes kept even where a dam regulates them today. The two halves of the Vistula Lagoon joined under that name; Lake Il'Men' shown as Lake Ilmen; one lake whose names disagree shown unnamed.",
         "licenceName": "Public domain",
         "licenceUri": "www.naturalearthdata.com/about/terms-of-use/"
       }
@@ -124,7 +124,7 @@
         "onMap": true,
         "line": "GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa)",
         "citation": "GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals. NERC EDS British Oceanographic Data Centre NOC. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
-        "changes": "Clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and averaged over 2 km cells, rounded to whole metres.",
+        "changes": "Clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and averaged over 2 km cells, rounded to whole metres.",
         "notes": [
           "Not for navigation.",
           "Not endorsed by GEBCO, the IHO or the IOC.",
@@ -172,7 +172,7 @@
         "onMap": false,
         "line": "Marsh and bog: Global Lakes and Wetlands Database v2 (Lehner et al. 2025), hydrosheds.org/products/glwd",
         "citation": "Lehner, B., Anand, M., Fluet-Chouinard, E., Tan, F., Aires, F., Allen, G.H., Bousquet, P., Canadell, J.G., Davidson, N., Ding, M., Finlayson, C.M., Gumbricht, T., Hilarides, L., Hugelius, G., Jackson, R.B., Korver, M.C., Liu, L., McIntyre, P.B., Matthews, E., Nagy, S., Olefeldt, D., Pavelsky, T.M., Pekel, J.-F., Poulter, B., Prigent, C., Wang, J., Worthington, T.A., Yamazaki, D., Zhang, X., Thieme, M. (2025). Mapping the world's inland surface waters: an upgrade to the Global Lakes and Wetlands Database (GLWD v2). Earth System Science Data. Data doi:10.6084/m9.figshare.28519994",
-        "changes": "Wetland classes 8-19, 22-25 and 29-31 added up (capped at 100%), clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and averaged over 1 km cells. Shares at or below 15% dropped as background; shares from 15% to 55% stretched in a straight line to 0-100% marsh, and 55% or more read as full marsh. Combined with today's herbaceous wetland (class 90) from ESA WorldCover 2021: each cell keeps the larger of the two.",
+        "changes": "Wetland classes 8-19, 22-25 and 29-31 added up (capped at 100%), clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and averaged over 1 km cells. Shares at or below 15% dropped as background; shares from 15% to 55% stretched in a straight line to 0-100% marsh, and 55% or more read as full marsh. Combined with today's herbaceous wetland (class 90) from ESA WorldCover 2021: each cell keeps the larger of the two.",
         "licenceName": "CC BY 4.0",
         "licenceUri": "creativecommons.org/licenses/by/4.0/"
       }
@@ -207,7 +207,7 @@
         "onMap": true,
         "line": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
         "citation": "Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann, C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M., Herold, M., Tsendbazar, N.E., Xu, P., Ramoino, F., Arino, O., 2022. ESA WorldCover 10 m 2021 v200. doi:10.5281/zenodo.7254221",
-        "changes": "Read from the tiles' 74 m overviews, clipped to the Baltic map, reprojected to the game's equal-area projection (LAEA) and turned into the share of each class in 1 km cells; snow merged into bare ground and mangrove into wetland. For the marsh around 1219, the herbaceous wetland share (class 90; moss and lichen, class 100, left out as mountain tundra) is combined with GLWD v2 marsh: each cell keeps the larger of the two, after GLWD shares at or below 15% are dropped and shares from 15% to 55% stretched to 0-100%.",
+        "changes": "Read from the tiles' 74 m overviews, clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and turned into the share of each class in 1 km cells; snow merged into bare ground and mangrove into wetland. For the marsh around 1219, the herbaceous wetland share (class 90; moss and lichen, class 100, left out as mountain tundra) is combined with GLWD v2 marsh: each cell keeps the larger of the two, after GLWD shares at or below 15% are dropped and shares from 15% to 55% stretched to 0-100%.",
         "licenceName": "CC BY 4.0",
         "licenceUri": "creativecommons.org/licenses/by/4.0/"
       }

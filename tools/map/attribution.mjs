@@ -17,31 +17,45 @@ export const REPO = 'github.com/syncronizator1995-droid/grind-strat';
 const ATTRIBUTION = 'ATTRIBUTION.md';
 const CREDITS = 'src/data/credits.json';
 
-/** What each block is for, in the player's words. */
+/**
+ * What each block is for, in the player's words. Lower case: a dataset used for several lists
+ * them after "Used for:" with semicolons, and only the first is capitalised (usedFor).
+ */
 const USES = /** @type {Record<string, string>} */ ({
-  base: 'Land, coast, heights and sea depths',
-  terrain: 'The land around 1219: forest, open land, marsh and heath',
-  water: 'Rivers, lakes and their names',
+  base: 'land, coast, heights and sea depths',
+  terrain: 'the land around 1219: forest, open land, marsh and heath',
+  water: 'rivers, lakes and their names',
 });
 
-/** What making a block did to its sources, on top of each source's own changes. */
+/** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
+export const usedFor = (uses) => {
+  const text = uses.join('; ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+/**
+ * What making a block did to its sources, on top of each source's own changes. Each change
+ * starts with what it applies to, as the sources' own changes do ("Rivers: ...").
+ */
+/** In the game, where the terrain rule is written up; ATTRIBUTION.md names the file instead. */
+const TERRAIN_NOTES = 'the notes that come with the terrain data in the game\'s source code';
 const BLOCK_CHANGES = /** @type {Record<string, string>} */ ({
-  terrain: 'For the terrain grid, combined with the other terrain sources into one class per 1 km cell by a rule (src/data/by-sa/README.md says how).',
+  terrain: `Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (${TERRAIN_NOTES} say how).`,
 });
 
 /** The honest labels: what the map is, and what it is not. */
 const ABOUT = [
   'The map shows the land as it was around AD 1219, as far as it can be worked out today.',
   'Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today\'s land cover, terrain and rivers; they are not from a historical map.',
-  'Marsh: from today\'s peat-soil and wetland maps plus today\'s open bogs.',
+  'Marsh: from today\'s peat-soil and wetland maps plus today\'s open bogs. Where those maps show more bog than the pollen allows, bog wins and there is less forest than the pollen share (parts of north-west Russia, south-east Finland and east Estonia).',
   'Under modern reservoirs the land shows flat, at today\'s water level.',
 ];
 /** What the rivers and lakes are, by where the shipped water comes from. */
 const ABOUT_WATER = {
-  osm: ['Rivers and lakes are today\'s, with today\'s local names; modern reservoirs are left out. Heights and sea depths are today\'s.'],
+  osm: ['Rivers, lakes and the coast are today\'s, with today\'s local names; modern reservoirs are left out. Heights and sea depths are today\'s.'],
   ne: [
-    'Rivers and lakes: for now Natural Earth\'s simpler set, with its names (the local name where it has one, otherwise today\'s English name). Fuller rivers and lakes from OpenStreetMap come next.',
-    'Rivers and lakes are today\'s; modern reservoirs are left out and natural lakes kept. Heights and sea depths are today\'s.',
+    'Rivers and lakes: for now Natural Earth\'s simpler set, with its names: local names for most rivers, English names for some big lakes. Fuller rivers and lakes from OpenStreetMap come next; until then the upper Nemunas (above Kaunas) and smaller lakes such as Drūkšiai are missing, and the map shows land where those lakes are.',
+    'Rivers, lakes and the coast are today\'s; modern reservoirs are left out and the bigger natural lakes kept. Heights and sea depths are today\'s.',
   ],
 };
 const INTERIM = /** @type {Record<string, string>} */ ({
@@ -80,8 +94,8 @@ function fontCredit(ofl) {
   const copyright = ofl.split('\n')[0].trim().replace(/https?:\/\//g, '');
   return {
     title: 'Grenze Gotisch (font)', owner: 'Omnibus-Type, The Grenze Gotisch Project Authors', version: 'Google Fonts release (variable weight)',
-    uses: ['The game\'s title and date'], line: copyright, citation: copyright,
-    changes: ['Cut down to Latin and Latin Extended letters and saved as woff2 (tools/subset-font.py).'],
+    uses: ['the game\'s title and date'], line: copyright, citation: copyright,
+    changes: ['Cut down to Latin and Latin Extended letters and saved in a compact web font format.'],
     licenceName: 'SIL Open Font License 1.1', licenceUri: 'scripts.sil.org/OFL', notes: [], unofficialCopy: null,
   };
 }
@@ -192,13 +206,13 @@ function markdownOf(credits, all, blocks) {
       '',
       `- Owner: ${e.owner}`,
       `- Version: ${e.version}`,
-      `- Used for: ${e.uses.join('; ')}`,
+      `- Used for: ${usedFor(e.uses)}`,
       `- Where we got it: ${d.urls.join(', ')}${e.unofficialCopy ? `. This is an unofficial copy: ${e.unofficialCopy}` : ''}`,
       `- Licence: ${e.licenceName}, https://${e.licenceUri}`,
       `- Licence read at: ${[...d.readAt].join(' ')}`,
       `- Notice: ${e.line}`,
       `- Citation: ${e.citation}`,
-      `- Changes we made: ${e.changes.join(' ')}`,
+      ...changesList(e.changes),
       ...(e.notes.length ? [`- Notes: ${e.notes.join(' ')}`] : []),
       `- Held in: ${[...d.files].map((f) => `\`${f}\``).join(', ')}, inlined into the game file \`dist/grind-strat.html\``,
     );
@@ -211,15 +225,25 @@ function markdownOf(credits, all, blocks) {
     `### ${f.title}`,
     '',
     `- Owner: ${f.owner}`,
-    `- Used for: ${f.uses.join('; ')}`,
+    `- Used for: ${usedFor(f.uses)}`,
     '- Where we got it: https://github.com/google/fonts/tree/main/ofl/grenzegotisch',
     `- Licence: ${f.licenceName}, https://${f.licenceUri} (full text in \`src/ui/fonts/OFL.txt\`)`,
     `- Notice: ${f.line}`,
-    `- Changes we made: ${f.changes.join(' ')}`,
+    ...changesList(f.changes),
     '- Held in: `src/ui/fonts/grenze-gotisch.woff2`, inlined into the game file `dist/grind-strat.html`',
     '',
   );
   return out.join('\n');
+}
+
+/**
+ * "Changes we made" in the markdown: one line, or a nested list when a dataset has several
+ * (Natural Earth's land, rivers and lakes each say what they are).
+ * @param {string[]} changes
+ */
+function changesList(changes) {
+  changes = changes.map((c) => c.replace(`${TERRAIN_NOTES} say how`, '`src/data/by-sa/README.md` says how'));
+  return changes.length === 1 ? [`- Changes we made: ${changes[0]}`] : ['- Changes we made:', ...changes.map((c) => `  - ${c}`)];
 }
 
 /** Reads everything the two files are made from. */

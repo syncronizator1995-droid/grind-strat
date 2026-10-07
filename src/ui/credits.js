@@ -18,20 +18,34 @@ function el(tag, text, className) {
   return e;
 }
 
+/** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
+function usedFor(uses) {
+  const text = uses.join('; ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /** @param {CreditEntry} d */
 function entry(d) {
   const nodes = [el('h3', d.title), el('p', d.line)];
   const facts = document.createElement('ul');
   for (const text of [
-    `Used for: ${d.uses.join('; ')}.`,
+    `Used for: ${usedFor(d.uses)}.`,
     `By: ${d.owner}.`,
     `Version: ${d.version}.`,
     `Licence: ${d.licenceName}, ${d.licenceUri}`,
     `Cite as: ${d.citation}`,
-    `What we changed: ${d.changes.join(' ')}`,
+    ...(d.changes.length === 1 ? [`What we changed: ${d.changes[0]}`] : []),
     ...(d.unofficialCopy ? [`Read from an unofficial copy: ${d.unofficialCopy}`] : []),
     ...d.notes,
   ]) facts.append(el('li', text, 'small'));
+  // Several changes (Natural Earth's land, rivers and lakes): a list of their own, one per part.
+  if (d.changes.length > 1) {
+    const item = el('li', 'What we changed:', 'small');
+    const list = document.createElement('ul');
+    for (const c of d.changes) list.append(el('li', c, 'small'));
+    item.append(list);
+    facts.insertBefore(item, facts.children[5] ?? null);
+  }
   nodes.push(facts);
   return nodes;
 }
