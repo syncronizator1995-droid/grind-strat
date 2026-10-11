@@ -18,7 +18,7 @@ as around AD 1219), taken from OpenStreetMap:
   map in km, and its lines. Each line also carries the local name of that stretch where it
   differs from the river's own (the Nemunas is "Nemunas" in Lithuania and "Нёман" in Belarus).
   The names the map shows (labels) are kept next to OpenStreetMap's own (see "Labels" below).
-- **Lakes** (7,021): natural lakes, lagoons and oxbow lakes with the same name fields, the
+- **Lakes** (7,007): natural lakes, lagoons and oxbow lakes with the same name fields, the
   Wikidata id, the area inside the map in km², a point for the name, and the rings (outer rings
   and holes for islands).
 
@@ -117,7 +117,9 @@ written in; for stretches, `riverLineNames` holds the labels and `riverLineLocal
   or a Lithuanian or Latvian genitive ("Platelių ež.", the lake of Plateliai; "Rāznas ezers"),
   the plain name is taken from the lake's own OSM `alt_name`, `short_name` or `official_name`
   tags when one is the same name ("Ладога" for "Ладожское озеро", "Galvė" for "Galvės ež."),
-  else from a short reviewed list, `tools/map/lake-names.json` (most of its entries marked TO
+  but not one with the word for lake run into it ("Großer Döllnsee" for "Großdöllner See") nor,
+  in a tag with no language, one whose letters read as another language (the Russian-looking
+  "Зароново" for the Belarusian "Заронаўскае возера"); else from a short reviewed list, `tools/map/lake-names.json` (most of its entries marked TO
   CHECK); otherwise the full name is kept with the word written out ("Kozhanovskoye ozero",
   "Kampiniškių ežeras"), never a bare genitive or an abbreviation. Genitives are never turned
   into nominatives by a rule on endings alone. These other name tags are read when the block is
