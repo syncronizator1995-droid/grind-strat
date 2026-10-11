@@ -53,7 +53,8 @@ const ABOUT = [
 /** What the rivers and lakes are, by where the shipped water comes from. */
 const ABOUT_WATER = {
   osm: [
-    'Rivers and lakes are today\'s, from OpenStreetMap, with today\'s local names: a river\'s name changes where the local language does (Nemunas in Lithuania, Нёман in Belarus). Modern reservoirs, and lakes made later such as flooded mines, are left out; the rivers through those reservoirs follow today\'s mapped line.',
+    'Rivers and lakes are today\'s, from OpenStreetMap, with today\'s local names: a river\'s name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river\'s own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, are left out; the rivers through those reservoirs follow today\'s mapped line.',
+    'All names are written in Latin letters. Russian, Belarusian and Ukrainian names are romanised by the BGN/PCGN systems (Russian 1947, Belarusian 1979, Ukrainian 2019), with the soft and hard signs and the apostrophe left out to keep them easy to read. Where OpenStreetMap gives a name in two languages, the map shows one.',
     'The coast, heights and sea depths are today\'s.',
   ],
   ne: [

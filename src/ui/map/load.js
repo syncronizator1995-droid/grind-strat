@@ -27,8 +27,12 @@ import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleB
 
 /**
  * @typedef {object} RiverInfo
- * @property {string} name the name the map shows: the local one where the data has it, otherwise
- *   the English one ('' for none)
+ * @property {string} name the name the map shows, in Latin letters: the local one where the data
+ *   has it (for OpenStreetMap's, the local name at the river's lower end), otherwise the English
+ *   one ('' for none)
+ * @property {string} [local] the name as the data has it, where the map shows it otherwise
+ *   (romanised from Cyrillic, one of two names, or without an abbreviation)
+ * @property {'ru' | 'be' | 'uk'} [lang] the language a romanised name was written in
  * @property {Record<string, string>} names the other names, by language code; Natural Earth's
  *   also "alt" (its other names, "|" between them) and "ne" (its main name, when another is shown)
  * @property {string | null} wikidata @property {number} lengthKm
@@ -36,7 +40,9 @@ import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleB
 
 /**
  * @typedef {object} LakeInfo
- * @property {string} name @property {Record<string, string>} names @property {string | null} wikidata
+ * @property {string} name the name the map shows, in Latin letters
+ * @property {string} [local] @property {'ru' | 'be' | 'uk'} [lang] as for a river
+ * @property {Record<string, string>} names @property {string | null} wikidata
  * @property {number} areaKm2 @property {[number, number]} at where its name goes
  */
 
@@ -46,7 +52,9 @@ import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleB
  * @property {Uint32Array} riverOf which river each line belongs to @property {RiverInfo[]} riverInfo
  * @property {Uint32Array | null} lineName per line, its local name in lineNames (0: none, the
  *   river's own name serves); null when the data has no names per line
- * @property {string[]} lineNames the local names of stretches of rivers ('' first)
+ * @property {string[]} lineNames the labels of stretches of rivers that have a local name of
+ *   their own, in Latin letters ('' first)
+ * @property {string[]} lineLocal for each of lineNames, the name as the data has it ('' when the same)
  * @property {Int32Array[]} lakes rings @property {Uint8Array} lakeLevels
  * @property {Uint32Array} lakeOf which lake each ring belongs to @property {LakeInfo[]} lakeInfo
  */
@@ -140,6 +148,7 @@ export async function loadMap(base, terrain) {
  * @typedef {object} WaterInfo the names and facts of the rivers and lakes, carried as JSON in the
  *   block's "info" layer
  * @property {RiverInfo[]} riverInfo @property {LakeInfo[]} lakeInfo @property {string[]} [riverLineNames]
+ * @property {string[]} [riverLineLocal]
  */
 
 /**
@@ -163,13 +172,15 @@ export async function loadWater(block, times) {
     riverInfo: info.riverInfo,
     lineName: lineNames.length > 1 ? decodeUints(w('riverLineName')) : null,
     lineNames,
+    lineLocal: info.riverLineLocal ?? lineNames.map(() => ''),
     lakes: decodeShapes(w('lakes')),
     lakeLevels: w('lakeLevels'),
     lakeOf: decodeUints(w('lakeOf')),
     lakeInfo: info.lakeInfo,
   };
   if (water.riverOf.length !== water.rivers.length || water.lakeOf.length !== water.lakes.length
-    || (water.lineName && (water.lineName.length !== rivers.length || water.lineName.some((k) => k >= lineNames.length)))) {
+    || (water.lineName && (water.lineName.length !== rivers.length || water.lineName.some((k) => k >= lineNames.length)))
+    || water.lineLocal.length !== lineNames.length) {
     throw new Error('the water data does not add up');
   }
   times.decodeMs += performance.now() - t0;

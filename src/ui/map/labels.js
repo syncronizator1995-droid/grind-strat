@@ -421,7 +421,8 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
   /** @type {Stretch[]} */
   const stretches = [];
   for (const i of index.linesOf[k] ?? []) {
-    // Each stretch carries its local name: the Nemunas is "Nemunas" in Lithuania, "Нёман" in Belarus.
+    // Each stretch carries its local name: the Nemunas is "Nemunas" in Lithuania, "Nyoman" in
+    // Belarus (Нёман, written in Latin letters when the block was packed).
     const b = index.lineBox.subarray(i * 4, i * 4 + 4);
     if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
     const text = (water.lineName && water.lineNames[water.lineName[i]]) || river.name;

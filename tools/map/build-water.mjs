@@ -27,6 +27,7 @@ import { lakeCandidate, overtureRun, riverRelations, riverWay, waterRows } from 
 import { encodePng } from './png.mjs';
 import { MAP } from './projection.mjs';
 import { DERIVED } from './resample.mjs';
+import { waterLabels } from './water-labels.mjs';
 import {
   classifyLake, dropRepeats, groupRivers, KM2_PER_UNIT2, KM_PER_UNIT, lengthInside, lineLength, localNames, namesOf, orient,
   pointInRings, reviewIndex, riverMainName, ringsArea, stitch, THRESHOLDS,
@@ -41,23 +42,46 @@ const DEFAULT_PREVIEWS = join(DERIVED, 'previews');
 /** @typedef {import('./water-rules.mjs').RiverWay} RiverWay */
 
 /**
- * Rivers that must be on the map, with the names they may carry in OSM (local names first).
+ * Rivers that must be on the map: what we call each, the names it may carry in OSM (local names
+ * first), and the main name the map shows for it (tools/map/water-labels.mjs: the local name at
+ * its lower end inside the map, in Latin letters).
  * Matching is on the river's name, its line names and its name:xx, ignoring case.
- * @type {[string, string[]][]}
+ * @type {[string, string[], string][]}
  */
 export const MUST_HAVE_RIVERS = [
-  ['Nemunas', ['Nemunas', 'Нёман', 'Неман', 'Niemen', 'Memel']], ['Neris', ['Neris', 'Вілія', 'Вилия']],
-  ['Nevėžis', ['Nevėžis']], ['Dubysa', ['Dubysa']], ['Šešupė', ['Šešupė', 'Шешупе']], ['Minija', ['Minija']],
-  ['Jūra', ['Jūra']], ['Merkys', ['Merkys']], ['Šventoji', ['Šventoji']], ['Mūša', ['Mūša']],
-  ['Nemunėlis', ['Nemunėlis', 'Mēmele']], ['Lielupe', ['Lielupe']], ['Venta', ['Venta']],
-  ['Daugava', ['Daugava', 'Заходняя Дзвіна', 'Западная Двина']], ['Gauja', ['Gauja']], ['Aiviekste', ['Aiviekste']],
-  ['Salaca', ['Salaca']], ['Emajõgi', ['Emajõgi']], ['Pärnu', ['Pärnu jõgi', 'Pärnu']], ['Narva', ['Narva jõgi']],
-  ['Velikaya', ['Великая']], ['Lovat', ['Ловать', 'Ловаць']], ['Volkhov', ['Волхов']], ['Luga', ['Луга']], ['Neva', ['Нева']],
-  ['Pregolya', ['Преголя']], ['Łyna', ['Łyna', 'Лава']], ['Pasłęka', ['Pasłęka']], ['Vistula', ['Wisła']],
-  ['Narew', ['Narew', 'Нараў', 'Нарев']], ['Western Bug', ['Bug', 'Західний Буг', 'Заходні Буг', 'Западный Буг']],
-  ['Oder', ['Odra', 'Oder']], ['Pripyat', ['Прыпяць', "Прип'ять", 'Припять', 'Prypeć']],
-  ['Dnieper', ['Дняпро', 'Дніпро', 'Днепр']], ['Berezina', ['Бярэзіна', 'Березина']],
+  ['Nemunas', ['Nemunas', 'Нёман', 'Неман', 'Niemen', 'Memel'], 'Nemunas'], ['Neris', ['Neris', 'Вілія', 'Вилия'], 'Neris'],
+  ['Nevėžis', ['Nevėžis'], 'Nevėžis'], ['Dubysa', ['Dubysa'], 'Dubysa'], ['Šešupė', ['Šešupė', 'Шешупе'], 'Sheshupe'], ['Minija', ['Minija'], 'Minija'],
+  ['Jūra', ['Jūra'], 'Jūra'], ['Merkys', ['Merkys'], 'Merkys'], ['Šventoji', ['Šventoji'], 'Šventoji'], ['Mūša', ['Mūša'], 'Mūsa'],
+  ['Nemunėlis', ['Nemunėlis', 'Mēmele'], 'Mēmele'], ['Lielupe', ['Lielupe'], 'Lielupe'], ['Venta', ['Venta'], 'Venta'],
+  ['Daugava', ['Daugava', 'Заходняя Дзвіна', 'Западная Двина'], 'Daugava'], ['Gauja', ['Gauja'], 'Gauja'], ['Aiviekste', ['Aiviekste'], 'Aiviekste'],
+  ['Salaca', ['Salaca'], 'Salaca'], ['Emajõgi', ['Emajõgi'], 'Emajõgi'], ['Pärnu', ['Pärnu jõgi', 'Pärnu'], 'Pärnu jõgi'], ['Narva', ['Narva jõgi'], 'Narva jõgi'],
+  ['Velikaya', ['Великая'], 'Velikaya'], ['Lovat', ['Ловать', 'Ловаць'], 'Lovat'], ['Volkhov', ['Волхов'], 'Volkhov'], ['Luga', ['Луга'], 'Luga'], ['Neva', ['Нева'], 'Neva'],
+  ['Pregolya', ['Преголя'], 'Pregolya'], ['Łyna', ['Łyna', 'Лава'], 'Lava'], ['Pasłęka', ['Pasłęka'], 'Pasłęka'], ['Vistula', ['Wisła'], 'Wisła'],
+  ['Narew', ['Narew', 'Нараў', 'Нарев'], 'Narew'], ['Western Bug', ['Bug', 'Західний Буг', 'Заходні Буг', 'Западный Буг'], 'Bug'],
+  ['Oder', ['Odra', 'Oder'], 'Odra'], ['Pripyat', ['Прыпяць', "Прип'ять", 'Припять', 'Prypeć'], 'Prypiat'],
+  ['Dnieper', ['Дняпро', 'Дніпро', 'Днепр'], 'Dnipro'], ['Berezina', ['Бярэзіна', 'Березина'], 'Byarezina'],
 ];
+
+/**
+ * The must-have rivers as the map names them: the main name shown (and whether it is the one
+ * expected), OpenStreetMap's name there, and the other labels along the river.
+ * @param {{ id: string }[]} rivers as in water-osm.json
+ * @param {import('./water-labels.mjs').WaterLabels} labels in the order of rivers
+ * @param {{ label: string, found: boolean, id: string | null, lengthKm: number }[]} must checks.mustHaveRivers
+ * @returns {string[]} one line per river
+ */
+export function mustHaveRiverTable(rivers, labels, must) {
+  const expected = new Map(MUST_HAVE_RIVERS.map(([label, , shows]) => [label, shows]));
+  return must.map((m) => {
+    const k = rivers.findIndex((r) => r.id === m.id);
+    const l = k >= 0 ? labels.rivers[k] : null;
+    const shows = l?.main.text ?? '-';
+    const state = !m.found ? 'MISSING' : shows === expected.get(m.label) ? 'found  ' : 'LABEL? ';
+    const others = [...new Set([...(l?.stretch.values() ?? [])].map((s) => s.text))].filter((t) => t !== shows);
+    const local = l && l.main.local !== shows ? ` (${l.main.local})` : '';
+    return `  ${state} ${m.label.padEnd(12)} ${`${shows}${local}`.padEnd(30)} ${String(m.lengthKm).padStart(6)} km  also: ${others.join(' | ') || '-'}`;
+  });
+}
 
 /**
  * Lakes that must be on the map (natural lakes and lagoons), and modern reservoirs that must not.
@@ -524,8 +548,10 @@ function report(out, bytes) {
   console.log(`lakes: ${out.lakes.length}, ${out.lakes.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + l.rings.length, 0)} rings, ${out.lakes.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + pts(l.rings), 0)} points`);
   console.log(`dropped: ${out.dropped.length}; file ${(bytes / 1e6).toFixed(1)} MB`);
   console.log('counts', c.counts);
-  console.log('\nmust-have rivers:');
+  console.log('\nmust-have rivers, as OpenStreetMap names them:');
   for (const m of c.mustHaveRivers) console.log(`  ${m.found ? 'found  ' : 'MISSING'} ${m.label.padEnd(12)} ${String(m.name ?? '-').padEnd(22)} ${String(m.lengthKm).padStart(6)} km  ${m.wikidata ?? '-'}  ${m.lineNames.join(' | ')}`);
+  console.log('\nmust-have rivers, as the map names them:');
+  for (const line of mustHaveRiverTable(out.rivers, waterLabels(out.rivers, out.lakes), c.mustHaveRivers)) console.log(line);
   console.log('\nmust-have lakes:');
   for (const m of c.mustHaveLakes) console.log(`  ${m.found ? 'found  ' : 'MISSING'} ${m.label.padEnd(16)} ${String(m.name ?? '-').padEnd(44)} ${m.areaKm2} km²`);
   console.log('\nmust be absent:');

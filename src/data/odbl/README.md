@@ -17,6 +17,7 @@ as around AD 1219), taken from OpenStreetMap:
   and English (OSM `name:lt` ... `name:en`, where mapped), its Wikidata id, its length inside the
   map in km, and its lines. Each line also carries the local name of that stretch where it
   differs from the river's own (the Nemunas is "Nemunas" in Lithuania and "Нёман" in Belarus).
+  The names the map shows (labels) are kept next to OpenStreetMap's own (see "Labels" below).
 - **Lakes** (7,021): natural lakes, lagoons and oxbow lakes with the same name fields, the
   Wikidata id, the area inside the map in km², a point for the name, and the rings (outer rings
   and holes for islands).
@@ -93,7 +94,28 @@ Everything is done by scripts in tools/map/ in this repository, which are public
      map rectangle. Points that repeat after rounding are dropped.
 3. `tools/map/pack-water.mjs` simplifies the lines and rings to 150 m and gives each point the
    coarsest of three zoom levels that needs it (tolerances 20 and 5 units for the overview and
-   the middle level), and writes `water.json`.
+   the middle level), works out the labels (below), and writes `water.json`.
+
+## Labels
+
+Every name on the map is in Latin letters (`tools/map/water-labels.mjs` and
+`tools/map/romanize.mjs`, run when the block is packed, using only the OpenStreetMap data above).
+Each river, stretch and lake keeps OpenStreetMap's own name too: `name` is the label, `local` the
+name as OpenStreetMap has it (where it differs), and `lang` the language a romanised name was
+written in; for stretches, `riverLineNames` holds the labels and `riverLineLocal` the names.
+
+- A name that joins two languages ("Neris - Вілія", "Nemunas / Немунас") shows its first part in
+  Latin letters (or its first part, if none is). Abbreviations such as "ež." are left out.
+- Cyrillic names are romanised by the BGN/PCGN systems: Russian (1947), Belarusian (1979) and
+  Ukrainian (2019, the same as Ukraine's 2010 national system), with the soft and hard signs and
+  the apostrophe left out. The language of each name comes from its own `name:be`, `name:uk` or
+  `name:ru` tag, or letters only one language has; otherwise from the language most of the
+  surely known names within 150 km are in (in OpenStreetMap a name is written in the language
+  of the country it lies in); and only then from a guess by the letters.
+- A river's own name is the local name at its lower end inside the map, where it meets the sea
+  or a bigger river or leaves the map: the walk goes downstream and follows the river under
+  another name when that name is one of the river's own or carries a fifth of its length, so
+  the Western Dvina is "Daugava", and the Nemunas does not become its delta arm "Atmata".
 
 To make it again: `npm run map:water` (download and build; a rerun downloads nothing), then
 `npm run map:pack`.

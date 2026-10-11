@@ -106,7 +106,7 @@ describe('the data blocks', () => {
     for (const k of water.lakeOf) assert.ok(k < water.lakeInfo.length);
     // The names on the map: each river's own, and the local names of its stretches.
     const names = [...water.riverInfo.map((r) => r.name), ...water.lineNames];
-    for (const must of [['Daugava'], ['Neman', 'Nemunas', 'Неман'], ['Vistula', 'Wisła'], ['Neris'], ['Nevėžis']]) {
+    for (const must of [['Daugava'], ['Neman', 'Nemunas'], ['Vistula', 'Wisła'], ['Neris'], ['Nevėžis']]) {
       assert.ok(must.some((n) => names.includes(n)), `no river called ${must.join(' or ')}`);
     }
     for (const r of water.riverInfo) assert.ok(r.name, 'every river has a name');
@@ -122,10 +122,23 @@ describe('the data blocks', () => {
     }
     assert.ok(!lakes.some((n) => /reservoir|водосховищ|водохранилищ|вадасховішч|zbiornik|ūdenskrātuv|veehoidla|stausee|talsperre/i.test(n)), 'no reservoir by name');
     if (block.sources.includes('osm-water')) {
-      for (const must of ['Lubāns', 'Võrtsjärv', 'Śniardwy', 'Ладожское', 'Ильмень', 'Kuršių marios', 'Zalew Wiślany', 'Drūkšiai', 'Peipsi']) {
+      for (const must of ['Lubāns', 'Võrtsjärv', 'Śniardwy', 'Ladozhskoye', 'Ilmen', 'Kuršių marios', 'Zalew Wiślany', 'Drūkšiai', 'Peipsi']) {
         assert.ok(lakes.some((n) => n.includes(must)), `no lake called ${must}`);
       }
       assert.ok(water.lineName && water.lineNames.length > 100, 'river stretches carry their local names');
+      // Latin letters everywhere on the map (Ignas, 11 October 2026); the original names stay.
+      const cyrillic = /[\u0400-\u052F]/;
+      for (const n of [...names, ...lakes]) assert.ok(!cyrillic.test(n), `a label in Cyrillic: ${n}`);
+      for (const n of [...names, ...lakes]) assert.ok(!/(^|\s)ež\.(\s|$)|\s\/\s/.test(n), `an untidy label: ${n}`);
+      const rivers = water.riverInfo.map((r) => r.name);
+      for (const main of ['Daugava', 'Nemunas', 'Neris', 'Wisła', 'Dnipro', 'Byarezina', 'Prypiat', 'Velikaya']) assert.ok(rivers.includes(main), `no river called ${main}`);
+      assert.ok(!rivers.includes('Zapadnaya Dvina'), 'the Daugava is named at its lower end');
+      for (const stretch of ['Nyoman', 'Viliya', 'Zakhodnyaya Dzvina', 'Dnyapro']) assert.ok(water.lineNames.includes(stretch), `no stretch called ${stretch}`);
+      const nyoman = water.lineNames.indexOf('Nyoman');
+      assert.equal(water.lineLocal[nyoman], 'Нёман', 'the original name stays in the data');
+      const daugava = water.riverInfo.find((r) => r.name === 'Daugava');
+      assert.equal(daugava?.names.ru, 'Западная Двина');
+      assert.ok(water.lakeInfo.some((l) => l.name === 'Drūkšiai' && l.local === 'ež. Drūkšiai / возера Дрысвяты'));
     }
     if (block.sources.includes('ne-lakes')) {
       for (const must of ['Lake Ilmen', 'Mjøsa', 'Vistula Lagoon', 'Lake Peipus', 'Võrtsjärv']) assert.ok(lakes.includes(must), `no lake called ${must}`);
@@ -182,7 +195,8 @@ describe('packing the OpenStreetMap water', () => {
       osmBase: '2026-10-06T00:00:00Z',
       rivers: [
         { name: 'Small', names: {}, wikidata: null, lengthKm: 60, lines: [[100, 100, 200, 120, 300, 100]] },
-        { name: 'Nemunas', names: { en: 'Neman' }, wikidata: 'Q131574', lengthKm: 900, lines: [[0, 0, 500, 40, 1000, 0], [1000, 0, 1500, 30]] },
+        // Downstream: "Нёман" in Belarus, then "Nemunas" to the sea.
+        { name: 'Нёман', names: { en: 'Neman', be: 'Нёман' }, wikidata: 'Q131574', lengthKm: 900, lines: [[0, 0, 500, 40, 1000, 0], [1000, 0, 1500, 30]], lineNames: ['Нёман', 'Nemunas'] },
       ],
       lakes: [
         { name: 'Island lake', names: {}, wikidata: null, areaKm2: 90, rings: [square(2000, 2000, 100), [2040, 2040, 2040, 2060, 2060, 2060, 2060, 2040]] },
@@ -193,7 +207,11 @@ describe('packing the OpenStreetMap water', () => {
     assert.equal(block.notice, OSM_NOTICE);
     assert.ok(!block.interim);
     const water = await loadWater(/** @type {any} */ (block), noTimes());
-    assert.deepEqual(water.riverInfo.map((r) => r.name), ['Nemunas', 'Small']);
+    assert.deepEqual(water.riverInfo.map((r) => r.name), ['Nemunas', 'Small'], 'named at the lower end');
+    assert.deepEqual(water.riverInfo[0].local, undefined);
+    assert.deepEqual(water.lineNames, ['', 'Nyoman'], 'in Latin letters');
+    assert.deepEqual(water.lineLocal, ['', 'Нёман'], 'with the original kept');
+    assert.deepEqual(water.lineName && [...water.lineName], [1, 0, 0]);
     assert.deepEqual([...water.riverOf], [0, 0, 1]);
     assert.equal(water.lakes.length, 2, 'the island stays a hole in the lake');
     const [x, y] = water.lakeInfo[0].at;
