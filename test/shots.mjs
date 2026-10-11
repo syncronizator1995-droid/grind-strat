@@ -2,8 +2,9 @@
 // Phone screenshots and a scripted play session in headless Chrome. It builds the game first:
 //   npm run shots                        the release build (refuses interim data, as CI does)
 //   npm run shots -- --allow-interim     a local preview while some map data is a stand-in
-//  1. As a plain file, in light and dark: fresh start, the map zoomed out and over Lithuania with
-//     river and lake names, the Credits sheet, top speed, save and load, new game, reload. Then
+//  1. As a plain file, in light and dark: fresh start, the map zoomed out, over Lithuania and
+//     Belarus with river names and close over the lakes where Latvia, Lithuania and Belarus meet
+//     with lake names, the Credits sheet, top speed, save and load, new game, reload. Then
 //     once more with the processor slowed 4x: the main rivers are still named on the first map.
 //  2. Served like the website (under /grind-strat/, as GitHub Pages does): the manifest loads, the
 //     service worker takes over, and the game still opens with the server switched off, with a
@@ -233,7 +234,7 @@ async function playAsFile(browser, scheme) {
 }
 
 /**
- * The map zoomed all the way out, over Lithuania and over Belarus with river and lake names,
+ * The map zoomed all the way out, over Lithuania, over Belarus and close over the lakes (lakeView()),
  * all in Latin letters; then back.
  * @param {import('playwright').Page} page @param {string} label @param {string} scheme
  */
@@ -273,6 +274,36 @@ async function mapViews(page, label, scheme) {
   check(there >= 3, `${label}: only ${there} river and lake names zoomed in over Belarus`);
   for (const p of await layoutProblems(page)) failures.push(`${label} over Belarus: ${p}`);
   await latinNames(page, `${label} over Belarus`);
+  await page.reload();
+  await mapShown(page, label);
+  await lakeView(page, label, scheme, map);
+}
+
+/** Lake labels expected in the lake country where Latvia, Lithuania and Belarus meet. */
+const LAKE_COUNTRY = ['Rāzna', 'Asvyeya', 'Dryvyaty', 'Lukomskaye vozyera'];
+
+/**
+ * Close over the lakes where Latvia, Lithuania and Belarus meet, so lake labels (just the name,
+ * Ignas, 11 October 2026) are photographed on every run: Rāzna lies about 162 px right of and
+ * 35 px above the starting centre. Drag it to the middle, zoom in further than the views above.
+ * @param {import('playwright').Page} page @param {string} label @param {string} scheme
+ * @param {{ x: number, y: number, width: number, height: number }} map
+ */
+async function lakeView(page, label, scheme, map) {
+  const cx = map.x + map.width / 2;
+  const cy = map.y + map.height / 2;
+  await page.mouse.move(cx + 162, cy + 35);
+  await page.mouse.down();
+  await page.mouse.move(cx, cy, { steps: 12 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, -1400);
+  await settle(page);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-map-lakes.png`) });
+  const list = ((await page.locator('#map').getAttribute('data-name-list')) ?? '').split('|');
+  const lakes = LAKE_COUNTRY.filter((n) => list.includes(n));
+  check(lakes.length >= 2, `${label}: only ${lakes.length} of the lake names ${LAKE_COUNTRY.join(', ')} over the lake country`);
+  for (const p of await layoutProblems(page)) failures.push(`${label} over the lakes: ${p}`);
+  await latinNames(page, `${label} over the lakes`);
   await page.reload();
   await mapShown(page, label);
 }
