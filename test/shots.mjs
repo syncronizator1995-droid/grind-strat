@@ -233,7 +233,8 @@ async function playAsFile(browser, scheme) {
 }
 
 /**
- * The map zoomed all the way out, and over Lithuania with river and lake names; then back.
+ * The map zoomed all the way out, over Lithuania and over Belarus with river and lake names,
+ * all in Latin letters; then back.
  * @param {import('playwright').Page} page @param {string} label @param {string} scheme
  */
 async function mapViews(page, label, scheme) {
@@ -243,6 +244,7 @@ async function mapViews(page, label, scheme) {
   await page.mouse.wheel(0, 3000);
   await settle(page);
   await page.screenshot({ path: join(SHOTS, `${scheme}-map-overview.png`) });
+  await latinNames(page, `${label} overview`);
   await page.reload();
   await mapShown(page, label);
   // Lithuania lies a little right of and below the starting centre; zoom in there (about 2x).
@@ -253,8 +255,37 @@ async function mapViews(page, label, scheme) {
   const names = Number(await page.locator('#map').getAttribute('data-names'));
   check(names >= 3, `${label}: only ${names} river and lake names zoomed in over Lithuania`);
   for (const p of await layoutProblems(page)) failures.push(`${label} zoomed in: ${p}`);
+  await latinNames(page, `${label} over Lithuania`);
   await page.reload();
   await mapShown(page, label);
+  // Belarus and Russia, where OpenStreetMap's names are Cyrillic: Polotsk on the Daugava lies
+  // about 189 px right of and 18 px below the starting centre. Drag it to the middle, zoom in.
+  const cx = map.x + map.width / 2;
+  const cy = map.y + map.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx - 189, cy - 18, { steps: 12 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, -500);
+  await settle(page);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-map-belarus.png`) });
+  const there = Number(await page.locator('#map').getAttribute('data-names'));
+  check(there >= 3, `${label}: only ${there} river and lake names zoomed in over Belarus`);
+  for (const p of await layoutProblems(page)) failures.push(`${label} over Belarus: ${p}`);
+  await latinNames(page, `${label} over Belarus`);
+  await page.reload();
+  await mapShown(page, label);
+}
+
+/**
+ * Every river and lake name on the map is in Latin letters (Ignas, 11 October 2026).
+ * @param {import('playwright').Page} page @param {string} label
+ */
+async function latinNames(page, label) {
+  const list = (await page.locator('#map').getAttribute('data-name-list')) ?? '';
+  const cyrillic = list.split('|').filter((n) => /[\u0400-\u052F]/.test(n));
+  check(!cyrillic.length, `${label}: names in Cyrillic on the map: ${cyrillic.join(', ')}`);
+  console.log(`${label}: ${list.split('|').filter(Boolean).join(', ')}`);
 }
 
 /**
