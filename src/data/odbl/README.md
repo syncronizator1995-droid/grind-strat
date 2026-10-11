@@ -107,7 +107,21 @@ written in; for stretches, `riverLineNames` holds the labels and `riverLineLocal
 - A name that joins two languages ("Neris - Вілія", "Nemunas / Немунас") shows its first part in
   Latin letters. If no part is in Latin letters, it shows the first part that is the feature's
   Belarusian or Ukrainian name (on the border of Belarus and Ukraine, "Днепр / Дніпро" shows
-  Dnipro), else its first part. Abbreviations such as "ež." are left out.
+  Dnipro), else its first part. Abbreviations such as "up." (upė, river) are left out.
+- A lake shows just its name, without the word for lake (`tools/map/lake-names.mjs`): "Ilmen",
+  not "ozero Ilmen"; "Narach", not "vozyera Narach"; "Peipsi", not "Peipsi järv". The word
+  (озеро, возера, jezioro, ežeras or ež., ezers, järv, See, sjö and others) is dropped only as a
+  separate first or last word, and only where what is left is the lake's own name standing
+  alone; a compound such as Võrtsjärv or Storsjön is a name already. Where the name is an
+  adjective (Russian "Кожановское озеро", Polish "Jezioro Mikołajskie", German "Schweriner See")
+  or a Lithuanian or Latvian genitive ("Platelių ež.", the lake of Plateliai; "Rāznas ezers"),
+  the plain name is taken from the lake's own OSM `alt_name`, `short_name` or `official_name`
+  tags when one is the same name ("Ладога" for "Ладожское озеро", "Galvė" for "Galvės ež."),
+  else from a short reviewed list, `tools/map/lake-names.json` (most of its entries marked TO
+  CHECK); otherwise the full name is kept with the word written out ("Kozhanovskoye ozero",
+  "Kampiniškių ežeras"), never a bare genitive or an abbreviation. Genitives are never turned
+  into nominatives by a rule on endings alone. These other name tags are read when the block is
+  packed and are not shipped.
 - Cyrillic names are romanised by the BGN/PCGN systems: Russian (1947), Belarusian (1979) and
   Ukrainian (2019, the same as Ukraine's 2010 national system), with the soft and hard signs and
   the apostrophe left out. The language of each name comes from its own `name:be`, `name:uk` or
