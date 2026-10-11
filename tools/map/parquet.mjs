@@ -265,14 +265,19 @@ export function readHybrid(buf, start, end, width, count) {
     let header = 0;
     let shift = 0;
     for (;;) {
+      if (p >= end) throw new Error('RLE/bit-packed run header runs past its end');
       const b = buf[p++];
       header += (b & 0x7f) * 2 ** shift;
       if (!(b & 0x80)) break;
       shift += 7;
     }
+    // Each run must fit before `end`: past it lie other levels or the values (or nothing), and
+    // reading on would turn them, or missing bytes, into levels without any error.
     if (header % 2 === 1) {
-      // Bit-packed: groups of 8 values, least significant bit first.
-      const values = Math.floor(header / 2) * 8;
+      // Bit-packed: groups of 8 values, least significant bit first; a group takes `width` bytes.
+      const groups = Math.floor(header / 2);
+      if (p + groups * width > end) throw new Error('RLE/bit-packed data runs past its end');
+      const values = groups * 8;
       let acc = 0;
       let bits = 0;
       for (let k = 0; k < values; k++) {
@@ -290,6 +295,7 @@ export function readHybrid(buf, start, end, width, count) {
       }
     } else {
       const run = Math.floor(header / 2);
+      if (p + bytesPerRun > end) throw new Error('RLE/bit-packed data runs past its end');
       let v = 0;
       for (let k = 0; k < bytesPerRun; k++) v += buf[p++] * 2 ** (8 * k);
       out.fill(v, n, Math.min(count, n + run));
@@ -312,6 +318,7 @@ export function readPlain(buf, p, count, leaf) {
   const out = new Array(count);
   switch (leaf.type) {
     case 'BOOLEAN':
+      if (p + Math.ceil(count / 8) > buf.length) throw new Error(`${leaf.path}: values run past their page`);
       for (let i = 0; i < count; i++) out[i] = ((buf[p + (i >> 3)] >> (i & 7)) & 1) === 1;
       return out;
     case 'INT32': for (let i = 0; i < count; i++) out[i] = view.getInt32(p + i * 4, true); return out;
@@ -457,6 +464,7 @@ function dataPageV2(body, h, size, codec, leaf, dict) {
   const n = h[1];
   const repLen = h[6];
   const defLen = h[5];
+  if (repLen + defLen > body.length) throw new Error(`${leaf.path}: a v2 page's level lengths (${repLen} + ${defLen}) run past its ${body.length} bytes`);
   const reps = leaf.maxRep ? readHybrid(body, 0, repLen, bitWidth(leaf.maxRep), n) : new Uint32Array(n);
   const defs = leaf.maxDef ? readHybrid(body, repLen, repLen + defLen, bitWidth(leaf.maxDef), n) : new Uint32Array(n).fill(leaf.maxDef);
   const rest = body.subarray(repLen + defLen);

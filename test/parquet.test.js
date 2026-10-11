@@ -172,6 +172,13 @@ describe('RLE / bit-packed hybrid', () => {
     assert.deepEqual([...readHybrid(zero, 0, zero.length, 0, 6)], [0, 0, 0, 0, 0, 0]);
   });
 
+  it('fails when a run reaches past its end, never reading other bytes as levels', () => {
+    assert.throws(() => readHybrid(Uint8Array.from([3]), 0, 1, 3, 8), /runs past its end/, 'a bit-packed group with no bytes');
+    assert.throws(() => readHybrid(Uint8Array.from([8, 7]), 0, 2, 16, 4), /runs past its end/, 'an RLE value cut short');
+    assert.throws(() => readHybrid(Uint8Array.from([3, 0xff, 0xff, 0xff]), 0, 1, 3, 8), /runs past its end/, 'bytes after the end are not read');
+    assert.throws(() => readHybrid(Uint8Array.from([0x81]), 0, 1, 1, 8), /header runs past its end/);
+  });
+
   it('fails when the data ends early', () => {
     const buf = Uint8Array.from(rleRun(2, 1, 1));
     assert.throws(() => readHybrid(buf, 0, buf.length, 1, 5), /ends after 2 of 5/);
@@ -311,6 +318,34 @@ describe('a little Parquet file', () => {
     const leaf = /** @type {import('../tools/map/parquet.mjs').Leaf} */ (footer.leaves.get('subtype'));
     assert.throws(() => readColumnChunk(file.subarray(chunk.start, chunk.start + chunk.length - 1), chunk, leaf), /got \d+ bytes/);
     assert.throws(() => footerLength(Uint8Array.from([0, 0, 0, 0, 80, 65, 82, 50])), /not a Parquet file/);
+  });
+
+  /**
+   * Reads one made-up column chunk as one of the little file's columns.
+   * @param {string} path @param {number[]} bytes @param {number} numValues
+   */
+  const readAs = (path, bytes, numValues) => {
+    const chunk = { .../** @type {import('../tools/map/parquet.mjs').ColumnChunk} */ (rg.columns.get(path)), length: bytes.length, numValues };
+    const leaf = /** @type {import('../tools/map/parquet.mjs').Leaf} */ (footer.leaves.get(path));
+    return columnRows(readColumnChunk(Uint8Array.from(bytes), chunk, leaf), leaf);
+  };
+
+  it('refuses a dictionary index past the dictionary', () => {
+    const bytes = [...dictPage(['lake']), ...dictDataPageV1([], [1, 1], [0, 1], 0, 1, 1)];
+    assert.throws(() => readAs('subtype', bytes, 2), /dictionary index 1 out of range/);
+  });
+
+  it('reads a v2 page whose values are not compressed, though the column is ZSTD', () => {
+    const reps = bitPacked([0, 0], 1);
+    const defs = bitPacked([4, 4], 3);
+    const values = plainStrings(['w9@1', 'w8@2']);
+    const size = reps.length + defs.length + values.length;
+    const header = (/** @type {number} */ defLen) => [[1, 'i32', 3], [2, 'i32', size], [3, 'i32', size],
+      [8, 'struct', [[1, 'i32', 2], [2, 'i32', 0], [3, 'i32', 2], [4, 'i32', 0], [5, 'i32', defLen], [6, 'i32', reps.length], [7, 'bool', false]]]];
+    const bytes = page(/** @type {Field[]} */ (header(defs.length)), [...reps, ...defs, ...values]);
+    assert.deepEqual(readAs('sources.list.element.record_id', bytes, 2), [['w9@1'], ['w8@2']]);
+    const bad = page(/** @type {Field[]} */ (header(size)), [...reps, ...defs, ...values]);
+    assert.throws(() => readAs('sources.list.element.record_id', bad, 2), /level lengths .* run past/);
   });
 
   it('refuses compression it does not know', () => {
