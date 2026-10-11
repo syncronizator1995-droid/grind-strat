@@ -131,7 +131,12 @@ describe('the data blocks', () => {
         assert.ok(lakes.includes(plain), `no lake labelled ${plain}`);
       }
       for (const n of lakes) assert.ok(!/(^|\s)(ež|ez|jez|оз|воз)\.(\s|$)/.test(n), `an abbreviated word for lake: ${n}`);
-      for (const bare of ['Platelių', 'Rāznas', 'Ozero Ilmen', 'Vozyera Narach']) assert.ok(!lakes.includes(bare), `never ${bare}`);
+      for (const bare of ['Platelių', 'Rāznas', 'Ozero Ilmen', 'Vozyera Narach', 'Zygmunta Augusta', 'Ilgės', 'Kozie', 'Shchuchye', 'Zaronovo', 'Großer Döllnsee']) {
+        assert.ok(!lakes.includes(bare), `never ${bare}`);
+      }
+      for (const kept of ['Jezioro Zygmunta Augusta', 'Ilgės ežeras', 'Jezioro Kozie', 'Ozero Shchuchye', 'Zaronawskaye vozyera', 'Großdöllner See']) {
+        assert.ok(lakes.includes(kept), `no lake labelled ${kept}`);
+      }
       assert.ok(water.lineName && water.lineNames.length > 100, 'river stretches carry their local names');
       // Latin letters everywhere on the map (Ignas, 11 October 2026); the original names stay.
       const cyrillic = /[\u0400-\u052F]/;
