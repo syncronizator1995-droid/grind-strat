@@ -518,6 +518,7 @@ Step 2 split down are his step 2 answers, later the same day.
 | Sites allowed for M2 | overpass-api.de, dap.ceda.ac.uk and data.hydrosheds.org |
 | M2 rivers and lakes | Natural Earth's simpler set now; the full OpenStreetMap rivers come next, from Overture's official copy on Amazon, because OpenStreetMap's query server refused the cloud session |
 | Letters on the map | Latin letters everywhere: today's local names, with Cyrillic ones romanised by the BGN/PCGN systems (Russian, Belarusian, Ukrainian), soft and hard signs left out. Original spellings stay in the data for the info panel (Ignas, 11 October 2026) |
+| Lake names on the map | Just the name, without the word for "lake": Ilmen, Narach, Plateliai. Where the plain form can't be found reliably, the full name stays, spelled out (Ignas, 11 October 2026) |
 
 ## Treating real history with care
 

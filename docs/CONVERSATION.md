@@ -252,6 +252,14 @@ Asked how the map should write them, he chose:
 So Cyrillic names are romanised (BGN/PCGN systems): Nyoman in Belarus, Dnipro in Ukraine. The
 Nemunas stays Nemunas in Lithuania.
 
+Lake names then showed the local word for "lake" in mixed ways ("ozero Ilmen", and a bare
+"Platelių" once the Lithuanian "ež." was dropped). He chose:
+
+> "Just the name"
+
+So: Ilmen, Narach, Plateliai. Where the plain form isn't known for sure, the full name stays,
+spelled out.
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.
