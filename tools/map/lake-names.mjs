@@ -26,6 +26,7 @@
 // All of this runs before romanising (tools/map/romanize.mjs), on the name as OpenStreetMap has it.
 
 import { readFileSync } from 'node:fs';
+import { guessLanguage } from './romanize.mjs';
 
 /** @typedef {'ru' | 'be' | 'uk' | 'pl' | 'lt' | 'lv' | 'et' | 'de' | 'sv' | 'no' | 'fi' | 'cs'} LakeLang */
 
@@ -107,6 +108,12 @@ function lastWord(rest) {
  * the lake Zaozerye.
  */
 const EAST_SLAVIC_ADJECTIVE = /(?:ое|ее|ае|яе|ые|ыя|ське|цьке|зьке|oye|eye|aye|yaye|yye|skoe)$/u;
+/**
+ * Russian possessive adjectives in -ье, named after an animal: "озеро Щучье" is the pike's lake
+ * (щучий), not a lake called Shchuchye. They end like the nouns in -ье (Заречье, Заозерье), so
+ * they are listed by stem rather than caught by their ending.
+ */
+const EAST_SLAVIC_POSSESSIVE = /^(?:щуч|лис|волч|медвеж|коз|быч|рыб|лебяж|гус|заяч|олен|птич|коров|кошач|собач|журавл)ье$/u;
 
 /**
  * Polish neuter adjectives, which agree with jezioro: -kie and -gie (Mikołajskie, Długie), -nie
@@ -115,8 +122,25 @@ const EAST_SLAVIC_ADJECTIVE = /(?:ое|ее|ае|яе|ые|ыя|ське|цьк�
  * other letter (Lubie, Wielimie, Pobłędzie).
  */
 const POLISH_ADJECTIVE = /(?:[kg]ie|nie|(?:[łlwżnrtpsm]|ch|cz)e)$/u;
+/**
+ * Polish possessive adjectives named after an animal, which end like the nouns in -ie (Pobłędzie,
+ * Lubie): "Jezioro Kozie" is the goats' lake (kozi, kozia, kozie), not a lake called Kozie.
+ */
+const POLISH_POSSESSIVE = /^(?:kozie|łabędzie|gęsie|rybie|żabie|krowie|sowie|kurze)$/u;
+/**
+ * Polish lake names that are a genitive phrase, found by hand in the data: "Jezioro Zygmunta
+ * Augusta" is the lake of Sigismund Augustus. Its ending looks like a feminine noun (Hańcza,
+ * Krzywa Kuta), so no rule on endings can tell; the phrase cannot stand alone.
+ */
+const POLISH_GENITIVE = new Set(['Zygmunta Augusta']);
 /** Lithuanian nominative endings: a name ending so after the word for lake is not a genitive ("Balandis ež."). */
 const LITHUANIAN_NOMINATIVE = /(?:as|is|ys|us|ai)$/u;
+/**
+ * Lithuanian genitive singular endings (-os, -ės, -io, -aus, -o): OpenStreetMap sometimes writes
+ * a genitive after the word for lake too ("ež. Ilgės", whose own alt_name is Ilgis). A feminine
+ * plural in -os or -ės would also be caught; it then keeps its full name, which is never wrong.
+ */
+const LITHUANIAN_GENITIVE = /(?:os|ės|io|aus|o)$/u;
 /** Swedish and Norwegian adjectives that start a lake's name: "Store sjö" is the big lake, not a name. */
 const NORDIC_ADJECTIVE = /^(?:stora|store|stor|lilla|lille|lill|norra|nordre|södra|søndre|västra|vestre|östra|østre|övre|øvre|nedre|mellersta)$/u;
 
@@ -134,14 +158,18 @@ export function standsAlone(w) {
   const no = (/** @type {'adjective' | 'genitive'} */ why) => ({ alone: /** @type {false} */ (false), why });
   switch (lang) {
     case 'ru': case 'uk': case 'be':
-      return at === 'after' || EAST_SLAVIC_ADJECTIVE.test(last) ? no('adjective') : { alone: true };
+      return at === 'after' || EAST_SLAVIC_ADJECTIVE.test(last) || EAST_SLAVIC_POSSESSIVE.test(last) ? no('adjective') : { alone: true };
     case 'pl':
+      if (POLISH_GENITIVE.has(rest)) return no('genitive');
+      if (POLISH_POSSESSIVE.test(last)) return no('adjective');
       return POLISH_ADJECTIVE.test(last) && !/(?:ice|yce)$/u.test(last) ? no('adjective') : { alone: true };
     case 'lt':
-      // A genitive plural ends in -ų whatever its place; after the word for lake the name is
-      // otherwise in the nominative, before it a genitive unless its ending says nominative.
+      // A genitive plural ends in -ų whatever its place. After the word for lake the name is
+      // otherwise a nominative unless its ending says genitive singular; before the word, a
+      // genitive unless its ending says nominative.
       if (last.endsWith('ų')) return no('genitive');
-      return at === 'before' || LITHUANIAN_NOMINATIVE.test(last) ? { alone: true } : no('genitive');
+      if (at === 'before') return LITHUANIAN_GENITIVE.test(last) ? no('genitive') : { alone: true };
+      return LITHUANIAN_NOMINATIVE.test(last) ? { alone: true } : no('genitive');
     case 'lv':
       return no('genitive');
     case 'et':
@@ -190,6 +218,31 @@ function sameName(candidate, rest) {
 const sameScript = (a, b) => /\p{Script=Cyrillic}/u.test(a) === /\p{Script=Cyrillic}/u.test(b);
 
 /**
+ * Whether a Cyrillic name from a tag without a language (alt_name, not alt_name:be) can be in the
+ * lake's language. In Belarus such a tag is often the Russian form: "Зароново" for
+ * "Заронаўскае возера" (Belarusian writes unstressed о as а). So it is taken only when its
+ * letters point to one of the lake's languages (tools/map/romanize.mjs, guessLanguage()).
+ * @param {string} tag @param {string} name @param {LakeLang[]} langs
+ */
+function fitsLanguage(tag, name, langs) {
+  if (tag.includes(':') || !/\p{Script=Cyrillic}/u.test(name)) return true;
+  return langs.includes(/** @type {LakeLang} */ (guessLanguage(name).lang));
+}
+
+/**
+ * The word for lake run into the name, as some languages write it ("Döllnsee", "Võrtsjärv",
+ * "Storsjön"): a candidate ending so is a full name too, not the plain name ("Großer Döllnsee"
+ * for "Großdöllner See").
+ * @type {Partial<Record<LakeLang, RegExp>>}
+ */
+const COMPOUND_LAKE_WORD = {
+  de: /see$/u, et: /järv$/u, sv: /(?:sjön|sjö|träsket|träsk)$/u, no: /(?:vatnet|vannet|sjøen)$/u, fi: /järvi$/u,
+};
+
+/** Whether a name ends in the word for lake run into it, in one of these languages. @param {string} name @param {LakeLang[]} langs */
+const endsInLakeWord = (name, langs) => langs.some((l) => COMPOUND_LAKE_WORD[l]?.test(name.toLowerCase()));
+
+/**
  * The lake's names in the data that might be its plain name, in the order they are tried:
  * short_name, alt_name and official_name in the name's language, then without a language, then
  * its name:xx in the name's language. Tags may hold several names separated by ";".
@@ -222,6 +275,7 @@ function candidates(langs, names, other) {
 export function plainFromData(w, names, other) {
   for (const c of candidates(w.langs, names, other)) {
     if (!sameScript(c.name, w.rest) || fold(c.name) === fold(w.rest)) continue;
+    if (!fitsLanguage(c.tag, c.name, w.langs)) continue;
     const inner = findLakeWord(c.name);
     let text = c.name;
     if (inner) {
@@ -233,6 +287,7 @@ export function plainFromData(w, names, other) {
       continue;
     }
     if (!/^\p{Lu}/u.test(text) || text.endsWith('ų') || fold(text) === fold(w.rest)) continue;
+    if (endsInLakeWord(text, w.langs)) continue;
     if (!sameName(text, w.rest)) continue;
     return { text, tag: c.tag };
   }

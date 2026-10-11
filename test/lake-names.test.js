@@ -53,6 +53,9 @@ describe('can the name stand alone', () => {
     assert.deepEqual(alone('озеро Лучанское'), { alone: false, why: 'adjective' });
     assert.deepEqual(alone('возера Белае'), { alone: false, why: 'adjective' });
     assert.deepEqual(alone('Святе озеро'), { alone: false, why: 'adjective' });
+    assert.deepEqual(alone('озеро Щучье'), { alone: false, why: 'adjective' }, 'a possessive adjective in -ье: the pike\'s lake');
+    assert.deepEqual(alone('озеро Лисье'), { alone: false, why: 'adjective' });
+    assert.deepEqual(alone('озеро Завидечье (Мануйловское)'), { alone: true }, 'a noun in -чье');
   });
 
   it('Polish: a noun, not a neuter adjective', () => {
@@ -60,6 +63,11 @@ describe('can the name stand alone', () => {
     assert.deepEqual(alone('Jezioro Pławniowice'), { alone: true }, 'a plural noun in -ice');
     assert.deepEqual(alone('Jezioro Mikołajskie'), { alone: false, why: 'adjective' });
     assert.deepEqual(alone('Jezioro Białe'), { alone: false, why: 'adjective' });
+    assert.deepEqual(alone('Jezioro Kozie'), { alone: false, why: 'adjective' }, 'a possessive adjective in -zie: the goats\' lake');
+    assert.deepEqual(alone('Jezioro Łabędzie'), { alone: false, why: 'adjective' });
+    assert.deepEqual(alone('Jezioro Pobłędzie'), { alone: true }, 'a noun in -dzie');
+    assert.deepEqual(alone('Jezioro Zygmunta Augusta'), { alone: false, why: 'genitive' }, 'the lake of Sigismund Augustus');
+    assert.deepEqual(alone('Jezioro Krzywa Kuta'), { alone: true }, 'a feminine adjective and noun, both in -a');
   });
 
   it('Lithuanian: a nominative after ež., a genitive before it', () => {
@@ -68,6 +76,11 @@ describe('can the name stand alone', () => {
     assert.deepEqual(alone('Rėkyvos ežeras'), { alone: false, why: 'genitive' });
     assert.deepEqual(alone('ež. Gačionių'), { alone: false, why: 'genitive' }, 'a genitive plural wherever it stands');
     assert.deepEqual(alone('Balandis ež.'), { alone: true }, 'a nominative ending before the word');
+    assert.deepEqual(alone('ež. Ilgės'), { alone: false, why: 'genitive' }, 'a genitive singular after the word');
+    assert.deepEqual(alone('ež. Rėkyvos'), { alone: false, why: 'genitive' });
+    assert.deepEqual(alone('ež. Vištyčio'), { alone: false, why: 'genitive' });
+    assert.deepEqual(alone('ež. Riešė'), { alone: true }, 'a nominative in -ė');
+    assert.deepEqual(alone('ež. Dusia'), { alone: true }, 'a nominative in -a');
   });
 
   it('Latvian: always a genitive; Estonian: the name itself; German: not an adjective in -er', () => {
@@ -114,6 +127,12 @@ describe('a lake\'s label', () => {
     assert.equal(label('Rāznas ezers', { list: [] }), 'Rāznas ezers');
     assert.equal(label('ež. Gačionių', { list: [] }), 'Gačionių ežeras', 'a Lithuanian genitive goes before the word');
     assert.equal(label('Kumpinišķu ez.', { list: [] }), 'Kumpinišķu ezers');
+    assert.equal(label('Jezioro Zygmunta Augusta', { list: [], other: { alt_name: 'Jezioro Czechowskie' } }), 'Jezioro Zygmunta Augusta');
+    assert.equal(label('Jezioro Kozie', { list: [] }), 'Jezioro Kozie');
+    assert.equal(label('озеро Щучье', { list: [] }), 'Озеро Щучье');
+    // Ilgės reads as the genitive of Ilgė; the lake's alt_name Ilgis shares only three letters
+    // with it, too few to be sure it is the same name, so the full name stays.
+    assert.equal(label('ež. Ilgės', { list: [], other: { alt_name: 'Ilgis' } }), 'Ilgės ežeras', 'a genitive after ež. goes before the word');
   });
 
   it('takes the plain name from the lake\'s own tags when it is the same name', () => {
@@ -133,6 +152,16 @@ describe('a lake\'s label', () => {
     assert.equal(label('Jezioro Białe', { ...none, other: { alt_name: 'Białe' } }), 'Jezioro Białe', 'no plainer');
     assert.equal(label('Platelių ež.', { ...none, other: { alt_name: 'Platelių' } }), 'Platelių ežeras', 'a genitive itself');
     assert.equal(label('Rėkyvos ež.', { ...none, other: { alt_name: 'Рекивос' } }), 'Rėkyvos ežeras', 'another script');
+    assert.equal(
+      label('Заронаўскае возера', { ...none, names: { ru: 'Зароновское озеро' }, other: { alt_name: 'Зароново' } }),
+      'Заронаўскае возера', 'a tag with no language whose letters read as Russian, in a Belarusian lake',
+    );
+    assert.equal(label('Богінскае возера', { ...none, other: { alt_name: 'Богіна' } }), 'Богіна', 'one whose letters read as Belarusian (і)');
+    assert.equal(label('Асвейскае возера', { ...none, other: { 'alt_name:be': 'Асвея' } }), 'Асвея', 'one tagged Belarusian');
+    assert.equal(label('Валдайское озеро', { ...none, other: { alt_name: 'Валдай' } }), 'Валдай', 'a Russian one in a Russian lake');
+    assert.equal(label('Großdöllner See', { ...none, other: { alt_name: 'Großer Döllnsee' } }), 'Großdöllner See', 'the word for lake run into it');
+    assert.equal(label('Breeser See', { ...none, other: { alt_name: 'Breesensee' } }), 'Breeser See', 'the word for lake run into it');
+    assert.equal(label('Jabelscher See', { ...none, other: { alt_name: 'Jabel See' } }), 'Jabel', 'a separate word for lake still drops');
     const w = /** @type {import('../tools/map/lake-names.mjs').LakeWord} */ (findLakeWord('Rāznas ezers'));
     assert.equal(plainFromData(w, { lv: 'Rāznas ezers' }, {}), null, 'its own name again');
   });
