@@ -4,7 +4,8 @@
 // from the names around it, and a river's main name from its lower end. Made-up data only.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { labelNames, lowerEndName, nearbyLanguage, tidyName, waterLabels } from '../tools/map/water-labels.mjs';
+import { osmWaterBlock } from '../tools/map/pack-water.mjs';
+import { labelNames, lowerEndName, nearbyLanguage, REVIEWED_NAMES, tidyName, waterLabels } from '../tools/map/water-labels.mjs';
 
 describe('one tidy name per label', () => {
   it('shows one part of a name that joins two languages: the first in Latin letters', () => {
@@ -14,6 +15,11 @@ describe('one tidy name per label', () => {
     assert.equal(tidyName('Нёман / Nemunas').text, 'Nemunas');
     assert.equal(tidyName('Šešupė / Шешупе /').text, 'Šešupė');
     assert.equal(tidyName('Дняпро / Дніпро').text, 'Дняпро', 'no Latin part: the first');
+    const dnieper = { be: 'Дняпро', uk: 'Дніпро', ru: 'Днепр' };
+    assert.equal(tidyName('Днепр / Дніпро', dnieper).text, 'Дніпро', 'on the Belarus-Ukraine border: not the Russian part');
+    assert.equal(tidyName('Дняпро / Дніпро', dnieper).text, 'Дняпро', 'both local: the first');
+    assert.equal(tidyName('Припять / Припʼять', { uk: "Прип'ять", ru: 'Припять' }).text, 'Припʼять', 'any apostrophe');
+    assert.equal(tidyName('Днепр / Дніпро').text, 'Днепр', 'no tags: the first');
     assert.match(tidyName('Neris - Вілія').rule, /first in Latin letters/);
   });
 
@@ -32,7 +38,33 @@ describe('one tidy name per label', () => {
 describe('labels in Latin letters', () => {
   it('romanises by the name\'s own tags and keeps the original', () => {
     const [l] = labelNames([{ name: 'Нёман', names: { be: 'Нёман', ru: 'Неман' }, x: 0, y: 0 }]);
-    assert.deepEqual(l, { text: 'Nyoman', local: 'Нёман', lang: 'be', rule: 'name:be' });
+    assert.deepEqual(l, { text: 'Nyoman', local: 'Нёман', lang: 'be', rule: 'name:be', at: [0, 0] });
+  });
+
+  it('labels a name only one alphabet can write, with no tags and nothing around it', () => {
+    const [l] = labelNames([{ name: 'Плющівка', names: {}, x: 0, y: 0 }]);
+    assert.equal(l.text, 'Pliushchivka');
+    assert.equal(l.lang, 'uk');
+  });
+
+  it('takes the reviewed language over a lone name tag, by feature id', () => {
+    const items = [
+      { id: 'relation/1', name: 'Осуга', names: { uk: 'Осуга' }, x: 0, y: 0 },
+      { id: 'relation/2', name: 'Осуга', names: { uk: 'Осуга' }, x: 0, y: 0 },
+    ];
+    const reviewed = [{ name: 'Осуга', osmIds: ['relation/1'], lang: /** @type {const} */ ('ru'), why: 'lies in Russia' }];
+    const [a, b] = labelNames(items, reviewed);
+    assert.deepEqual([a.text, a.lang, a.rule], ['Osuga', 'ru', 'reviewed: lies in Russia']);
+    assert.deepEqual([b.text, b.lang], ['Osuha', 'uk'], 'another feature with the same name keeps its rule');
+  });
+
+  it('ships a reviewed list whose every entry is well formed', () => {
+    assert.ok(REVIEWED_NAMES.length > 0);
+    for (const e of REVIEWED_NAMES) {
+      assert.ok(e.name && e.why && e.osmIds.length, e.name);
+      assert.ok(['ru', 'be', 'uk'].includes(e.lang), e.name);
+      for (const id of e.osmIds) assert.match(id, /^(way|relation)\/\d+$/, e.name);
+    }
   });
 
   it('takes the language of the names around a name whose own tags and letters leave it in doubt', () => {
@@ -77,6 +109,27 @@ describe('a river\'s main name: the local name at its lower end', () => {
     assert.deepEqual(end.path, ['Западная Двина', 'Заходняя Дзвіна', 'Daugava / Заходняя Дзвіна', 'Daugava']);
   });
 
+  it('stops where the river splits into two long arms with other names', () => {
+    // Each arm is over a fifth of the river: both "go on", so neither can be picked.
+    const split = { name: 'Upė', names: {}, lines: [[0, 0, 1000, 0], [1000, 0, 1400, 300], [1000, 0, 1400, -300]], lineNames: ['Upė', 'Kairė', 'Dešinė'] };
+    assert.deepEqual(lowerEndName(split), { name: 'Upė', path: ['Upė'] });
+  });
+
+  it('goes on across a one-unit gap between stretches mapped apart', () => {
+    const witka = { name: 'Witka', names: { cs: 'Smědá', pl: 'Witka' }, lines: [[0, 0, 1000, 0], [1001, 0, 1500, 0]], lineNames: ['Smědá', 'Witka'] };
+    assert.deepEqual(lowerEndName(witka), { name: 'Witka', path: ['Smědá', 'Witka'] });
+  });
+
+  it('takes a line that starts where the walk ends, never a side river that ends there', () => {
+    // At the confluence the arm "Gągolina" ends and the "Pisia" goes on: only the Pisia is the way on.
+    const pisia = {
+      name: 'Pisia', names: {},
+      lines: [[0, 0, 1000, 0], [1000, 0, 1600, 0], [1000, 400, 1000, 0]],
+      lineNames: ['Pisia Tuczna', 'Pisia', 'Pisia Gągolina'],
+    };
+    assert.deepEqual(lowerEndName(pisia), { name: 'Pisia', path: ['Pisia Tuczna', 'Pisia'] });
+  });
+
   it('stops where the river splits into arms with other names (a delta)', () => {
     const delta = { name: 'Великая', names: {}, lines: [[0, 0, 1000, 0], [1000, 0, 1100, 50], [1000, 0, 1100, -50]], lineNames: ['Великая', 'Гладышная', 'Средняя'] };
     assert.equal(lowerEndName(delta).name, 'Великая');
@@ -97,5 +150,13 @@ describe('a river\'s main name: the local name at its lower end', () => {
     assert.equal(river.stretch.get('Заходняя Дзвіна')?.text, 'Zakhodnyaya Dzvina');
     assert.equal(river.stretch.get('Daugava / Заходняя Дзвіна')?.text, 'Daugava');
     assert.deepEqual(labels.lakes.map((l) => [l.text, l.local]), [['Drūkšiai', 'ež. Drūkšiai / возера Дрысвяты']]);
+  });
+});
+
+describe('the packed water block', () => {
+  it('refuses to ship a label still in Cyrillic', () => {
+    // Ӂ is Moldovan Cyrillic: none of the three systems knows it, so it stays as it is.
+    const osm = { source: 'osm', licence: 'ODbL-1.0', rivers: [], lakes: [{ name: 'Ӂара', names: {}, wikidata: null, areaKm2: 5, rings: [[0, 0, 100, 0, 100, 100]] }] };
+    assert.throws(() => osmWaterBlock(osm), /labels still in Cyrillic: Ӂара -> Ӂara/);
   });
 });

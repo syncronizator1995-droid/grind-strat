@@ -5,17 +5,20 @@
 //
 //   - One name per label: a name that joins two languages ("Neris - Вілія", "Nemunas / Немунас")
 //     shows one of them. Nothing in the extract says which country a stretch or lake lies in, and
-//     most such names are on a border, so the first part in Latin letters is shown (the first
-//     part, if none is in Latin letters).
+//     most such names are on a border, so the first part in Latin letters is shown; if none is
+//     in Latin letters, the first part that is the feature's Belarusian or Ukrainian name (on the
+//     border of Belarus and Ukraine, "Днепр / Дніпро" shows Dnipro), else the first part.
 //   - Abbreviations such as Lithuanian "ež." (ežeras, lake) are left out of labels.
 //   - Cyrillic names are romanised (tools/map/romanize.mjs). The language is decided per name:
 //     its own name:xx tags, letters only one language has, and otherwise the language the names
 //     around it are surely written in (in OpenStreetMap a name is in the language of the country
-//     it lies in, so its neighbours tell the country).
+//     it lies in, so its neighbours tell the country). A short reviewed list
+//     (tools/map/osm-water-names.json) settles the names those rules get wrong.
 //   - A river's main name (its info, and its label where a stretch has no name of its own) is the
 //     local name at its lower end inside the map: where it meets the sea or a bigger river, or
 //     leaves the map. So Daugava, not Zapadnaya Dvina.
 
+import { readFileSync } from 'node:fs';
 import { chooseLanguage, hasCyrillic, hasLatin, possibleLanguages, romanize, sameApostrophes, sureLanguage, taggedLanguages } from './romanize.mjs';
 import { isTwoLanguageName, splitNames } from './water-rules.mjs';
 
@@ -28,6 +31,7 @@ import { isTwoLanguageName, splitNames } from './water-rules.mjs';
  * @property {string} local the name as OpenStreetMap has it
  * @property {Lang | null} lang the language it was romanised from (null: it was already Latin)
  * @property {string} rule how the label was made, for the pack report
+ * @property {[number, number]} at where the name was looked up, game units (for the report)
  */
 
 /**
@@ -44,20 +48,34 @@ export const ABBREVIATIONS = new Set(['ež.', 'ež', 'ez.', 'jez.', 'оз.', 'в
 export const ONE_NAMES = { 'Jezioro Łódzko - Dymaczewskie': 'Jezioro Łódzko-Dymaczewskie' };
 
 /**
+ * Whether a name is one of the feature's name tags in these languages, or a part of one (OSM
+ * tags hold two-name values too: the Pripyat's name:uk is "Прип'ять / Прип'ять").
+ * @param {string} name @param {Record<string, string>} names @param {Lang[]} langs
+ */
+function isTagged(name, names, langs) {
+  const k = sameApostrophes(name);
+  return langs.some((l) => names[l] !== undefined && [names[l], ...splitNames(names[l])].some((n) => sameApostrophes(n) === k));
+}
+
+/**
  * The one name a label shows, before romanising: one part of a two-language name, without
  * abbreviations.
- * @param {string} name
+ * @param {string} name @param {Record<string, string>} [names] the feature's name:xx tags
  * @returns {{ text: string, rule: string }}
  */
-export function tidyName(name) {
+export function tidyName(name, names = {}) {
   if (ONE_NAMES[name]) return { text: ONE_NAMES[name], rule: 'one name with a spaced dash' };
   let text = name.trim();
   const rules = [];
   if (isTwoLanguageName(text)) {
     const parts = splitNames(text);
     const latin = parts.find((p) => hasLatin(p) && !hasCyrillic(p));
-    text = latin ?? parts[0];
-    rules.push(latin ? 'two names: the first in Latin letters' : 'two names: the first');
+    // Two Cyrillic names are on a border of Belarus, Ukraine or Russia. Where one of them is the
+    // feature's Belarusian or Ukrainian name, that one is shown: on the border of Belarus and
+    // Ukraine Russian is neither side's name ("Днепр / Дніпро", "Припять / Припʼять").
+    const notRussian = parts.find((p) => hasCyrillic(p) && isTagged(p, names, ['be', 'uk']));
+    text = latin ?? notRussian ?? parts[0];
+    rules.push(latin ? 'two names: the first in Latin letters' : notRussian ? 'two names: the first tagged Belarusian or Ukrainian' : 'two names: the first');
   }
   const words = text.split(/\s+/);
   const kept = words.filter((w) => !ABBREVIATIONS.has(w.toLowerCase()));
@@ -80,7 +98,29 @@ const NEARBY_UNITS = 1500;
  * @property {string} name the name as OpenStreetMap has it
  * @property {Record<string, string>} names the feature's name:xx tags
  * @property {number} x @property {number} y where it is, game units
+ * @property {string} [id] the feature's OpenStreetMap id ('way/<id>' or 'relation/<id>'), for
+ *   the reviewed list
  */
+
+/**
+ * The reviewed languages (tools/map/osm-water-names.json): names the rules below get wrong, by
+ * the feature's id and the name as shown before romanising.
+ * @typedef {{ name: string, osmIds: string[], lang: Lang, why: string }} ReviewedName
+ */
+const REVIEWED_FILE = new URL('./osm-water-names.json', import.meta.url);
+/** @type {ReviewedName[]} */
+export const REVIEWED_NAMES = JSON.parse(readFileSync(REVIEWED_FILE, 'utf8')).entries;
+
+/**
+ * The reviewed names by feature id and name.
+ * @param {ReviewedName[]} list
+ * @returns {Map<string, ReviewedName>}
+ */
+function reviewIndex(list) {
+  const out = new Map();
+  for (const e of list) for (const id of e.osmIds) out.set(`${id}\u0000${e.name}`, e);
+  return out;
+}
 
 /**
  * The language a name surely is in, from its own tags or its letters, or null.
@@ -97,21 +137,27 @@ function sureOf(text, names) {
  * Labels for many names at once, so a name whose language is in doubt can take the language
  * most of the surely known names around it are in.
  * @param {NameItem[]} items
+ * @param {ReviewedName[]} [reviewed] names whose language was decided by review
  * @returns {Label[]}
  */
-export function labelNames(items) {
-  const tidy = items.map((it) => tidyName(it.name));
-  const sure = items.map((it, k) => (hasCyrillic(tidy[k].text) ? sureOf(tidy[k].text, it.names) : null));
+export function labelNames(items, reviewed = REVIEWED_NAMES) {
+  const byReview = reviewIndex(reviewed);
+  const tidy = items.map((it) => tidyName(it.name, it.names));
+  const review = items.map((it, k) => (it.id ? byReview.get(`${it.id}\u0000${tidy[k].text}`) : undefined));
+  const sure = items.map((it, k) => (hasCyrillic(tidy[k].text) ? review[k]?.lang ?? sureOf(tidy[k].text, it.names) : null));
   /** @type {{ x: number, y: number, lang: Lang }[]} */
   const known = [];
   items.forEach((it, k) => { const lang = sure[k]; if (lang) known.push({ x: it.x, y: it.y, lang }); });
   return items.map((it, k) => {
     const { text, rule } = tidy[k];
     const local = it.name;
-    if (!hasCyrillic(text)) return { text, local, lang: null, rule: rule || 'Latin letters already' };
+    /** @type {[number, number]} */
+    const at = [it.x, it.y];
+    if (!hasCyrillic(text)) return { text, local, lang: null, rule: rule || 'Latin letters already', at };
+    const r = review[k];
     const nearby = sure[k] ? null : nearbyLanguage(known, it.x, it.y, possibleLanguages(text));
-    const choice = chooseLanguage(text, { names: it.names, nearby });
-    return { text: romanize(text, choice.lang), local, lang: choice.lang, rule: [rule, choice.rule].filter(Boolean).join('; ') };
+    const choice = r ? { lang: r.lang, rule: `reviewed: ${r.why}` } : chooseLanguage(text, { names: it.names, nearby });
+    return { text: romanize(text, choice.lang), local, lang: choice.lang, rule: [rule, choice.rule].filter(Boolean).join('; '), at };
   });
 }
 
@@ -171,11 +217,14 @@ const lineLength = (line) => {
 
 /**
  * The name at a river's lower end inside the map. OpenStreetMap draws a river downstream, and
- * build-water stitches each named stretch in the direction of its longest way, so a line's last
- * point is its lower end. From the river's longest line, the walk goes downstream (to the line
- * the last point touches) and stops where nothing follows: the sea, a bigger river or the map's
- * edge. Where the river goes on under another name, the walk follows only if that name is one of
- * the river's own (its name tags, or a part of them) or carries a fifth of the river's length
+ * build-water stitches each named stretch in the direction of its longest way, so a line's first
+ * point is its upper end and its last point its lower end. From the river's longest line, the
+ * walk goes downstream, to a line that starts at (or passes through) the last point, and stops
+ * where nothing follows: the sea, a bigger river or the map's edge. A line that only ends there
+ * is a side river joining at the same point, not the way on. Points one unit (100 m) apart count
+ * as touching: where two stretches were mapped separately their ends can miss by a rounding
+ * step. Where the river goes on under another name, the walk follows only if that name is one
+ * of the river's own (its name tags, or a part of them) or carries a fifth of the river's length
  * (Zapadnaya Dvina into Zakhodnyaya Dzvina into Daugava), not a short delta arm or side channel
  * with a name of its own (Atmata at the Nemunas's mouth); and it stops where the river splits
  * into several names.
@@ -188,15 +237,22 @@ export function lowerEndName(river) {
   const lines = river.lines;
   const names = river.lineNames ?? lines.map(() => '');
   if (!lines.length) return { name: '', path: [] };
-  /** @type {Map<string, number[]>} which lines pass through each point */
-  const through = new Map();
+  /** @type {Map<string, number[]>} the lines that start at or pass through each point (not those that only end there) */
+  const onward = new Map();
   lines.forEach((l, i) => {
-    for (let p = 0; p < l.length; p += 2) {
+    for (let p = 0; p < l.length - 2; p += 2) {
       const k = `${l[p]},${l[p + 1]}`;
-      const list = through.get(k);
-      if (!list) through.set(k, [i]); else if (list[list.length - 1] !== i) list.push(i);
+      const list = onward.get(k);
+      if (!list) onward.set(k, [i]); else if (list[list.length - 1] !== i) list.push(i);
     }
   });
+  /** The lines going on from a point, or from a point one unit away. @param {number} x @param {number} y */
+  const onwardFrom = (x, y) => {
+    /** @type {Set<number>} */
+    const out = new Set();
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (const j of onward.get(`${x + dx},${y + dy}`) ?? []) out.add(j);
+    return [...out];
+  };
   const lengths = lines.map(lineLength);
   const total = lengths.reduce((a, b) => a + b, 0);
   /** @type {Map<string, number>} */
@@ -210,7 +266,7 @@ export function lowerEndName(river) {
   const path = [names[at]];
   for (;;) {
     const l = lines[at];
-    const next = (through.get(`${l[l.length - 2]},${l[l.length - 1]}`) ?? []).filter((j) => !seen.has(j));
+    const next = onwardFrom(l[l.length - 2], l[l.length - 1]).filter((j) => !seen.has(j));
     if (!next.length) break;
     const same = next.filter((j) => names[j] === names[at]);
     const other = next.filter((j) => goesOn(names[j]));
@@ -234,8 +290,8 @@ export function lowerEndName(river) {
 
 /**
  * @typedef {{ rivers: { main: Label, lowerEnd: string[], stretch: Map<string, Label> }[], lakes: Label[] }} WaterLabels
- * @typedef {{ name: string, names: Record<string, string>, lines: Flat[], lineNames?: string[] }} RiverIn
- * @typedef {{ name: string, names: Record<string, string>, rings: Flat[] }} LakeIn
+ * @typedef {{ id?: string, name: string, names: Record<string, string>, lines: Flat[], lineNames?: string[] }} RiverIn
+ * @typedef {{ id?: string, name: string, names: Record<string, string>, rings: Flat[] }} LakeIn
  */
 
 /** The middle point of a line. @param {Flat} line @returns {[number, number]} */
@@ -277,18 +333,18 @@ export function waterLabels(rivers, lakes) {
     const mainName = end.name || r.name;
     /** @type {Map<string, number>} item index by name */
     const itemOf = new Map();
-    for (const [n, i] of longest) { itemOf.set(n, items.length); items.push({ name: n, names: r.names, x: middle(r.lines[i])[0], y: middle(r.lines[i])[1] }); }
+    for (const [n, i] of longest) { itemOf.set(n, items.length); items.push({ id: r.id, name: n, names: r.names, x: middle(r.lines[i])[0], y: middle(r.lines[i])[1] }); }
     if (!itemOf.has(mainName)) {
       const i = longest.get(end.name) ?? r.lines.map((l) => l.length).reduce((b, v, k, all) => (v > all[b] ? k : b), 0);
       itemOf.set(mainName, items.length);
       const [x, y] = r.lines.length ? middle(r.lines[i]) : [0, 0];
-      items.push({ name: mainName, names: r.names, x, y });
+      items.push({ id: r.id, name: mainName, names: r.names, x, y });
     }
     return { mainName, path: end.path, itemOf };
   });
   const lakeItem = lakes.map((l) => {
     const [x, y] = centre(l.rings);
-    items.push({ name: l.name, names: l.names, x, y });
+    items.push({ id: l.id, name: l.name, names: l.names, x, y });
     return items.length - 1;
   });
   const labels = labelNames(items);
