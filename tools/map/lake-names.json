@@ -1,0 +1,20 @@
+{
+  "about": "The plain names of well-known lakes whose OpenStreetMap name cannot simply lose its word for lake, read by tools/map/lake-names.mjs when the water block is packed. A lake's label is just its name, without the word for lake (Ignas, 11 October 2026): where OSM writes the name as a genitive (Lithuanian Platelių ežeras, the lake of Plateliai; Latvian Rāznas ezers) or an adjective (Russian Онежское озеро), and the lake's own OSM tags do not give the plain name in a form the rules can match, this list does. Every other such lake keeps its full name with the word for lake written out. Genitives are never turned into nominatives by a rule on endings: Lithuanian and Latvian endings are too ambiguous for that.",
+  "fields": "lang: the language of the name (lt, lv, ru, ...). name: the name without the word for lake, as OSM writes it (before romanising). plain: the name the label shows (before romanising). toCheck: true where the plain form is the author's knowledge and not in the lake's own OSM data; check it against a gazetteer before relying on it. why: where the plain form comes from.",
+  "entries": [
+    {"lang": "ru", "name": "Онежское", "plain": "Онего", "toCheck": false, "why": "Lake Onega: OSM's alt_name is Онего, which the rule on shared letters cannot match (Онег- and Онеж- share only three)"},
+    {"lang": "lt", "name": "Platelių", "plain": "Plateliai", "toCheck": true, "why": "Lake Plateliai (Samogitia): Platelių is the genitive of Plateliai"},
+    {"lang": "lt", "name": "Rėkyvos", "plain": "Rėkyva", "toCheck": true, "why": "Lake Rėkyva (by Šiauliai): Rėkyvos is the genitive of Rėkyva"},
+    {"lang": "lt", "name": "Asvejos", "plain": "Asveja", "toCheck": true, "why": "Lake Asveja (Dubingiai): Asvejos is the genitive of Asveja; the lake's OSM name:lv tag is Asveja"},
+    {"lang": "lt", "name": "Vištyčio", "plain": "Vištytis", "toCheck": true, "why": "Lake Vištytis (on the border with the Kaliningrad region): Vištyčio is the genitive of Vištytis; the lake's OSM name:lv (Vištītis ezers) and name:et (Vištytise järv) agree"},
+    {"lang": "lt", "name": "Lūksto", "plain": "Lūkstas", "toCheck": true, "why": "Lake Lūkstas (Telšiai district): Lūksto is the genitive of Lūkstas"},
+    {"lang": "lt", "name": "Rubikių", "plain": "Rubikiai", "toCheck": true, "why": "Lake Rubikiai (Anykščiai district): Rubikių is the genitive of Rubikiai"},
+    {"lang": "lt", "name": "Širvėnos", "plain": "Širvėna", "toCheck": true, "why": "Lake Širvėna (Biržai): Širvėnos is the genitive of Širvėna"},
+    {"lang": "lv", "name": "Rāznas", "plain": "Rāzna", "toCheck": true, "why": "Lake Rāzna (Latgale): Rāznas is the genitive of Rāzna; the lake's OSM name:be is Разна"},
+    {"lang": "lv", "name": "Usmas", "plain": "Usma", "toCheck": true, "why": "Lake Usma (Courland): Usmas is the genitive of Usma"},
+    {"lang": "lv", "name": "Liepājas", "plain": "Liepāja", "toCheck": true, "why": "Lake Liepāja: Liepājas is the genitive of Liepāja (the lake is named after the town)"},
+    {"lang": "lv", "name": "Babītes", "plain": "Babīte", "toCheck": true, "why": "Lake Babīte (west of Riga): Babītes is the genitive of Babīte"},
+    {"lang": "lv", "name": "Engures", "plain": "Engure", "toCheck": true, "why": "Lake Engure (Courland coast): Engures is the genitive of Engure"},
+    {"lang": "lv", "name": "Alūksnes", "plain": "Alūksne", "toCheck": true, "why": "Lake Alūksne: Alūksnes is the genitive of Alūksne (the lake and the town share the name)"}
+  ]
+}

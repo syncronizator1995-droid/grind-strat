@@ -31,11 +31,23 @@ const STICK_PX = 48;
 
 /** River size bands by length in km: small, middle, big, great. */
 const BAND_KM = [120, 300, 700];
-/** Line width per band, CSS px, and the scale (CSS px per game unit) from which it shows. */
+/**
+ * Line width per band, CSS px, and the scale (CSS px per game unit) from which it shows. With
+ * OpenStreetMap's two thousand smaller rivers, those under 120 km wait until the view is zoomed
+ * in past the starting map (0.075), or they would hide the land under a web of blue.
+ */
 const BAND_WIDTH = [0.8, 1.1, 1.5, 2.1];
-const BAND_FROM = [0.05, 0.03, 0, 0];
+const BAND_FROM = [0.11, 0.045, 0, 0];
 /** Zoomed out further than this, rivers are drawn thinner. */
 const THIN_BELOW = 0.04;
+/**
+ * A long river whose name finds no straight place (it bends at the scale of its name, as the
+ * Daugava does across Belarus, where "Zakhodnyaya Dzvina" is long) may take a stretch that
+ * bends up to this many times the font size, its name lifted clear of the bend: a little apart
+ * from the river rather than no name at all.
+ */
+const LIFT_FROM_KM = 300;
+const LIFT_BEND = 1.2;
 
 /** @param {number} lengthKm */
 export const riverBand = (lengthKm) => BAND_KM.filter((km) => lengthKm >= km).length;
@@ -154,7 +166,9 @@ export function labelDiscs(x, y, angle, width, size) {
 }
 
 /**
- * @typedef {{ x0: number, y0: number, x1: number, y1: number, d: number }} Stretch
+ * @typedef {{ x0: number, y0: number, x1: number, y1: number, d: number, text?: string, width?: number, lift?: number }} Stretch
+ *   text and width: the name a river's stretch carries there, and its width in CSS px; lift: how
+ *   far the line bulges towards the name's side of the chord, CSS px (only for a lifted name)
  */
 
 /** Scratch space for the arc lengths along a line, reused so placing names makes no garbage. */
@@ -172,9 +186,12 @@ let buffer = new Float64Array(4096);
  * @param {{ cx: number, cy: number, width: number, height: number }} frame
  * @param {number} [count] how many points of `pts` to use
  * @param {Stretch[]} [out] added to
+ * @param {boolean} [lift] also give each stretch its lift: how far the line bulges towards the
+ *   side the name sits on (above the text when it reads left to right), so the name can be moved
+ *   clear of it
  * @returns {Stretch[]}
  */
-export function straightStretches(pts, length, maxDev, frame, count = pts.length / 2, out = []) {
+export function straightStretches(pts, length, maxDev, frame, count = pts.length / 2, out = [], lift = false) {
   const n = count;
   if (arcs.length < n) arcs = new Float64Array(n * 2);
   arcs[0] = 0;
@@ -187,11 +204,19 @@ export function straightStretches(pts, length, maxDev, frame, count = pts.length
     const x0 = pts[i * 2]; const y0 = pts[i * 2 + 1]; const x1 = pts[j * 2]; const y1 = pts[j * 2 + 1];
     const chord = Math.hypot(x1 - x0, y1 - y0);
     if (chord >= length * 0.9 && within(frame, x0, y0) && within(frame, x1, y1)) {
+      // The name's side: above the chord as the text reads, which flips when the chord points left.
+      const side = x1 >= x0 ? 1 : -1;
       let worst = 0;
+      let towards = 0;
       for (let k = i + 1; k < j && worst <= maxDev; k++) {
-        worst = Math.max(worst, Math.abs((pts[k * 2] - x0) * (y1 - y0) - (pts[k * 2 + 1] - y0) * (x1 - x0)) / chord);
+        const dev = ((pts[k * 2] - x0) * (y1 - y0) - (pts[k * 2 + 1] - y0) * (x1 - x0)) / chord;
+        worst = Math.max(worst, Math.abs(dev));
+        towards = Math.max(towards, dev * side);
       }
-      if (worst <= maxDev) out.push({ x0, y0, x1, y1, d: Math.hypot((x0 + x1) / 2 - frame.cx, (y0 + y1) / 2 - frame.cy) });
+      if (worst <= maxDev) {
+        const d = Math.hypot((x0 + x1) / 2 - frame.cx, (y0 + y1) / 2 - frame.cy);
+        out.push(lift ? { x0, y0, x1, y1, d, lift: towards } : { x0, y0, x1, y1, d });
+      }
     }
   }
   return out.sort((p, q) => p.d - q.d);
@@ -205,12 +230,23 @@ function within(f, x, y) {
 /**
  * @typedef {object} WaterIndex worked out once per map, for placing names quickly
  * @property {number[][]} linesOf river index -> its line indexes
- * @property {Int32Array} lineStart first point of each line in the levels list
+ * @property {Float64Array} riverBox [minX, minY, maxX, maxY] per river, game units
  * @property {Float64Array} lineBox [minX, minY, maxX, maxY] per line, game units
- * @property {Float64Array[]} chunkBox per line, the box of every CHUNK points, so only the parts
- *   of a long river near the screen are looked at
+ * @property {Int32Array[][]} levelLines per name level (0 and 1), each line's points at that
+ *   level: names are fitted to these, never to the full detail
+ * @property {Float64Array[][]} chunkBox per name level and line, the box of every CHUNK points,
+ *   so only the parts of a long river near the screen are looked at
  * @property {Uint8Array} lakeLevel coarsest level at which each lake is drawn
  */
+
+/**
+ * Names follow the next coarser level of a line than the one drawn (never the full detail):
+ * OpenStreetMap's meanders, drawn at full detail, leave few straight stretches long enough for
+ * a name.
+ */
+const NAME_LEVELS = [0, 1];
+/** @param {number} level the level drawn */
+const nameLevel = (level) => Math.min(NAME_LEVELS.length - 1, Math.max(0, level - 1));
 
 /** Points per chunk of a river line. */
 const CHUNK = 64;
@@ -239,21 +275,33 @@ function boxOf(line, from, to, out, at) {
 export function indexWater(water) {
   /** @type {number[][]} */
   const linesOf = water.riverInfo.map(() => []);
-  const lineStart = new Int32Array(water.rivers.length);
   const lineBox = new Float64Array(water.rivers.length * 4);
-  /** @type {Float64Array[]} */
-  const chunkBox = [];
+  /** @type {Int32Array[][]} */
+  const levelLines = NAME_LEVELS.map(() => []);
+  /** @type {Float64Array[][]} */
+  const chunkBox = NAME_LEVELS.map(() => []);
   let at = 0;
   water.rivers.forEach((line, i) => {
     linesOf[water.riverOf[i]]?.push(i);
-    lineStart[i] = at;
     const n = line.length / 2;
-    at += n;
     boxOf(line, 0, n - 1, lineBox, i * 4);
-    // Chunk c covers points c*CHUNK to (c+1)*CHUNK: neighbouring chunks share a point.
-    const chunks = new Float64Array(Math.max(1, Math.ceil((n - 1) / CHUNK)) * 4);
-    for (let c = 0; c * 4 < chunks.length; c++) boxOf(line, c * CHUNK, Math.min(n - 1, (c + 1) * CHUNK), chunks, c * 4);
-    chunkBox.push(chunks);
+    for (const level of NAME_LEVELS) {
+      let count = 0;
+      for (let p = 0; p < n; p++) if (water.riverLevels[at + p] <= level) count++;
+      const pts = new Int32Array(count * 2);
+      for (let p = 0, k = 0; p < n; p++) {
+        if (water.riverLevels[at + p] > level) continue;
+        pts[k++] = line[p * 2];
+        pts[k++] = line[p * 2 + 1];
+      }
+      levelLines[level].push(pts);
+      // Chunk c covers points c*CHUNK to (c+1)*CHUNK: neighbouring chunks share a point.
+      const m = pts.length / 2;
+      const chunks = new Float64Array(Math.max(1, Math.ceil((m - 1) / CHUNK)) * 4);
+      for (let c = 0; c * 4 < chunks.length; c++) boxOf(pts, c * CHUNK, Math.min(m - 1, (c + 1) * CHUNK), chunks, c * 4);
+      chunkBox[level].push(chunks);
+    }
+    at += n;
   });
   const lakeLevel = new Uint8Array(water.lakeInfo.length).fill(255);
   at = 0;
@@ -262,7 +310,16 @@ export function indexWater(water) {
     for (let p = 0; p < ring.length / 2; p++) lakeLevel[k] = Math.min(lakeLevel[k], water.lakeLevels[at + p]);
     at += ring.length / 2;
   });
-  return { linesOf, lineStart, lineBox, chunkBox, lakeLevel };
+  const riverBox = new Float64Array(water.riverInfo.length * 4);
+  for (let k = 0; k < water.riverInfo.length; k++) riverBox.set([Infinity, Infinity, -Infinity, -Infinity], k * 4);
+  water.rivers.forEach((_, i) => {
+    const k = water.riverOf[i] * 4;
+    riverBox[k] = Math.min(riverBox[k], lineBox[i * 4]);
+    riverBox[k + 1] = Math.min(riverBox[k + 1], lineBox[i * 4 + 1]);
+    riverBox[k + 2] = Math.max(riverBox[k + 2], lineBox[i * 4 + 2]);
+    riverBox[k + 3] = Math.max(riverBox[k + 3], lineBox[i * 4 + 3]);
+  });
+  return { linesOf, riverBox, lineBox, levelLines, chunkBox, lakeLevel };
 }
 
 /**
@@ -323,8 +380,11 @@ export function placeWaterLabels({ water, index, level, scale, ox, oy, width, he
       if (label) keep(label);
       li++;
     } else {
-      if (rivers[ri].name) {
-        for (const label of placeRiver(water, index, ri, level, scale, ox, oy, frame, measure, occupied, previous?.get(ri))) keep(label);
+      const rb = index.riverBox.subarray(ri * 4, ri * 4 + 4);
+      // Off the frame altogether: nothing to place (thousands of rivers, most of them elsewhere).
+      const inFrame = rb[2] * scale + ox >= 0 && rb[0] * scale + ox <= width && oy - rb[1] * scale >= 0 && oy - rb[3] * scale <= height;
+      if (rivers[ri].name && inFrame) {
+        for (const label of placeRiver(water, index, ri, nameLevel(level), scale, ox, oy, frame, measure, occupied, previous?.get(ri))) keep(label);
       }
       ri++;
     }
@@ -365,77 +425,114 @@ function placeLake(lake, drawn, scale, ox, oy, frame, measure, occupied) {
 function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occupied, previous) {
   const river = water.riverInfo[k];
   const size = riverFont(river.lengthKm);
-  const textWidth = measure(river.name, size);
+  /** @type {Map<string, number>} */
+  const widths = new Map();
+  const widthOf = (/** @type {string} */ text) => {
+    let w = widths.get(text);
+    if (w === undefined) { w = measure(text, size); widths.set(text, w); }
+    return w;
+  };
   const offset = size * 0.7 + bandWidth(riverBand(river.lengthKm), scale);
   // Game-unit window of the frame, to skip lines that are off screen.
   const minX = -ox / scale; const maxX = (frame.width - ox) / scale;
   const minY = (oy - frame.height) / scale; const maxY = oy / scale;
   // Zoomed far out every river wiggles at the scale of a word: allow a little more bend there.
   const bend = size * (scale < THIN_BELOW ? 0.6 : 0.4);
-  const length = textWidth + size;
   /** @type {Stretch[]} */
   const stretches = [];
-  for (const i of index.linesOf[k] ?? []) {
-    const b = index.lineBox.subarray(i * 4, i * 4 + 4);
-    if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
-    // A line whose whole extent on screen is shorter than the name can't carry it.
-    if (Math.max(b[2] - b[0], b[3] - b[1]) * scale < length * 0.9) continue;
-    const line = water.rivers[i];
-    const start = index.lineStart[i];
-    const n = line.length / 2;
-    const chunks = index.chunkBox[i];
-    if (buffer.length < line.length) buffer = new Float64Array(line.length * 2);
-    // Only the runs of the line inside the frame (a name must fit on screen anyway), looking only
-    // at chunks of the line near it.
-    let count = 0;
-    const flush = () => {
-      if (count >= 2) straightStretches(buffer, length, bend, frame, count, stretches);
-      count = 0;
-    };
-    for (let c = 0; c * 4 < chunks.length; c++) {
-      if (chunks[c * 4 + 2] < minX || chunks[c * 4] > maxX || chunks[c * 4 + 3] < minY || chunks[c * 4 + 1] > maxY) {
-        flush();
-        continue;
-      }
-      // Each chunk's first point is the last point of the chunk before; take it only when a new
-      // run starts here.
-      for (let p = c * CHUNK + (count ? 1 : 0), end = Math.min(n - 1, (c + 1) * CHUNK); p <= end; p++) {
-        if (water.riverLevels[start + p] > level) continue;
-        const x = ox + line[p * 2] * scale;
-        const y = oy - line[p * 2 + 1] * scale;
-        if (x >= 0 && y >= 0 && x <= frame.width && y <= frame.height) {
-          buffer[count * 2] = x;
-          buffer[count * 2 + 1] = y;
-          count++;
-        } else {
+  /**
+   * Adds the free-of-bends stretches of every line of the river on the frame to `stretches`.
+   * @param {number} maxDev CSS px @param {boolean} lift @param {Set<string>} [skip] names to leave out
+   */
+  const collect = (maxDev, lift, skip) => {
+    for (const i of index.linesOf[k] ?? []) {
+      // Each stretch carries its local name: the Nemunas is "Nemunas" in Lithuania, "Nyoman" in
+      // Belarus (Нёман, written in Latin letters when the block was packed).
+      const b = index.lineBox.subarray(i * 4, i * 4 + 4);
+      if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
+      const text = (water.lineName && water.lineNames[water.lineName[i]]) || river.name;
+      if (skip?.has(text)) continue;
+      const textWidth = widthOf(text);
+      const length = textWidth + size;
+      // A line whose whole extent on screen is shorter than the name can't carry it.
+      if (Math.max(b[2] - b[0], b[3] - b[1]) * scale < length * 0.9) continue;
+      const line = index.levelLines[level][i];
+      const n = line.length / 2;
+      const chunks = index.chunkBox[level][i];
+      if (buffer.length < line.length) buffer = new Float64Array(line.length * 2);
+      // Only the runs of the line inside the frame (a name must fit on screen anyway), looking only
+      // at chunks of the line near it.
+      let count = 0;
+      const flush = () => {
+        if (count >= 2) for (const st of straightStretches(buffer, length, maxDev, frame, count, [], lift)) stretches.push({ ...st, text, width: textWidth });
+        count = 0;
+      };
+      for (let c = 0; c * 4 < chunks.length; c++) {
+        if (chunks[c * 4 + 2] < minX || chunks[c * 4] > maxX || chunks[c * 4 + 3] < minY || chunks[c * 4 + 1] > maxY) {
           flush();
+          continue;
+        }
+        // Each chunk's first point is the last point of the chunk before; take it only when a new
+        // run starts here.
+        for (let p = c * CHUNK + (count ? 1 : 0), end = Math.min(n - 1, (c + 1) * CHUNK); p <= end; p++) {
+          const x = ox + line[p * 2] * scale;
+          const y = oy - line[p * 2 + 1] * scale;
+          if (x >= 0 && y >= 0 && x <= frame.width && y <= frame.height) {
+            buffer[count * 2] = x;
+            buffer[count * 2 + 1] = y;
+            count++;
+          } else {
+            flush();
+          }
         }
       }
+      flush();
     }
-    flush();
-  }
-  if (previous) stickToPrevious(stretches, previous, scale, ox, oy);
-  stretches.sort((p, q) => p.d - q.d);
+  };
+  collect(bend, false);
+  // The names that have a straight place on the frame, whether or not it is free.
+  const straight = new Set(stretches.map((st) => /** @type {string} */ (st.text)));
   /** @type {Label[]} */
   const placed = [];
-  for (const s of stretches) {
-    if (placed.length >= MAX_REPEATS) break;
-    let angle = Math.atan2(s.y1 - s.y0, s.x1 - s.x0);
-    if (angle > Math.PI / 2) angle -= Math.PI;
-    else if (angle < -Math.PI / 2) angle += Math.PI;
-    if (Math.abs(angle) > MAX_TILT) continue;
-    // Beside the river, on the side that is up for the text, so the name doesn't hide the water.
-    const x = (s.x0 + s.x1) / 2 + Math.sin(angle) * offset;
-    const y = (s.y0 + s.y1) / 2 - Math.cos(angle) * offset;
-    if (placed.some((l) => Math.hypot(l.x - x, l.y - y) < REPEAT_PX)) continue;
-    const discs = labelDiscs(x, y, angle, textWidth, size);
-    if (!occupied.fits(discs)) continue;
-    occupied.add(discs);
-    const sx = (s.x0 + s.x1) / 2;
-    const sy = (s.y0 + s.y1) / 2;
-    placed.push({ text: river.name, size, x, y, angle, river: k, mx: (sx - ox) / scale, my: (oy - sy) / scale });
-  }
+  placeOn(stretches, placed);
+  if (river.lengthKm < LIFT_FROM_KM || placed.length >= MAX_REPEATS) return placed;
+  // A long river's local names that have no straight place at all may be lifted clear of a
+  // bend, each name once: the Daugava's "Zakhodnyaya Dzvina" in Belarus, even where "Daugava"
+  // is named near the border.
+  stretches.length = 0;
+  collect(size * LIFT_BEND, true, straight);
+  placeOn(stretches, placed, true);
   return placed;
+
+  /**
+   * Places names on the best free stretches, a few apart, into `out`.
+   * @param {Stretch[]} list @param {Label[]} out
+   * @param {boolean} [once] at most one name for each text, kept apart only from the same text
+   */
+  function placeOn(list, out, once = false) {
+    if (previous) stickToPrevious(list, previous, scale, ox, oy);
+    list.sort((p, q) => p.d - q.d);
+    for (const s of list) {
+      if (out.length >= MAX_REPEATS) break;
+      let angle = Math.atan2(s.y1 - s.y0, s.x1 - s.x0);
+      if (angle > Math.PI / 2) angle -= Math.PI;
+      else if (angle < -Math.PI / 2) angle += Math.PI;
+      if (Math.abs(angle) > MAX_TILT) continue;
+      // Beside the river, on the side that is up for the text, so the name doesn't hide the water;
+      // a lifted name also clears the bend of the river towards it.
+      const away = offset + (s.lift ?? 0);
+      const x = (s.x0 + s.x1) / 2 + Math.sin(angle) * away;
+      const y = (s.y0 + s.y1) / 2 - Math.cos(angle) * away;
+      const text = s.text ?? river.name;
+      if (once ? out.some((l) => l.text === text) : out.some((l) => Math.hypot(l.x - x, l.y - y) < REPEAT_PX)) continue;
+      const discs = labelDiscs(x, y, angle, s.width ?? widthOf(text), size);
+      if (!occupied.fits(discs)) continue;
+      occupied.add(discs);
+      const sx = (s.x0 + s.x1) / 2;
+      const sy = (s.y0 + s.y1) / 2;
+      out.push({ text, size, x, y, angle, river: k, mx: (sx - ox) / scale, my: (oy - sy) / scale });
+    }
+  }
 }
 
 /**

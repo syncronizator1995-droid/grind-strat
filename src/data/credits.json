@@ -4,11 +4,12 @@
     "Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today's land cover, terrain and rivers; they are not from a historical map.",
     "Marsh: from today's peat-soil and wetland maps plus today's open bogs. Where those maps show more bog than the pollen allows, bog wins and there is less forest than the pollen share (parts of north-west Russia, south-east Finland and east Estonia).",
     "Under modern reservoirs the land shows flat, at today's water level.",
-    "Rivers and lakes: for now Natural Earth's simpler set, with its names: local names for most rivers, English names for some big lakes. Fuller rivers and lakes from OpenStreetMap come next; until then the upper Nemunas (above Kaunas) and smaller lakes such as Drūkšiai are missing, and the map shows land where those lakes are.",
-    "Rivers, lakes and the coast are today's; modern reservoirs are left out and the bigger natural lakes kept. Heights and sea depths are today's."
+    "Rivers and lakes are today's, from OpenStreetMap, with today's local names: a river's name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river's own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, are left out; the rivers through those reservoirs follow today's mapped line.",
+    "All names are written in Latin letters. Russian, Belarusian and Ukrainian names are romanised by the BGN/PCGN systems (Russian 1947, Belarusian 1979, Ukrainian 2019), with the soft and hard signs and the apostrophe left out to keep them easy to read. Where OpenStreetMap gives a name in two languages, the map shows one. A lake shows just its name, without the word for lake (Ilmen, not ozero Ilmen; Plateliai, not Platelių ežeras); where the name only works with that word (Kozhanovskoye ozero, Jezioro Mikołajskie, or Juglas ezers where no plain form is known), the full name is kept.",
+    "The coast, heights and sea depths are today's."
   ],
   "interim": [],
-  "mapLine": "Natural Earth · GEBCO · ESA WorldCover · more",
+  "mapLine": "© OpenStreetMap contributors · Natural Earth · GEBCO · ESA WorldCover · more",
   "datasets": [
     {
       "title": "Natural Earth",
@@ -16,8 +17,7 @@
       "version": "5.1.2",
       "uses": [
         "land, coast, heights and sea depths",
-        "the land around 1219: forest, open land, marsh and heath",
-        "rivers, lakes and their names"
+        "the land around 1219: forest, open land, marsh and heath"
       ],
       "line": "Made with Natural Earth.",
       "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
@@ -108,6 +108,23 @@
       "licenceUri": "creativecommons.org/licenses/by/4.0/",
       "notes": [],
       "unofficialCopy": "Carl Boettiger, on Source Cooperative (AWS S3, us-west-2, cboettig/wetlands/GLWD_v2_0/): the per-class percent GeoTIFFs, legend and TechDoc. The TechDoc is byte-identical to the official one; the data TIFFs were not compared with the official download."
+    },
+    {
+      "title": "OpenStreetMap contributors",
+      "owner": "OpenStreetMap contributors; published by the Overture Maps Foundation",
+      "version": "Overture release 2026-09-23.1 (OpenStreetMap data of September 2026)",
+      "uses": [
+        "rivers, lakes and their names"
+      ],
+      "line": "Rivers, lakes and their names: © OpenStreetMap contributors, Overture Maps Foundation. Open Database License: openstreetmap.org/copyright",
+      "citation": "OpenStreetMap contributors. OpenStreetMap data as published by the Overture Maps Foundation, overturemaps.org (release 2026-09-23.1, accessed 7 October 2026). openstreetmap.org",
+      "changes": [
+        "Rivers and lakes: filtered to named rivers (at least 50 km on the map, or 15 km with a Wikidata id) and named natural lakes (at least 1 km², or 0.5 km² with a Wikidata id); river ways joined into rivers by OpenStreetMap's river relations; modern reservoirs and lakes made after 1219 left out by their OpenStreetMap tags and a reviewed list; lakes mapped twice inside a bigger lake left out; moved onto the game's flat map (an equal-area projection), rounded to 100 m and simplified for three zoom levels. Names shown on the map: Russian, Belarusian and Ukrainian names written in Latin letters (BGN/PCGN, with the soft and hard signs and the apostrophe left out); one name shown where OpenStreetMap gives a name in two languages; abbreviations such as \"ež.\" left out; each river named by its name at its lower end. OpenStreetMap's own names are kept in the data."
+      ],
+      "licenceName": "Open Database License (ODbL) 1.0",
+      "licenceUri": "opendatacommons.org/licenses/odbl/1-0/",
+      "notes": [],
+      "unofficialCopy": null
     }
   ],
   "font": {
@@ -127,5 +144,5 @@
     "notes": [],
     "unofficialCopy": null
   },
-  "odblOffer": null
+  "odblOffer": "github.com/syncronizator1995-droid/grind-strat, folder src/data/odbl/"
 }

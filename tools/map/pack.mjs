@@ -3,10 +3,13 @@
 //   src/data/map/base.json            public domain: land and coast, heights and sea depths
 //   src/data/by-sa/terrain-1219.json  CC BY-SA 4.0: the land around 1219, from the grid that
 //                                     npm run map:terrain builds (refused if it is stale)
-//   src/data/map/water-ne.json        public domain: Natural Earth rivers and lakes (M2), the
-//                                     lakes of 1219 from tools/map/ne-water-1219.json; or, once
-//                                     data/raw/derived/water-osm.json exists (next milestone),
-//   src/data/odbl/water.json          ODbL 1.0: OpenStreetMap rivers and lakes
+//   src/data/odbl/water.json          ODbL 1.0: OpenStreetMap rivers and lakes (read through
+//                                     Overture), from data/raw/derived/water-osm.json, which
+//                                     npm run map:water builds; without it (M2's way),
+//   src/data/map/water-ne.json        public domain: Natural Earth rivers and lakes, the lakes of
+//                                     1219 from tools/map/ne-water-1219.json. Never both: the
+//                                     OSMF asks that OSM's rivers and lakes are not drawn in one
+//                                     layer with another source's.
 // and records their fingerprints in src/data/fingerprints.json.
 //   node tools/map/pack.mjs     (npm run map:pack also rewrites the credits)
 // Needs the derived grids (npm run map:grids) and the Natural Earth files (node tools/map/fetch.mjs).

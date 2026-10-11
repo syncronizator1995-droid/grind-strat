@@ -17,6 +17,16 @@ describe('straight stretches', () => {
     assert.ok(Math.hypot(found[0].x1 - found[0].x0, found[0].y1 - found[0].y0) >= 120 * 0.9);
   });
 
+  it('gives a stretch\'s lift: how far the line bulges towards the name above it', () => {
+    // An arch bulging up the screen (smaller y), the side a name reading left to right sits on.
+    const arch = new Float64Array([20, 100, 70, 92, 120, 88, 170, 92, 220, 100]);
+    const [up] = straightStretches(arch, 190, 20, frame, undefined, [], true);
+    assert.ok(up && Math.abs(/** @type {number} */ (up.lift) - 12) < 0.01, `lift ${up?.lift}`);
+    const dip = new Float64Array([20, 100, 70, 108, 120, 112, 170, 108, 220, 100]);
+    assert.equal(straightStretches(dip, 190, 20, frame, undefined, [], true)[0]?.lift, 0, 'a dip away from the name needs no lift');
+    assert.equal(straightStretches(arch, 190, 20, frame)[0]?.lift, undefined, 'only when asked');
+  });
+
   it('finds no room along a zigzag, or where the stretch would leave the frame', () => {
     const zig = new Float64Array([20, 100, 40, 140, 60, 100, 80, 140, 100, 100, 120, 140, 140, 100]);
     assert.equal(straightStretches(zig, 100, 4, frame).length, 0);
@@ -51,6 +61,10 @@ describe('placing names', () => {
       { name: 'Long River', names: {}, wikidata: null, lengthKm: 800 },
       { name: 'Short', names: {}, wikidata: null, lengthKm: 60 },
     ],
+    /** @type {Uint32Array | null} */
+    lineName: null,
+    lineNames: [''],
+    lineLocal: [''],
     lakes: [Int32Array.from([3000, 3000, 3600, 3000, 3600, 3600, 3000, 3600]), Int32Array.from([200, 2000, 260, 2000, 260, 2060])],
     lakeLevels: new Uint8Array(7),
     lakeOf: Uint32Array.from([0, 1]),
@@ -90,6 +104,48 @@ describe('placing names', () => {
     const texts = labels.map((l) => l.text);
     assert.ok(texts.includes('Long River') && texts.includes('Big Lake'), `got ${texts.join(', ')}`);
     assert.equal(result.complete, true, 'with fewer than a dozen names, every one was tried');
+  });
+
+  it('names each stretch of a river by its own local name', () => {
+    // The long river in two stretches: the west half "Nemunas", the east half "Nyoman" (Нёман,
+    // romanised when the block was packed).
+    const two = {
+      ...water,
+      rivers: [Int32Array.from([0, 500, 1000, 500, 2000, 500]), Int32Array.from([2000, 500, 3000, 500, 4000, 500]), water.rivers[1]],
+      riverLevels: new Uint8Array(8), riverOf: Uint32Array.from([0, 0, 1]),
+      lineName: Uint32Array.from([1, 2, 0]), lineNames: ['', 'Nemunas', 'Nyoman'], lineLocal: ['', '', 'Нёман'],
+    };
+    const texts = (/** @type {number} */ ox) => placeWaterLabels({ water: two, index: indexWater(two), level: 2, scale: 0.1, ox, oy: 400, width: 400, height: 400, measure }).map((l) => l.text);
+    assert.ok(texts(0).includes('Nemunas') && !texts(0).includes('Nyoman'), texts(0).join(', '));
+    assert.ok(texts(-250).includes('Nyoman') && !texts(-250).includes('Nemunas'), texts(-250).join(', '));
+    const plain = { ...two, lineName: Uint32Array.from([1, 0, 0]) };
+    const east = placeWaterLabels({ water: plain, index: indexWater(plain), level: 2, scale: 0.1, ox: -250, oy: 400, width: 400, height: 400, measure }).map((l) => l.text);
+    assert.ok(east.includes('Long River'), 'a stretch without a name of its own carries the river\'s');
+  });
+
+  it('lifts a long river\'s name clear of bends too big for a straight name, and only a long river\'s', () => {
+    // A sawtooth 10 px high at this scale: too much bend for a straight name in 13 px type
+    // (limit 5.2 px), within what a long river may lift its name over (15.6 px).
+    const wave = Int32Array.from({ length: 34 }, (_, i) => (i % 2 ? 500 + ((i - 1) / 2 % 2 ? 50 : -50) : (i / 2) * 250));
+    /** @param {number} lengthKm */
+    const named = (lengthKm) => {
+      const one = {
+        ...water, rivers: [wave], riverLevels: new Uint8Array(17), riverOf: Uint32Array.from([0]),
+        riverInfo: [{ name: 'Zakhodnyaya Dzvina', names: {}, wikidata: null, lengthKm }], lakes: [], lakeLevels: new Uint8Array(0), lakeOf: new Uint32Array(0), lakeInfo: [],
+      };
+      return placeWaterLabels({ water: one, index: indexWater(one), level: 2, scale: 0.1, ox: 0, oy: 400, width: 400, height: 400, measure });
+    };
+    const [label] = named(1000);
+    assert.ok(label, 'the long river is named');
+    // Every point of the river stays clear of the name's band (half its height, and a little).
+    const nx = Math.sin(label.angle); const ny = -Math.cos(label.angle);
+    for (let i = 0; i < wave.length; i += 2) {
+      const px = wave[i] * 0.1; const py = 400 - wave[i + 1] * 0.1;
+      const along = (px - label.x) * Math.cos(label.angle) + (py - label.y) * Math.sin(label.angle);
+      if (Math.abs(along) > measure(label.text, label.size) / 2) continue;
+      assert.ok((label.x - px) * nx + (label.y - py) * ny > label.size / 2, 'the river never runs under the name');
+    }
+    assert.equal(named(200).length, 0, 'a shorter river keeps the straight rule');
   });
 
   it('puts a river\'s name back where it was after a pan, instead of hopping to the new middle', () => {

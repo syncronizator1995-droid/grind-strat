@@ -209,3 +209,33 @@ New TO CHECK items:
 - The SpatioCompo licence (CC BY-SA 4.0, or the repository's GPL-3.0 file).
 - The GLWD data TIFFs against the official zips.
 - Lake Ladoga reads about 1 m in GEBCO, against a surface of about 5 m.
+
+## Map data used in step 2a M2b (11 October 2026)
+
+| Collection | What the game uses | Licence, and where it was read | Status |
+| --- | --- | --- | --- |
+| OpenStreetMap, via Overture Maps (`osm`) | Rivers and lakes with today's names (block `src/data/odbl/water.json`) | ODbL 1.0. The OSM copyright text is in the OSMF's own repository, github.com/openstreetmap/openstreetmap-website, `config/locales/en.yml` (the `legal_babble` keys), commit 31bc4cd. Overture's attribution page is in github.com/OvertureMaps/docs (`docs/attribution.mdx`), commit f7030ca: "© OpenStreetMap contributors, Overture Maps Foundation" | Read. Overture release 2026-09-23.1, on Overture's own bucket overturemaps-us-west-2. River relations from Overpass, OSM base 2026-10-06 |
+
+How the names are written (Ignas's choices, 11 October 2026):
+- Latin letters everywhere. Cyrillic names are romanised by BGN/PCGN: Russian (1947), Belarusian
+  (1979) and Ukrainian (2019, the same as Ukraine's 2010 national system). The soft and hard signs
+  and the Ukrainian apostrophe are left out. The tables are in `tools/map/romanize.mjs` and are TO
+  CHECK against the official BGN/PCGN documents (the gov.uk PCGN pages are not reachable from the
+  cloud session).
+- Lake labels show just the name, without the word for "lake". Plain forms come from the data or
+  from a reviewed list, `tools/map/lake-names.json`; uncertain ones are marked TO CHECK.
+- Every changed label is listed with its rule in `data/raw/derived/water-labels.json`, which the
+  build writes; it is not committed.
+
+New TO CHECK items:
+- The OSM snapshot date to quote: the rows say 2026-09-06, and Overture's release notes say its
+  cut-off was 2026-09-12.
+- The ODbL legal code (opendatacommons.org) and the OSMF attribution guidelines (osmfoundation.org)
+  were not read: both hosts are blocked.
+- Each dropped or kept entry in `tools/map/osm-water-1219.json` without a source: mining lakes in
+  Lusatia, around Leipzig and Halle, and in North Bohemia; Swedish dam ponds; Polish reservoirs;
+  the Ivinsky Razliv on the Svir; Norwegian lakes kept although tagged as reservoirs. Dam years
+  are quoted only from OSM's own start_date tags.
+- Rivers through dropped reservoirs follow today's mapped line, an approximation of the river
+  before the dam (for example the Dnieper through the Kyiv and Kaniv reservoirs, and the Nemunas
+  through Kauno marios).

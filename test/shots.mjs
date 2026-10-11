@@ -2,8 +2,9 @@
 // Phone screenshots and a scripted play session in headless Chrome. It builds the game first:
 //   npm run shots                        the release build (refuses interim data, as CI does)
 //   npm run shots -- --allow-interim     a local preview while some map data is a stand-in
-//  1. As a plain file, in light and dark: fresh start, the map zoomed out and over Lithuania with
-//     river and lake names, the Credits sheet, top speed, save and load, new game, reload. Then
+//  1. As a plain file, in light and dark: fresh start, the map zoomed out, over Lithuania and
+//     Belarus with river names and close over the lakes where Latvia, Lithuania and Belarus meet
+//     with lake names, the Credits sheet, top speed, save and load, new game, reload. Then
 //     once more with the processor slowed 4x: the main rivers are still named on the first map.
 //  2. Served like the website (under /grind-strat/, as GitHub Pages does): the manifest loads, the
 //     service worker takes over, and the game still opens with the server switched off, with a
@@ -233,7 +234,8 @@ async function playAsFile(browser, scheme) {
 }
 
 /**
- * The map zoomed all the way out, and over Lithuania with river and lake names; then back.
+ * The map zoomed all the way out, over Lithuania, over Belarus and close over the lakes (lakeView()),
+ * all in Latin letters; then back.
  * @param {import('playwright').Page} page @param {string} label @param {string} scheme
  */
 async function mapViews(page, label, scheme) {
@@ -243,6 +245,7 @@ async function mapViews(page, label, scheme) {
   await page.mouse.wheel(0, 3000);
   await settle(page);
   await page.screenshot({ path: join(SHOTS, `${scheme}-map-overview.png`) });
+  await latinNames(page, `${label} overview`);
   await page.reload();
   await mapShown(page, label);
   // Lithuania lies a little right of and below the starting centre; zoom in there (about 2x).
@@ -253,8 +256,67 @@ async function mapViews(page, label, scheme) {
   const names = Number(await page.locator('#map').getAttribute('data-names'));
   check(names >= 3, `${label}: only ${names} river and lake names zoomed in over Lithuania`);
   for (const p of await layoutProblems(page)) failures.push(`${label} zoomed in: ${p}`);
+  await latinNames(page, `${label} over Lithuania`);
   await page.reload();
   await mapShown(page, label);
+  // Belarus and Russia, where OpenStreetMap's names are Cyrillic: Polotsk on the Daugava lies
+  // about 189 px right of and 18 px below the starting centre. Drag it to the middle, zoom in.
+  const cx = map.x + map.width / 2;
+  const cy = map.y + map.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx - 189, cy - 18, { steps: 12 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, -500);
+  await settle(page);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-map-belarus.png`) });
+  const there = Number(await page.locator('#map').getAttribute('data-names'));
+  check(there >= 3, `${label}: only ${there} river and lake names zoomed in over Belarus`);
+  for (const p of await layoutProblems(page)) failures.push(`${label} over Belarus: ${p}`);
+  await latinNames(page, `${label} over Belarus`);
+  await page.reload();
+  await mapShown(page, label);
+  await lakeView(page, label, scheme, map);
+}
+
+/** Lake labels expected in the lake country where Latvia, Lithuania and Belarus meet. */
+const LAKE_COUNTRY = ['Rāzna', 'Asvyeya', 'Dryvyaty', 'Lukomskaye vozyera'];
+
+/**
+ * Close over the lakes where Latvia, Lithuania and Belarus meet, so lake labels (just the name,
+ * Ignas, 11 October 2026) are photographed on every run: Rāzna lies about 162 px right of and
+ * 35 px above the starting centre. Drag it to the middle, zoom in further than the views above.
+ * @param {import('playwright').Page} page @param {string} label @param {string} scheme
+ * @param {{ x: number, y: number, width: number, height: number }} map
+ */
+async function lakeView(page, label, scheme, map) {
+  const cx = map.x + map.width / 2;
+  const cy = map.y + map.height / 2;
+  await page.mouse.move(cx + 162, cy + 35);
+  await page.mouse.down();
+  await page.mouse.move(cx, cy, { steps: 12 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, -1400);
+  await settle(page);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-map-lakes.png`) });
+  const list = ((await page.locator('#map').getAttribute('data-name-list')) ?? '').split('|');
+  const lakes = LAKE_COUNTRY.filter((n) => list.includes(n));
+  check(lakes.length >= 2, `${label}: only ${lakes.length} of the lake names ${LAKE_COUNTRY.join(', ')} over the lake country`);
+  for (const p of await layoutProblems(page)) failures.push(`${label} over the lakes: ${p}`);
+  await latinNames(page, `${label} over the lakes`);
+  await page.reload();
+  await mapShown(page, label);
+}
+
+/**
+ * Every river and lake name on the map is in Latin letters (Ignas, 11 October 2026).
+ * @param {import('playwright').Page} page @param {string} label
+ */
+async function latinNames(page, label) {
+  const list = (await page.locator('#map').getAttribute('data-name-list')) ?? '';
+  const cyrillic = list.split('|').filter((n) => /[\u0400-\u052F]/.test(n));
+  check(!cyrillic.length, `${label}: names in Cyrillic on the map: ${cyrillic.join(', ')}`);
+  console.log(`${label}: ${list.split('|').filter(Boolean).join(', ')}`);
 }
 
 /**

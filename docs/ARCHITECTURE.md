@@ -440,8 +440,15 @@ names by era. A proposed shape:
   - `src/data/map/base.json`: public domain. Natural Earth land and coast, GEBCO heights.
   - `src/data/by-sa/terrain-1219.json`: CC BY-SA 4.0, because of the pollen maps. Its inputs are CC
     BY and public domain, never OpenStreetMap: ODbL and CC BY-SA cannot be mixed in one file.
-  - The water block: Natural Earth for M2, public domain. Then the OpenStreetMap block
-    (`src/data/odbl/`, ODbL 1.0) in the next milestone.
+  - The water block: Natural Earth in M2 (public domain). From M2b it is the OpenStreetMap block
+    `src/data/odbl/water.json` (ODbL 1.0). It is read from Overture's official S3 copy with
+    `tools/map/parquet.mjs` (footer, row-group and column range reads) and grouped by the cached
+    OSM river relations. Labels are made at pack time: today's local name per stretch, romanised
+    to Latin letters (`tools/map/romanize.mjs`, BGN/PCGN), and lake labels without the word for
+    "lake". The original names stay in the data. The block is cut into tiles per detail level
+    (`src/ui/map/water-tiles.js`), so only tiles near the view are drawn. Small rivers appear only
+    when zoomed in. Natural Earth water is not shipped alongside it, because OSM's horizontal-layer
+    rule forbids mixing.
 
   Lakes are never written into the terrain grid; the game draws them from the water block at load.
 - **The build** inlines each block as its own `<script type="application/json" id="gs-<kind>">`

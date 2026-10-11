@@ -214,7 +214,10 @@ screen 411 × 576 drawn at 2×, a 90 Hz display) passed all three targets:
 
 No drawing fixes are needed before M2.
 
-Status (7 October 2026): **M2 built, waiting for Ignas to merge.** The real map shows the land
+Status (7 October 2026): **M2 merged and on Ignas's phone.** His speed test (Android, Chrome 154,
+411 × 632 drawn at 2×) passed every target: first map 1.0 s (down from 2.5 s in M1; the page now
+carries the map as JSON blocks the browser doesn't parse as code), rivers and lakes 1.3 s, full
+redraw 11 ms (worst 22 ms), 100% of frames on time, names 0.6 ms per redraw. The real map shows the land
 around 1219. It uses GEBCO heights and sea depths (checked against the official file), the 1219
 forest, marsh, heath and open land on the 1 km map, Natural Earth coast, rivers and lakes with
 modern reservoirs removed, river and lake names, and a Credits screen. Data blocks are split by
@@ -225,14 +228,27 @@ OpenStreetMap's query server began refusing the cloud session after a small part
 downloaded. Ignas chose: ship M2 now with Natural Earth's simpler rivers, then add the full
 OpenStreetMap rivers.
 
-**Next: M2b, the OpenStreetMap rivers and lakes.**
-- Read Overture Maps' official copy on Amazon (theme base, type water, release 2026-09-23.1 or
-  newer). It is OpenStreetMap data under ODbL. Our own Parquet reader of about 400 lines does the
-  reading; Node 22 has zstd built in.
-- Join it with the river groupings and multilingual names already downloaded from Overpass: the
-  waterway relations, in data/raw/osm.
-- The unfinished Overpass pipeline (fetch, grouping, reservoir rules, the ODbL folder and tests)
-  waits on branch m2-water.
+Status (11 October 2026): **M2b built and reviewed, waiting for Ignas.** It brings the OpenStreetMap
+rivers and lakes:
+- **Source.** Overture Maps' official copy on Amazon (release 2026-09-23.1; OSM snapshot of about
+  6 to 12 September 2026, TO CHECK which date to quote).
+- **Reading it.** Our own Parquet reader (`tools/map/parquet.mjs`; Node 22 has zstd built in) reads
+  only the row groups and columns inside the map window: about 2.2 GB of byte ranges, cached under
+  data/raw/overture.
+- **Grouping.** Rivers are grouped by the OSM river relations downloaded from Overpass before it
+  refused the session (data/raw/osm), then by Wikidata id, then by name and touching ends.
+- **What ships.** 2,375 rivers and about 7,000 lakes. Every must-have river and lake is there.
+  - Modern reservoirs are dropped by OSM tags plus a reviewed list (`tools/map/osm-water-1219.json`),
+    with TO CHECK where unsourced. So are mining lakes, pits and dam ponds.
+- **Names.** Labels are in Latin letters, by BGN/PCGN romanisation (Ignas: "Latin letters
+  everywhere"). Lake labels show just the name (Ignas: "Just the name").
+  - A river carries today's local name on each stretch: Nemunas in Lithuania, Nyoman in Belarus.
+  - Its main name is the local name at its lower end.
+- **Where it ships.** The ODbL block `src/data/odbl/water.json`, drawn tile by tile. The Natural
+  Earth water block is no longer shipped.
+- **Cost.** The game file grew from 0.9 MB to 2.0 MB. At 4× CPU slowdown in headless Chrome, rivers
+  and lakes reach the screen about 0.5 to 0.8 s later than in M2. Ignas's phone measures the real
+  cost.
 
 Then M3, the time slider.
 

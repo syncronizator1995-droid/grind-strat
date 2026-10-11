@@ -3,39 +3,56 @@
 // point (tools/map/levels.mjs), which river or lake each shape belongs to, and the river and
 // lake info (names, Wikidata id, size, a lake's label point).
 //
-// M2 ships Natural Earth's simpler rivers and lakes (public domain) at src/data/map/water-ne.json,
-// with the lakes of 1219 chosen by the reviewed list in tools/map/ne-water-1219.json. The next
-// milestone brings fuller rivers and lakes from OpenStreetMap: once its extract exists
-// (data/raw/derived/water-osm.json), the block becomes src/data/odbl/water.json, under the
-// ODbL 1.0 and holding nothing from any other source, and the Natural Earth block is removed.
+// The game ships OpenStreetMap's rivers and lakes (read through Overture, built by
+// tools/map/build-water.mjs into data/raw/derived/water-osm.json) as src/data/odbl/water.json,
+// under the ODbL 1.0 and holding nothing from any other source. M2's Natural Earth block
+// (src/data/map/water-ne.json, the lakes of 1219 by tools/map/ne-water-1219.json) is kept as
+// code only: it is made when the OpenStreetMap extract is missing, and removed when it exists.
 
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { encodeShapes, encodeUints } from '../../src/ui/map/codec.js';
 import { makeBlock } from './block.mjs';
 import { ringArea2, simplify, simplifyRing } from './geo.mjs';
 import { labelPoint } from './label-point.mjs';
-import { joinLevels, LEVEL_TOLERANCES, pointLevels } from './levels.mjs';
+import { joinLevels, pointLevels } from './levels.mjs';
+import { mustHaveRiverTable } from './build-water.mjs';
 import { neWater } from './ne-layers.mjs';
 import { madeFrom } from './pack-notice.mjs';
+import { MAP } from './projection.mjs';
 import { DERIVED } from './resample.mjs';
+import { hasCyrillic } from './romanize.mjs';
+import { LAKE_LIST } from './lake-names.mjs';
+import { REVIEWED_NAMES, waterLabels } from './water-labels.mjs';
 
 export const OSM_WATER = join(DERIVED, 'water-osm.json');
+/** Every label that differs from OpenStreetMap's name, with the rule that made it (git ignores it). */
+export const LABEL_REPORT = join(DERIVED, 'water-labels.json');
 export const OSM_NOTICE = 'Contains information from OpenStreetMap, openstreetmap.org/copyright, made available under the Open Database License (ODbL) 1.0, opendatacommons.org/licenses/odbl/1-0/';
 
-/** The close-up level keeps detail down to this many game units (100 m). */
-const BASE_TOLERANCE = 1;
+/** The close-up level keeps detail down to this many game units (150 m: at the closest zoom, 1.2 CSS px). */
+const BASE_TOLERANCE = 1.5;
+/**
+ * Tolerances for the overview and middle levels, game units. Coarser than the land's: the
+ * overview is drawn below 0.06 CSS px per unit and the middle level below 0.25, so 20 and 5
+ * units stay within about a pixel and a quarter, and thousands of wiggly rivers and lakes
+ * draw several times faster than at the land's 12 and 2.4.
+ */
+export const WATER_TOLERANCES = Object.freeze([20, 5]);
 
 /**
  * Lakes smaller than these (km²) are left out of the overview and the middle level: at those
  * zooms they would be a speck, or a triangle.
  */
-const LAKE_MIN_KM2 = [8, 1];
+const LAKE_MIN_KM2 = [10, 3];
 
 /**
- * @typedef {{ name: string, names: Record<string, string>, wikidata: string | null, lengthKm: number, lines: number[][] }} River
- * @typedef {{ name: string, names: Record<string, string>, wikidata: string | null, areaKm2: number, rings: number[][] }} Lake
+ * @typedef {{ name: string, names: Record<string, string>, wikidata: string | null, lengthKm: number, lines: number[][], lineNames?: string[] }} River
+ *   lineNames: the local name of each line, where the data has one (OpenStreetMap)
+ * @typedef {{ name: string, names: Record<string, string>, otherNames?: Record<string, string>, wikidata: string | null, areaKm2: number, rings: number[][] }} Lake
+ *   otherNames: alt_name, short_name and official_name, read by the labels and not shipped
+ * @typedef {import('./water-labels.mjs').WaterLabels} Labels
  */
 
 /** @param {number} km2 */
@@ -45,28 +62,53 @@ const lakeMinLevel = (km2) => (km2 < LAKE_MIN_KM2[1] ? 2 : km2 < LAKE_MIN_KM2[0]
 const bySize = (/** @type {number} */ a, /** @type {number} */ b, /** @type {string} */ an, /** @type {string} */ bn) => b - a || (an < bn ? -1 : an > bn ? 1 : 0);
 
 /**
- * @param {River[]} rivers @param {Lake[]} lakes
+ * The label the map shows for a name, and the name as the data has it when that differs.
+ * @param {import('./water-labels.mjs').Label | undefined} label @param {string} name
  */
-function waterLayers(rivers, lakes) {
-  const rs = [...rivers].sort((a, b) => bySize(a.lengthKm, b.lengthKm, a.name, b.name));
-  const ls = [...lakes].sort((a, b) => bySize(a.areaKm2, b.areaKm2, a.name, b.name));
+const shown = (label, name) => (label ? { name: label.text, ...(label.local !== label.text ? { local: label.local } : {}), ...(label.lang ? { lang: label.lang } : {}) } : { name });
+
+/**
+ * @param {River[]} rivers @param {Lake[]} lakes
+ * @param {Labels} [labels] the labels of OpenStreetMap's names (tools/map/water-labels.mjs), in
+ *   the order of rivers and lakes; without them the names are shown as they are (Natural Earth)
+ */
+function waterLayers(rivers, lakes, labels) {
+  const riverOrder = rivers.map((r, k) => ({ r, k, info: shown(labels?.rivers[k].main, r.name) }));
+  const lakeOrder = lakes.map((l, k) => ({ l, k, info: shown(labels?.lakes[k], l.name) }));
+  riverOrder.sort((a, b) => bySize(a.r.lengthKm, b.r.lengthKm, a.info.name, b.info.name));
+  lakeOrder.sort((a, b) => bySize(a.l.areaKm2, b.l.areaKm2, a.info.name, b.info.name));
   /** @type {number[][]} */ const riverLines = [];
   /** @type {Uint8Array[]} */ const riverLevels = [];
   /** @type {number[]} */ const riverOf = [];
-  rs.forEach((river, k) => {
-    for (const raw of river.lines) {
+  /** @type {number[]} */ const riverLineName = [];
+  // Labels of stretches, where a stretch has a name other than the river's own: index 0 is "none".
+  // Each label comes with the name as the data has it ('' when the same), so the original stays.
+  /** @type {string[]} */ const lineNames = [''];
+  /** @type {string[]} */ const lineLocal = [''];
+  /** @type {Map<string, number>} */ const nameIndex = new Map([['\u0000', 0]]);
+  riverOrder.forEach(({ r: river, k: from }, k) => {
+    const main = labels?.rivers[from];
+    river.lines.forEach((raw, i) => {
       const line = simplify(raw, BASE_TOLERANCE);
-      if (line.length < 4) continue;
+      if (line.length < 4) return;
       riverLines.push(line);
-      riverLevels.push(pointLevels(line, false));
+      riverLevels.push(pointLevels(line, false, { tolerances: WATER_TOLERANCES }));
       riverOf.push(k);
-    }
+      const own = river.lineNames?.[i] ?? '';
+      const label = main?.stretch.get(own);
+      const isMain = !own || own === (main ? main.main.local : river.name);
+      const text = isMain ? '' : label?.text ?? own;
+      const local = isMain || !label || label.local === label.text ? '' : label.local;
+      const id = `${text}\u0000${local}`;
+      if (!nameIndex.has(id)) { nameIndex.set(id, lineNames.length); lineNames.push(text); lineLocal.push(local); }
+      riverLineName.push(/** @type {number} */ (nameIndex.get(id)));
+    });
   });
   /** @type {number[][]} */ const lakeRings = [];
   /** @type {Uint8Array[]} */ const lakeLevels = [];
   /** @type {number[]} */ const lakeOf = [];
   /** @type {[number, number][]} */ const labelAt = [];
-  ls.forEach((lake, k) => {
+  lakeOrder.forEach(({ l: lake }, k) => {
     const minLevel = lakeMinLevel(lake.areaKm2);
     /** @type {number[][]} */
     const kept = [];
@@ -78,7 +120,7 @@ function waterLayers(rivers, lakes) {
       const own = lakeMinLevel(Math.abs(ringArea2(ring)) / 2 / 100);
       kept.push(ring);
       lakeRings.push(ring);
-      lakeLevels.push(pointLevels(ring, true, { minLevel: Math.max(minLevel, own) }));
+      lakeLevels.push(pointLevels(ring, true, { tolerances: WATER_TOLERANCES, minLevel: Math.max(minLevel, own) }));
       lakeOf.push(k);
     }
     labelAt.push(kept.length ? labelPoint(kept) : [0, 0]);
@@ -88,32 +130,50 @@ function waterLayers(rivers, lakes) {
       rivers: encodeShapes(riverLines),
       riverLevels: joinLevels(riverLevels),
       riverOf: encodeUints(riverOf),
+      riverLineName: encodeUints(riverLineName),
       lakes: encodeShapes(lakeRings),
       lakeLevels: joinLevels(lakeLevels),
       lakeOf: encodeUints(lakeOf),
+      // The names and facts too, inside the compressed bundle: as plain JSON in the page they
+      // would be most of its size (thousands of lakes, names in up to twelve languages).
+      info: new TextEncoder().encode(JSON.stringify({
+        riverInfo: riverOrder.map(({ r, info }) => ({ ...info, names: r.names, wikidata: r.wikidata, lengthKm: r.lengthKm })),
+        riverLineNames: lineNames,
+        ...(lineLocal.some(Boolean) ? { riverLineLocal: lineLocal } : {}),
+        lakeInfo: lakeOrder.map(({ l, info }, k) => ({ ...info, names: l.names, wikidata: l.wikidata, areaKm2: l.areaKm2, at: labelAt[k] })),
+      })),
     },
-    extra: {
-      riverInfo: rs.map((r) => ({ name: r.name, names: r.names, wikidata: r.wikidata, lengthKm: r.lengthKm })),
-      lakeInfo: ls.map((l, k) => ({ name: l.name, names: l.names, wikidata: l.wikidata, areaKm2: l.areaKm2, at: labelAt[k] })),
-    },
+    counts: { rivers: rivers.length, lakes: lakes.length },
   };
 }
 
 /**
- * The OpenStreetMap water block, from the parsed extract.
- * @param {{ source: string, licence: string, osmBase?: string, rivers: River[], lakes: Lake[] }} osm
+ * Stops on a label that is not all in Latin letters (every name on the map is: Ignas, 11 October 2026).
+ * @param {Labels} labels
  */
-export function osmWaterBlock(osm) {
+function checkLatin(labels) {
+  const all = [...labels.rivers.flatMap((r) => [r.main, ...r.stretch.values()]), ...labels.lakes];
+  const bad = all.filter((l) => hasCyrillic(l.text)).map((l) => `${l.local} -> ${l.text}`);
+  if (bad.length) throw new Error(`labels still in Cyrillic: ${bad.slice(0, 10).join('; ')}${bad.length > 10 ? ` and ${bad.length - 10} more` : ''}`);
+}
+
+/**
+ * The OpenStreetMap water block, from the parsed extract. Its labels are tidied and in Latin
+ * letters (tools/map/water-labels.mjs); OpenStreetMap's own names stay in the info.
+ * @param {{ source: string, licence: string, osmBase?: string | null, overture?: { release: string }, rivers: River[], lakes: Lake[] }} osm
+ * @param {Labels} [labels] worked out here when not given
+ */
+export function osmWaterBlock(osm, labels = waterLabels(osm.rivers, osm.lakes)) {
   if (osm.licence !== 'ODbL-1.0' || osm.source !== 'osm') throw new Error('water-osm.json is not the OpenStreetMap extract');
-  const { layers, extra } = waterLayers(osm.rivers, osm.lakes);
+  checkLatin(labels);
+  const { layers, counts } = waterLayers(osm.rivers, osm.lakes, labels);
   return makeBlock({
     kind: 'water',
     licence: 'ODbL-1.0',
     notice: OSM_NOTICE,
     sources: ['osm-water'],
-    meta: { levels: LEVEL_TOLERANCES, osmBase: osm.osmBase ?? null, rivers: extra.riverInfo.length, lakes: extra.lakeInfo.length },
+    meta: { levels: WATER_TOLERANCES, osmBase: osm.osmBase ?? null, overture: osm.overture?.release ?? null, ...counts },
     layers,
-    extra,
   });
 }
 
@@ -122,21 +182,85 @@ export const NE_SOURCES = Object.freeze(['ne-rivers', 'ne-lakes']);
 /** The Natural Earth water block, the one M2 ships. */
 export async function neWaterBlock() {
   const { rivers, lakes } = await neWater();
-  const { layers, extra } = waterLayers(rivers, lakes);
+  const { layers, counts } = waterLayers(rivers, lakes);
   return makeBlock({
     kind: 'water',
     licence: 'public-domain',
     notice: 'Rivers and lakes for Grind Strat around AD 1219: Natural Earth\'s 1:10m set, with modern reservoirs left out and natural lakes kept, by a reviewed list. '
       + await madeFrom([...NE_SOURCES]),
     sources: [...NE_SOURCES],
-    meta: { levels: LEVEL_TOLERANCES, rivers: extra.riverInfo.length, lakes: extra.lakeInfo.length },
+    meta: { levels: WATER_TOLERANCES, ...counts },
     layers,
-    extra,
   });
 }
 
 /** @returns {Promise<{ path: string, block: import('./block.mjs').Block }>} */
 export async function packWater() {
-  if (existsSync(OSM_WATER)) return { path: 'src/data/odbl/water.json', block: osmWaterBlock(JSON.parse(await readFile(OSM_WATER, 'utf8'))) };
-  return { path: 'src/data/map/water-ne.json', block: await neWaterBlock() };
+  if (!existsSync(OSM_WATER)) return { path: 'src/data/map/water-ne.json', block: await neWaterBlock() };
+  const osm = JSON.parse(await readFile(OSM_WATER, 'utf8'));
+  const labels = waterLabels(osm.rivers, osm.lakes);
+  await reportLabels(osm, labels);
+  return { path: 'src/data/odbl/water.json', block: osmWaterBlock(osm, labels) };
+}
+
+/** What each way of making a lake's label is called in the report. */
+const LAKE_KINDS = {
+  dropped: 'word for lake left out',
+  data: 'plain name from the lake\'s own OSM tags',
+  list: 'plain name from tools/map/lake-names.json',
+  kept: 'full name kept, word for lake written out',
+};
+
+/**
+ * Prints how many lake labels lost their word for lake, and how, and any entry of the reviewed
+ * list (tools/map/lake-names.json) no lake uses: OpenStreetMap changed, so the entry needs review.
+ * @param {import('./water-labels.mjs').Label[]} lakes
+ */
+function reportLakes(lakes) {
+  /** @type {Map<string, number>} */
+  const count = new Map();
+  for (const l of lakes) if (l.lake) count.set(l.lake, (count.get(l.lake) ?? 0) + 1);
+  console.log(`lake labels with a word for lake: ${[...count.values()].reduce((a, b) => a + b, 0)} of ${lakes.length} lakes`);
+  for (const [kind, what] of Object.entries(LAKE_KINDS)) console.log(`  ${String(count.get(kind) ?? 0).padStart(5)}  ${what}`);
+  const unused = LAKE_LIST.filter((e) => !lakes.some((l) => l.lake === 'list' && l.local.includes(e.name)));
+  console.log(`reviewed lake names (tools/map/lake-names.json): ${LAKE_LIST.length - unused.length} of ${LAKE_LIST.length} used${unused.length ? `; NOT USED: ${unused.map((e) => e.name).join(', ')}` : ''}`);
+}
+
+/**
+ * Prints how the labels were made and the must-have rivers as the map names them, and writes
+ * every label that differs from OpenStreetMap's name to LABEL_REPORT, for checking by eye.
+ * @param {{ rivers: (River & { id: string })[], lakes: Lake[], checks?: any }} osm @param {Labels} labels
+ */
+async function reportLabels(osm, labels) {
+  /** @type {{ kind: string, local: string, label: string, lang: string | null, rule: string, of?: string, lake?: string, where: string }[]} */
+  const rows = [];
+  /** Where a name was looked up, in degrees, so a reviewer can find it. @param {import('./water-labels.mjs').Label} l */
+  const where = (l) => { const [lon, lat] = MAP.toDegrees(l.at[0], l.at[1]); return `${lon.toFixed(2)}E ${lat.toFixed(2)}N`; };
+  labels.rivers.forEach((l) => {
+    rows.push({ kind: 'river', local: l.main.local, label: l.main.text, lang: l.main.lang, rule: l.main.rule, where: where(l.main) });
+    for (const [name, s] of l.stretch) if (name !== l.main.local) rows.push({ kind: 'stretch', local: name, label: s.text, lang: s.lang, rule: s.rule, of: l.main.text, where: where(s) });
+  });
+  osm.lakes.forEach((_, k) => {
+    const l = labels.lakes[k];
+    rows.push({ kind: 'lake', local: l.local, label: l.text, lang: l.lang, rule: l.rule, ...(l.lake ? { lake: l.lake } : {}), where: where(l) });
+  });
+  const changed = rows.filter((r) => r.label !== r.local);
+  /** @type {Map<string, number>} */
+  const byRule = new Map();
+  for (const r of changed) {
+    const rule = r.rule.replace(/ \(\d+ of \d+ within \d+ km\)/, '');
+    byRule.set(rule, (byRule.get(rule) ?? 0) + 1);
+  }
+  await writeFile(LABEL_REPORT, `${JSON.stringify({ labels: changed }, null, 1)}\n`);
+  console.log(`water labels: ${changed.length} differ from OpenStreetMap's names (${changed.filter((r) => r.lang).length} romanised); all in ${LABEL_REPORT}`);
+  for (const [rule, n] of [...byRule].sort((a, b) => b[1] - a[1])) console.log(`  ${String(n).padStart(5)}  ${rule}`);
+  reportLakes(labels.lakes);
+  // A reviewed name that no label uses means OpenStreetMap changed (an id or a name): say so,
+  // so the review is redone rather than silently lost.
+  const unused = REVIEWED_NAMES.filter((e) => !rows.some((r) => r.rule.includes(`reviewed: ${e.why}`) && r.local.includes(e.name)));
+  console.log(`reviewed name languages (tools/map/osm-water-names.json): ${REVIEWED_NAMES.length - unused.length} of ${REVIEWED_NAMES.length} used${unused.length ? `; NOT USED: ${unused.map((e) => `${e.name} ${e.osmIds.join(' ')}`).join(', ')}` : ''}`);
+  if (osm.checks?.mustHaveRivers) {
+    console.log('must-have rivers, as the map names them:');
+    for (const line of mustHaveRiverTable(osm.rivers, labels, osm.checks.mustHaveRivers)) console.log(line);
+  }
 }
