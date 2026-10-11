@@ -228,8 +228,19 @@ OpenStreetMap's query server began refusing the cloud session after a small part
 downloaded. Ignas chose: ship M2 now with Natural Earth's simpler rivers, then add the full
 OpenStreetMap rivers.
 
-Status (11 October 2026): **M2b built and reviewed, waiting for Ignas.** It brings the OpenStreetMap
-rivers and lakes:
+Status (11 October 2026): **M2b merged and on Ignas's phone.**
+- **His speed test** (Chrome 155) passed every target, even with the file at 2 MB:
+  - first map 0.4 s;
+  - rivers and lakes 0.6 s;
+  - full redraw 11 ms;
+  - 99% of frames on time;
+  - names 2.0 ms per redraw at the median (worst 10.7 ms).
+- **He noticed Vištytis has no name.** It is drawn and named, but a lake's name shows only when the
+  lake covers at least 150 square CSS pixels on screen (`LAKE_MIN_PX2` in `src/ui/map/labels.js`).
+  For Vištytis (18 km²) that means zooming in about three times past the Lithuania view.
+  - Offered: lake names sooner, tuned in M3.
+
+M2b brings the OpenStreetMap rivers and lakes:
 - **Source.** Overture Maps' official copy on Amazon (release 2026-09-23.1; OSM snapshot of about
   6 to 12 September 2026, TO CHECK which date to quote).
 - **Reading it.** Our own Parquet reader (`tools/map/parquet.mjs`; Node 22 has zstd built in) reads
