@@ -12,7 +12,7 @@
 // Output, in whole game units (100 m) projected with MAP.toUnits and clipped to the map:
 //   { source: 'osm', licence: 'ODbL-1.0', osmBase, overture, thresholds,
 //     rivers: [{ id, name, names, wikidata, lengthKm, lines: [[x0, y0, ...], ...], lineNames }],
-//     lakes:  [{ id, name, names, wikidata, areaKm2, rings: [[...], ...] }],
+//     lakes:  [{ id, name, names, otherNames?, wikidata, areaKm2, rings: [[...], ...] }],
 //     dropped: [{ id, name, wikidata, why }], checks: {...} }
 // lineNames[i] is the local name of lines[i] (OSM's name where that stretch lies), '' where the
 // stretch has none of its own. Lake rings: outer rings counter-clockwise and holes clockwise
@@ -29,7 +29,7 @@ import { MAP } from './projection.mjs';
 import { DERIVED } from './resample.mjs';
 import { waterLabels } from './water-labels.mjs';
 import {
-  classifyLake, dropRepeats, groupRivers, KM2_PER_UNIT2, KM_PER_UNIT, lengthInside, lineLength, localNames, namesOf, orient,
+  classifyLake, dropRepeats, groupRivers, KM2_PER_UNIT2, KM_PER_UNIT, lengthInside, lineLength, localNames, namesOf, orient, otherNamesOf,
   pointInRings, reviewIndex, riverMainName, ringsArea, stitch, THRESHOLDS,
 } from './water-rules.mjs';
 
@@ -216,6 +216,7 @@ export function keepLakeBySize(l) {
 /**
  * @typedef {object} Lake
  * @property {string} id @property {string} name @property {Tags} names @property {string | null} wikidata
+ * @property {Tags} otherNames alt_name, short_name and official_name (for the labels only; the biggest piece's)
  * @property {number} areaKm2 @property {Flat[]} rings @property {string} water @property {string[]} pieces OSM ids
  */
 
@@ -331,7 +332,7 @@ async function readWater(path, review) {
     }
     if (!keepLakeBySize(base)) { if (base.name) tooSmall++; else unnamed++; continue; }
     if (verdict.flags.length && !verdict.reviewed) flagged.push({ id: c.osmId, name: base.name, areaKm2, flags: verdict.flags });
-    lakePieces.push({ ...base, names: namesOf(c.tags), rings, water: c.tags.water ?? '', pieces: [c.osmId] });
+    lakePieces.push({ ...base, names: namesOf(c.tags), otherNames: otherNamesOf(c.tags), rings, water: c.tags.water ?? '', pieces: [c.osmId] });
   }
   return { ways, lakePieces, droppedLakes, flagged, seen, counts: { lakesTooSmall: tooSmall, lakesUnnamed: unnamed, lakesOutsideMap: outside } };
 }
@@ -529,7 +530,7 @@ async function main() {
     projection: MAP.meta(),
     thresholds: THRESHOLDS,
     rivers: rivers.map(({ id, name, names, wikidata, lengthKm, lines, lineNames }) => ({ id, name, names, wikidata, lengthKm, lines, lineNames })),
-    lakes: lakes.map(({ id, name, names, wikidata, areaKm2, rings, pieces }) => ({ id, name, names, wikidata, areaKm2, rings, pieces })),
+    lakes: lakes.map(({ id, name, names, otherNames, wikidata, areaKm2, rings, pieces }) => ({ id, name, names, ...(Object.keys(otherNames).length ? { otherNames } : {}), wikidata, areaKm2, rings, pieces })),
     dropped,
     checks,
   };

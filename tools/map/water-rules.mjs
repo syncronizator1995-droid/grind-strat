@@ -36,6 +36,22 @@ export function namesOf(tags) {
   return out;
 }
 
+/**
+ * A lake's other names: OpenStreetMap's alt_name, short_name and official_name tags, plain or
+ * with a language (alt_name:lt). Overture keeps these among the raw tags (its names.rules are made
+ * from them). They are not shipped: the labels read them to find a lake's plain name ("Ладога"
+ * for "Ладожское озеро", "Galvė" for "Galvės ež."; tools/map/lake-names.mjs).
+ * @param {Tags} tags
+ * @returns {Record<string, string>}
+ */
+export function otherNamesOf(tags) {
+  /** @type {Record<string, string>} */
+  const out = {};
+  const keys = Object.keys(tags).filter((k) => /^(?:alt_name|short_name|official_name)(?::[a-z]{2,3})?$/.test(k)).sort();
+  for (const k of keys) if (tags[k]) out[k] = tags[k];
+  return out;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Lakes: the cheap pre-filter on bounding boxes, before any geometry is downloaded.
 
