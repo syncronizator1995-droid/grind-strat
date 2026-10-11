@@ -517,6 +517,7 @@ Step 2 split down are his step 2 answers, later the same day.
 | Forest data licence | The finished pollen maps (SpatioCompo, Behnaz Pirzamanbein) used as CC BY-SA 4.0; TO CHECK with the author, because her repository also has a GPL file |
 | Sites allowed for M2 | overpass-api.de, dap.ceda.ac.uk and data.hydrosheds.org |
 | M2 rivers and lakes | Natural Earth's simpler set now; the full OpenStreetMap rivers come next, from Overture's official copy on Amazon, because OpenStreetMap's query server refused the cloud session |
+| Letters on the map | Latin letters everywhere: today's local names, with Cyrillic ones romanised by the BGN/PCGN systems (Russian, Belarusian, Ukrainian), soft and hard signs left out. Original spellings stay in the data for the info panel (Ignas, 11 October 2026) |
 
 ## Treating real history with care
 

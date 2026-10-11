@@ -238,6 +238,20 @@ Claude made two smaller calls and told him:
 - The Uppsala plain stays partly marshy, as the peat maps show, because in 1219 that land stood
   several metres lower.
 
+### M2 on his phone, and the OpenStreetMap rivers (7 to 11 October 2026)
+
+He merged M2 and ran the speed test. The first map came in 1.0 s, against 2.5 s in M1. Full
+redraws took 11 ms, and every frame was on time.
+
+The OpenStreetMap rivers (M2b) were built from Overture's copy. With them, each river carries
+today's local name where it flows, so names in Belarus, Russia and Ukraine came out in Cyrillic.
+Asked how the map should write them, he chose:
+
+> "Latin letters everywhere"
+
+So Cyrillic names are romanised (BGN/PCGN systems): Nyoman in Belarus, Dnipro in Ukraine. The
+Nemunas stays Nemunas in Lithuania.
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.
