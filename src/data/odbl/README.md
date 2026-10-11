@@ -105,13 +105,18 @@ name as OpenStreetMap has it (where it differs), and `lang` the language a roman
 written in; for stretches, `riverLineNames` holds the labels and `riverLineLocal` the names.
 
 - A name that joins two languages ("Neris - Вілія", "Nemunas / Немунас") shows its first part in
-  Latin letters (or its first part, if none is). Abbreviations such as "ež." are left out.
+  Latin letters. If no part is in Latin letters, it shows the first part that is the feature's
+  Belarusian or Ukrainian name (on the border of Belarus and Ukraine, "Днепр / Дніпро" shows
+  Dnipro), else its first part. Abbreviations such as "ež." are left out.
 - Cyrillic names are romanised by the BGN/PCGN systems: Russian (1947), Belarusian (1979) and
   Ukrainian (2019, the same as Ukraine's 2010 national system), with the soft and hard signs and
   the apostrophe left out. The language of each name comes from its own `name:be`, `name:uk` or
-  `name:ru` tag, or letters only one language has; otherwise from the language most of the
-  surely known names within 150 km are in (in OpenStreetMap a name is written in the language
-  of the country it lies in); and only then from a guess by the letters.
+  `name:ru` tag, or letters and words only one language has (Belarusian writes возера for lake,
+  Russian and Ukrainian озеро); otherwise from the language most of the surely known names
+  within 150 km are in (in OpenStreetMap a name is written in the language of the country it
+  lies in); and only then from a guess by the letters. A short reviewed list,
+  `tools/map/osm-water-names.json`, settles the names those rules get wrong (mostly rivers in
+  Russia whose only language tag is a Ukrainian one); it uses only the OpenStreetMap data too.
 - A river's own name is the local name at its lower end inside the map, where it meets the sea
   or a bigger river or leaves the map: the walk goes downstream and follows the river under
   another name when that name is one of the river's own or carries a fifth of its length, so

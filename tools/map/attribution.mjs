@@ -73,6 +73,9 @@ const FOLDERS = [
   ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid (see its LICENSE.md and README.md).'],
   ['src/data/map/', 'Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
+  // Raw bytes of Overture's OpenStreetMap water data, kept to test the Parquet reader: ODbL too,
+  // whether or not the game ships OpenStreetMap data.
+  ['test/fixtures/odbl/', 'Open Database License (ODbL) 1.0: a small test slice of the Overture Maps Foundation\'s copy of OpenStreetMap water data, for testing the Parquet reader (see its LICENSE.md).'],
   ['everything else', 'The code and the rest of the repository are under the repository\'s own licence (see README.md).'],
 ];
 
