@@ -104,18 +104,29 @@ describe('the data blocks', () => {
     assert.equal(water.lakeLevels.length, count(water.lakes));
     for (const k of water.riverOf) assert.ok(k < water.riverInfo.length);
     for (const k of water.lakeOf) assert.ok(k < water.lakeInfo.length);
-    const names = water.riverInfo.map((r) => r.name);
-    for (const must of [['Daugava'], ['Neman', 'Nemunas', 'Неман'], ['Vistula', 'Wisła']]) {
+    // The names on the map: each river's own, and the local names of its stretches.
+    const names = [...water.riverInfo.map((r) => r.name), ...water.lineNames];
+    for (const must of [['Daugava'], ['Neman', 'Nemunas', 'Неман'], ['Vistula', 'Wisła'], ['Neris'], ['Nevėžis']]) {
       assert.ok(must.some((n) => names.includes(n)), `no river called ${must.join(' or ')}`);
     }
+    for (const r of water.riverInfo) assert.ok(r.name, 'every river has a name');
+    for (const l of water.lakeInfo) assert.ok(l.name, 'every lake has a name');
     for (const lake of water.lakeInfo) {
       assert.ok(lake.at[0] >= 0 && lake.at[0] <= 15724 && lake.at[1] >= 0 && lake.at[1] <= 13272, lake.name);
       assert.ok(lake.areaKm2 > 0, lake.name);
     }
     // Lakes around 1219: modern reservoirs out, natural lakes in, whatever Natural Earth's class says.
     const lakes = water.lakeInfo.map((l) => l.name);
-    for (const gone of ['Kauno marios', 'Kiev Reservoir', 'Kremenchuk Reservoir']) assert.ok(!lakes.includes(gone), `${gone} is a modern reservoir`);
-    assert.ok(!lakes.some((n) => /reservoir/i.test(n)), 'no reservoir by name');
+    for (const gone of ['Kauno marios', 'Kiev Reservoir', 'Kremenchuk Reservoir', 'Київське водосховище', 'Elektrėnų marios', 'Narva veehoidla / Нарвское водохранилище']) {
+      assert.ok(!lakes.includes(gone), `${gone} is a modern reservoir`);
+    }
+    assert.ok(!lakes.some((n) => /reservoir|водосховищ|водохранилищ|вадасховішч|zbiornik|ūdenskrātuv|veehoidla|stausee|talsperre/i.test(n)), 'no reservoir by name');
+    if (block.sources.includes('osm-water')) {
+      for (const must of ['Lubāns', 'Võrtsjärv', 'Śniardwy', 'Ладожское', 'Ильмень', 'Kuršių marios', 'Zalew Wiślany', 'Drūkšiai', 'Peipsi']) {
+        assert.ok(lakes.some((n) => n.includes(must)), `no lake called ${must}`);
+      }
+      assert.ok(water.lineName && water.lineNames.length > 100, 'river stretches carry their local names');
+    }
     if (block.sources.includes('ne-lakes')) {
       for (const must of ['Lake Ilmen', 'Mjøsa', 'Vistula Lagoon', 'Lake Peipus', 'Võrtsjärv']) assert.ok(lakes.includes(must), `no lake called ${must}`);
       assert.equal(lakes.filter((n) => n === 'Vistula Lagoon').length, 1, 'the lagoon\'s two halves are one lake');

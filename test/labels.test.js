@@ -51,6 +51,9 @@ describe('placing names', () => {
       { name: 'Long River', names: {}, wikidata: null, lengthKm: 800 },
       { name: 'Short', names: {}, wikidata: null, lengthKm: 60 },
     ],
+    /** @type {Uint32Array | null} */
+    lineName: null,
+    lineNames: [''],
     lakes: [Int32Array.from([3000, 3000, 3600, 3000, 3600, 3600, 3000, 3600]), Int32Array.from([200, 2000, 260, 2000, 260, 2060])],
     lakeLevels: new Uint8Array(7),
     lakeOf: Uint32Array.from([0, 1]),
@@ -90,6 +93,22 @@ describe('placing names', () => {
     const texts = labels.map((l) => l.text);
     assert.ok(texts.includes('Long River') && texts.includes('Big Lake'), `got ${texts.join(', ')}`);
     assert.equal(result.complete, true, 'with fewer than a dozen names, every one was tried');
+  });
+
+  it('names each stretch of a river by its own local name', () => {
+    // The long river in two stretches: the west half "Nemunas", the east half "Нёман".
+    const two = {
+      ...water,
+      rivers: [Int32Array.from([0, 500, 1000, 500, 2000, 500]), Int32Array.from([2000, 500, 3000, 500, 4000, 500]), water.rivers[1]],
+      riverLevels: new Uint8Array(8), riverOf: Uint32Array.from([0, 0, 1]),
+      lineName: Uint32Array.from([1, 2, 0]), lineNames: ['', 'Nemunas', 'Нёман'],
+    };
+    const texts = (/** @type {number} */ ox) => placeWaterLabels({ water: two, index: indexWater(two), level: 2, scale: 0.1, ox, oy: 400, width: 400, height: 400, measure }).map((l) => l.text);
+    assert.ok(texts(0).includes('Nemunas') && !texts(0).includes('Нёман'), texts(0).join(', '));
+    assert.ok(texts(-250).includes('Нёман') && !texts(-250).includes('Nemunas'), texts(-250).join(', '));
+    const plain = { ...two, lineName: Uint32Array.from([1, 0, 0]) };
+    const east = placeWaterLabels({ water: plain, index: indexWater(plain), level: 2, scale: 0.1, ox: -250, oy: 400, width: 400, height: 400, measure }).map((l) => l.text);
+    assert.ok(east.includes('Long River'), 'a stretch without a name of its own carries the river\'s');
   });
 
   it('puts a river\'s name back where it was after a pan, instead of hopping to the new middle', () => {

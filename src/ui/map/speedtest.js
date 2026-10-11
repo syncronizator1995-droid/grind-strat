@@ -18,6 +18,7 @@ export function quantile(values, q) {
  * @property {number} base64Ms @property {number} inflateMs @property {number} decodeMs
  * @property {number} paintMs @property {number} pathMs
  * @property {number} waterMs unpacking the rivers and lakes and drawing them, just after the first map
+ * @property {number} waterUnpackMs of which unpacking @property {number} waterLabelMs of which placing the names
  * @property {number} waterOnScreenMs since the page started opening
  */
 

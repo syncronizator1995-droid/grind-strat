@@ -15,8 +15,11 @@
 import { simplify } from './geometry.js';
 import { bandShown, BANDS, bandWidth, indexWater, labelFont, placeWaterLabels, riverBand } from './labels.js';
 import { paintSea, paintTerrain } from './terrain.js';
+import { cutWater, tileInView } from './water-tiles.js';
 
 /** @typedef {import('./load.js').WaterData} WaterData */
+/** @typedef {import('./water-tiles.js').WaterTile} WaterTile */
+/** @typedef {import('./water-tiles.js').TilePaths} TilePaths */
 
 /** Province tint colours (provinces return in step 2b, realms in step 3). */
 const TINTS = ['#c0392b', '#2e86c1', '#d4ac0d', '#7d3c98', '#17a589', '#ca6f1e', '#5d6d7e', '#a93226', '#1f618d', '#b7950b', '#6c3483', '#148f77'];
@@ -92,6 +95,18 @@ function addLevel(p, shapes, levels, level, closed, wanted) {
 }
 
 /**
+ * Adds ready lines or rings (flat [x0, y0, ...]) to a path.
+ * @param {Path2D} p @param {number[][]} lines @param {boolean} closed
+ */
+function addLines(p, lines, closed) {
+  for (const l of lines) {
+    p.moveTo(l[0], l[1]);
+    for (let i = 2; i < l.length; i += 2) p.lineTo(l[i], l[i + 1]);
+    if (closed) p.closePath();
+  }
+}
+
+/**
  * The coast: the land's outline at `level`, leaving out the edges that run along the map's border
  * (they are where the land was cut to the map, not a shore).
  * @param {ArrayLike<number>[]} rings @param {Uint8Array} levels @param {number} level
@@ -159,7 +174,7 @@ export function createMapView(canvas, map) {
   /**
    * The outlines at one level of detail, built the first time that level is needed.
    * @typedef {{ sea: Path2D, coast: Path2D, tints: Path2D[], sourced: Path2D, guessed: Path2D, fog: Path2D }} Level
-   * @typedef {{ lakes: Path2D, rivers: Path2D[] }} WaterLevel
+   * @typedef {WaterTile[]} WaterLevel
    */
   /** @type {(Level | null)[]} */
   const levels = LEVELS.map(() => null);
@@ -191,23 +206,55 @@ export function createMapView(canvas, map) {
     return built;
   }
 
-  /** Rivers (one path per size band) and lakes at one level, once the water is unpacked. @param {number} index */
+  /**
+   * Rivers and lakes at one level, cut into tiles (src/ui/map/water-tiles.js), once the water is
+   * unpacked. Each tile's paths are built the first time it is drawn.
+   * @param {number} index
+   */
   function waterLevel(index) {
     const w = map.water;
     if (!w) return null;
     const ready = waterLevels[index];
     if (ready) return ready;
-    const lakes = new Path2D();
-    addLevel(lakes, w.lakes, w.lakeLevels, index, true);
     const band = w.riverInfo.map((r) => riverBand(r.lengthKm));
-    const rivers = Array.from({ length: BANDS }, (_, b) => {
-      const p = new Path2D();
-      addLevel(p, w.rivers, w.riverLevels, index, false, (line) => band[w.riverOf[line]] === b);
-      return p;
-    });
-    const built = { lakes, rivers };
+    const built = cutWater(w, index, (river) => band[river], BANDS, map.width, map.height);
     waterLevels[index] = built;
     return built;
+  }
+
+  /**
+   * The water tiles near a view box, with their lake paths built.
+   * @returns {WaterTile[]}
+   * @param {WaterLevel} tiles @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1
+   */
+  function waterNear(tiles, x0, y0, x1, y1) {
+    const out = [];
+    for (const t of tiles) {
+      if (!tileInView(t, x0, y0, x1, y1)) continue;
+      if (!t.paths) {
+        const lakes = new Path2D();
+        addLines(lakes, t.lakes, true);
+        t.paths = { lakes, rivers: t.rivers.map(() => null) };
+      }
+      out.push(t);
+    }
+    return out;
+  }
+
+  /**
+   * One size band's rivers in a tile, built the first time that band is drawn there (small
+   * rivers only show zoomed in).
+   * @param {WaterTile} tile @param {number} band
+   */
+  function riverPath(tile, band) {
+    const paths = /** @type {TilePaths} */ (tile.paths);
+    let p = paths.rivers[band];
+    if (!p) {
+      p = new Path2D();
+      addLines(p, tile.rivers[band], false);
+      paths.rivers[band] = p;
+    }
+    return p;
   }
 
   // --- camera ---------------------------------------------------------------------------
@@ -338,19 +385,21 @@ export function createMapView(canvas, map) {
     c.fillStyle = seaFill;
     c.fill(L.sea, 'evenodd');
     if (W) {
+      // Only the tiles near the frame: a river wider than a few pixels never reaches past them.
+      const near = waterNear(W, k.cx - halfW - 8 * px, k.cy - halfH - 8 * px, k.cx + halfW + 8 * px, k.cy + halfH + 8 * px);
       c.fillStyle = WATER;
-      c.fill(W.lakes, 'evenodd');
+      for (const t of near) c.fill(/** @type {TilePaths} */ (t.paths).lakes, 'evenodd');
       c.strokeStyle = WATER;
       c.lineCap = 'round';
-      c.lineJoin = 'round';
+      c.lineJoin = 'bevel'; // as good as round at these widths, and cheaper on thousands of bends
       for (let band = 0; band < BANDS; band++) {
         if (!bandShown(band, s)) continue;
         c.lineWidth = bandWidth(band, s) * px;
-        c.stroke(W.rivers[band]);
+        for (const t of near) c.stroke(riverPath(t, band));
       }
       c.strokeStyle = 'rgba(20, 35, 45, 0.45)';
       c.lineWidth = 0.6 * px;
-      c.stroke(W.lakes);
+      for (const t of near) c.stroke(/** @type {TilePaths} */ (t.paths).lakes);
     }
     c.strokeStyle = 'rgba(20, 35, 45, 0.85)';
     c.lineWidth = 1.1 * px;
