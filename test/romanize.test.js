@@ -77,7 +77,15 @@ describe('choosing the language of a name', () => {
   it('trusts the feature\'s own name tags first', () => {
     assert.deepEqual(chooseLanguage('Нёман', { names: { be: 'Нёман', ru: 'Неман' } }), { lang: 'be', rule: 'name:be' });
     assert.deepEqual(chooseLanguage('Прип’ять', { names: { uk: "Прип'ять" } }), { lang: 'uk', rule: 'name:uk' }, 'any apostrophe');
-    assert.equal(chooseLanguage('Десна', { names: { uk: 'Десна', ru: 'Десна' } }).rule, 'name:uk = name:ru', 'written alike: no doubt');
+    assert.match(chooseLanguage('Десна', { names: { uk: 'Десна', ru: 'Десна' } }).rule, /^name:uk = name:ru, written alike/, 'written alike: no doubt');
+  });
+
+  it('keeps the right language with a name its tags spell alike, for the info panel', () => {
+    const names = { uk: 'Нева', ru: 'Нева' };
+    const neva = chooseLanguage('Нева', { names, nearby: { lang: 'ru', rule: 'names nearby: ru' } });
+    assert.equal(neva.lang, 'ru', 'not the first tag (uk)');
+    assert.match(neva.rule, /written alike; names nearby: ru/);
+    assert.equal(chooseLanguage('Нева', { names, country: 'RU' }).lang, 'ru');
   });
 
   it('when two tags fit and the systems differ, decides by the country, then the names nearby', () => {
@@ -102,6 +110,23 @@ describe('choosing the language of a name', () => {
     assert.deepEqual(possibleLanguages('Бярэзіна'), ['be'], 'і and э: Belarusian only');
     assert.deepEqual(possibleLanguages('Нарва'), ['ru', 'be', 'uk']);
     assert.equal(chooseLanguage('Горинь', { nearby: { lang: 'be', rule: 'names nearby: be' } }).lang, 'ru');
+  });
+
+  it('tells the language from the words for lake and river, and Russian adjective endings', () => {
+    assert.deepEqual(possibleLanguages('возера Нарач'), ['be']);
+    assert.deepEqual(possibleLanguages('озеро Неведро'), ['ru', 'uk'], 'Belarusian writes возера');
+    assert.deepEqual(possibleLanguages('Кожановское озеро'), ['ru'], 'Ukrainian writes -ське, Belarusian -скае');
+    assert.deepEqual(possibleLanguages('Великая'), ['ru', 'uk'], 'only -ская and -цкая rule out Ukrainian, not any -ая');
+    assert.deepEqual(possibleLanguages('Чорнаводская'), ['ru', 'be']);
+    assert.equal(toLatin('озеро Неведро', { nearby: { lang: 'be', rule: 'names nearby: be' } }).text, 'ozero Nevedro', 'never the hybrid ozyero Nyevyedro');
+    assert.equal(toLatin('Кожановское озеро', { nearby: { lang: 'be', rule: 'names nearby: be' } }).text, 'Kozhanovskoye ozero');
+  });
+
+  it('is sure of a name only one alphabet can write, even with no tags or names around (no crash)', () => {
+    assert.deepEqual(toLatin('Плющівка'), { text: 'Pliushchivka', lang: 'uk', rule: 'letters and words: only uk fits' });
+    assert.equal(toLatin('Щітка').text, 'Shchitka');
+    assert.equal(sureLanguage('Бярэзіна')?.lang, 'be');
+    for (const name of ['Плющівка', 'Щітка', 'Ӂара', 'Іщ', 'возера Щука']) assert.ok(toLatin(name).lang, name);
   });
 
   it('guesses from the letters last, and says it is a guess', () => {

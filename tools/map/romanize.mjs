@@ -17,7 +17,7 @@
 //
 // Which language a name is in must be decided per name, not guessed from letters alone where
 // that is ambiguous: chooseLanguage() looks at the feature's own name:xx tags first, then at
-// letters only one language has, then at the country it lies in (or the language of the names
+// letters (or words) only one language has, then at the country it lies in (or the language of the names
 // around it), and only then guesses from the letters; and it says which rule decided.
 
 /** @typedef {'ru' | 'be' | 'uk'} Lang */
@@ -149,46 +149,85 @@ const COUNTRY_LANG = /** @type {Record<string, Lang>} */ ({ BY: 'be', UA: 'uk', 
 /**
  * Which language a Cyrillic name is in, and the rule that decided, in this order:
  *   1. the feature's own name tags: the name is its name:be, name:uk or name:ru;
- *   2. letters only one of the languages has (sureLanguage());
+ *   2. letters (or words) only one of the languages has (sureLanguage());
  *   3. the country it lies in, when known;
  *   4. the language of the names around it (context.nearby);
  *   5. a guess from the letters (guessLanguage()).
+ * Where several tags spell the name alike and their systems write it alike too, the Latin text
+ * does not depend on the choice, but the language is still kept with the name (for the info
+ * panel), so it is picked among the tagged ones by rules 2 to 5 as well: Нева tagged in Russian
+ * and Ukrainian, with Russian names around it, is Russian.
  * @param {string} text @param {LangContext} [context]
  * @returns {LangChoice}
  */
 export function chooseLanguage(text, context = {}) {
   const tagged = taggedLanguages(text, context.names ?? {});
   if (tagged.length === 1) return { lang: tagged[0], rule: `name:${tagged[0]}` };
+  const tags = `name:${tagged.join(' = name:')}`;
   // Several languages spell it the same way: that only matters if the systems write it differently.
-  if (tagged.length > 1 && new Set(tagged.map((l) => romanize(text, l))).size === 1) return { lang: tagged[0], rule: `name:${tagged.join(' = name:')}` };
+  const alike = tagged.length > 1 && new Set(tagged.map((l) => romanize(text, l))).size === 1;
   const possible = possibleLanguages(text);
   /** @param {Lang} l */
   const fits = (l) => possible.includes(l) && (!tagged.length || tagged.includes(l));
+  const pick = byEvidence(text, context, fits);
+  if (alike) return { lang: pick?.lang ?? tagged[0], rule: `${tags}, written alike${pick ? `; ${pick.rule}` : ''}` };
+  if (pick) return pick;
+  if (tagged.length) return { lang: tagged[0], rule: `${tags}, first of them` };
+  // Only reached when the guess is a language the letters rule out: take one they allow.
+  return { lang: possible[0], rule: `letters: ${possible.join(' or ')} (a guess)` };
+}
+
+/**
+ * Rules 2 to 5 of chooseLanguage(), keeping only a language that fits; null when none does.
+ * @param {string} text @param {LangContext} context @param {(l: Lang) => boolean} fits
+ * @returns {LangChoice | null}
+ */
+function byEvidence(text, context, fits) {
   const sure = sureLanguage(text);
   if (sure && fits(sure.lang)) return sure;
   const byCountry = context.country ? COUNTRY_LANG[context.country] : undefined;
   if (byCountry && fits(byCountry)) return { lang: byCountry, rule: `country ${context.country}` };
   if (context.nearby && fits(context.nearby.lang)) return context.nearby;
   const guess = guessLanguage(text);
-  if (!fits(guess.lang)) return { lang: tagged[0], rule: `name:${tagged.join(' = name:')}, first of them` };
-  return guess;
+  return fits(guess.lang) ? guess : null;
 }
+
+/**
+ * Words that only some of the languages use, as whole words (lower case), and the languages each
+ * rules out. The word for lake is озеро in Russian and Ukrainian but возера in Belarusian; for
+ * river река (Russian), рака or рэчка (Belarusian), ріка or річка (Ukrainian). An adjective
+ * ending in -ское or -цкое is Russian (Belarusian writes -скае, Ukrainian -ське); one in -ская or
+ * -цкая is Russian or Belarusian (Ukrainian writes -ська). So "Кожановское озеро" is Russian
+ * and "озеро Неведро" is not Belarusian, whatever the names around them.
+ * @type {[RegExp, Lang[]][]}
+ */
+const WORD_RULES = [
+  [/^(?:озеро|озера|река|речка|пруд|ручей)$/u, ['be']],
+  [/^(?:возера|рака|рэчка|ручай)$/u, ['ru', 'uk']],
+  [/^(?:ріка|річка|ставок|струмок)$/u, ['ru', 'be']],
+  [/\p{L}{2,}(?:ск|цк)ое$/u, ['be', 'uk']],
+  [/\p{L}{2,}(?:ск|цк)ая$/u, ['uk']],
+];
 
 /**
  * The languages a name can be in, by the letters each alphabet lacks: Belarusian has no и, щ or
  * ъ; Ukrainian no ы, э, ё or ъ; Russian no і, ї, є, ґ or ў (each list as the alphabet is written
- * today). Never empty: a name that fits none (a mix) can be in any of the three.
+ * today); and by the words only some of them use (WORD_RULES). Never empty: a name that fits
+ * none (a mix) can be in any of the three.
  * @param {string} text
  * @returns {Lang[]}
  */
 export function possibleLanguages(text) {
   const t = text.toLowerCase();
-  /** @type {Lang[]} */
-  const out = [];
-  if (!/[їєґў]/.test(t) && !/і/.test(t)) out.push('ru');
-  if (!/[ищъїєґ]/.test(t)) out.push('be');
-  if (!/[ыэёъў]/.test(t)) out.push('uk');
-  return out.length ? out : ['ru', 'be', 'uk'];
+  /** @type {Set<Lang>} */
+  const out = new Set();
+  if (!/[їєґў]/.test(t) && !/і/.test(t)) out.add('ru');
+  if (!/[ищъїєґ]/.test(t)) out.add('be');
+  if (!/[ыэёъў]/.test(t)) out.add('uk');
+  for (const word of t.split(/[^\p{L}]+/u)) {
+    for (const [re, not] of WORD_RULES) if (re.test(word)) for (const l of not) out.delete(l);
+  }
+  return out.size ? [...out] : ['ru', 'be', 'uk'];
 }
 
 /**
@@ -208,7 +247,9 @@ export const sameApostrophes = (text) => text.replace(/['’ʼ‘`]/g, "'");
  * The language, when the letters leave no doubt: ї, є or ґ only in Ukrainian; ў only in
  * Belarusian; і with и only in Ukrainian (Belarusian has no и, Russian no і); an apostrophe
  * inside a word with и only in Ukrainian (Russian has no such apostrophe); и with ы, э or ъ only
- * in Russian (Ukrainian has none of those three, Belarusian no и).
+ * in Russian (Ukrainian has none of those three, Belarusian no и). Otherwise, whenever the
+ * letters and words leave only one language (possibleLanguages()): щ with і is only Ukrainian
+ * (Belarusian has no щ, Russian no і), so "Плющівка" is sure even with no names around it.
  * @param {string} text
  * @returns {LangChoice | null}
  */
@@ -219,6 +260,8 @@ export function sureLanguage(text) {
   if (/і/.test(t) && /и/.test(t)) return { lang: 'uk', rule: 'letters: і with и' };
   if (/и/.test(t) && /[\u0400-\u04FF]['’ʼ‘`][\u0400-\u04FF]/.test(t)) return { lang: 'uk', rule: 'letters: apostrophe with и' };
   if (/и/.test(t) && /[ыэъ]/.test(t)) return { lang: 'ru', rule: 'letters: и with ы, э or ъ' };
+  const possible = possibleLanguages(t);
+  if (possible.length === 1) return { lang: possible[0], rule: `letters and words: only ${possible[0]} fits` };
   return null;
 }
 
