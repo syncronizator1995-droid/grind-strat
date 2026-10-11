@@ -23,6 +23,7 @@ import { madeFrom } from './pack-notice.mjs';
 import { MAP } from './projection.mjs';
 import { DERIVED } from './resample.mjs';
 import { hasCyrillic } from './romanize.mjs';
+import { LAKE_LIST } from './lake-names.mjs';
 import { REVIEWED_NAMES, waterLabels } from './water-labels.mjs';
 
 export const OSM_WATER = join(DERIVED, 'water-osm.json');
@@ -49,7 +50,8 @@ const LAKE_MIN_KM2 = [10, 3];
 /**
  * @typedef {{ name: string, names: Record<string, string>, wikidata: string | null, lengthKm: number, lines: number[][], lineNames?: string[] }} River
  *   lineNames: the local name of each line, where the data has one (OpenStreetMap)
- * @typedef {{ name: string, names: Record<string, string>, wikidata: string | null, areaKm2: number, rings: number[][] }} Lake
+ * @typedef {{ name: string, names: Record<string, string>, otherNames?: Record<string, string>, wikidata: string | null, areaKm2: number, rings: number[][] }} Lake
+ *   otherNames: alt_name, short_name and official_name, read by the labels and not shipped
  * @typedef {import('./water-labels.mjs').WaterLabels} Labels
  */
 
@@ -201,13 +203,36 @@ export async function packWater() {
   return { path: 'src/data/odbl/water.json', block: osmWaterBlock(osm, labels) };
 }
 
+/** What each way of making a lake's label is called in the report. */
+const LAKE_KINDS = {
+  dropped: 'word for lake left out',
+  data: 'plain name from the lake\'s own OSM tags',
+  list: 'plain name from tools/map/lake-names.json',
+  kept: 'full name kept, word for lake written out',
+};
+
+/**
+ * Prints how many lake labels lost their word for lake, and how, and any entry of the reviewed
+ * list (tools/map/lake-names.json) no lake uses: OpenStreetMap changed, so the entry needs review.
+ * @param {import('./water-labels.mjs').Label[]} lakes
+ */
+function reportLakes(lakes) {
+  /** @type {Map<string, number>} */
+  const count = new Map();
+  for (const l of lakes) if (l.lake) count.set(l.lake, (count.get(l.lake) ?? 0) + 1);
+  console.log(`lake labels with a word for lake: ${[...count.values()].reduce((a, b) => a + b, 0)} of ${lakes.length} lakes`);
+  for (const [kind, what] of Object.entries(LAKE_KINDS)) console.log(`  ${String(count.get(kind) ?? 0).padStart(5)}  ${what}`);
+  const unused = LAKE_LIST.filter((e) => !lakes.some((l) => l.lake === 'list' && l.local.includes(e.name)));
+  console.log(`reviewed lake names (tools/map/lake-names.json): ${LAKE_LIST.length - unused.length} of ${LAKE_LIST.length} used${unused.length ? `; NOT USED: ${unused.map((e) => e.name).join(', ')}` : ''}`);
+}
+
 /**
  * Prints how the labels were made and the must-have rivers as the map names them, and writes
  * every label that differs from OpenStreetMap's name to LABEL_REPORT, for checking by eye.
  * @param {{ rivers: (River & { id: string })[], lakes: Lake[], checks?: any }} osm @param {Labels} labels
  */
 async function reportLabels(osm, labels) {
-  /** @type {{ kind: string, local: string, label: string, lang: string | null, rule: string, of?: string, where: string }[]} */
+  /** @type {{ kind: string, local: string, label: string, lang: string | null, rule: string, of?: string, lake?: string, where: string }[]} */
   const rows = [];
   /** Where a name was looked up, in degrees, so a reviewer can find it. @param {import('./water-labels.mjs').Label} l */
   const where = (l) => { const [lon, lat] = MAP.toDegrees(l.at[0], l.at[1]); return `${lon.toFixed(2)}E ${lat.toFixed(2)}N`; };
@@ -215,7 +240,10 @@ async function reportLabels(osm, labels) {
     rows.push({ kind: 'river', local: l.main.local, label: l.main.text, lang: l.main.lang, rule: l.main.rule, where: where(l.main) });
     for (const [name, s] of l.stretch) if (name !== l.main.local) rows.push({ kind: 'stretch', local: name, label: s.text, lang: s.lang, rule: s.rule, of: l.main.text, where: where(s) });
   });
-  osm.lakes.forEach((_, k) => { const l = labels.lakes[k]; rows.push({ kind: 'lake', local: l.local, label: l.text, lang: l.lang, rule: l.rule, where: where(l) }); });
+  osm.lakes.forEach((_, k) => {
+    const l = labels.lakes[k];
+    rows.push({ kind: 'lake', local: l.local, label: l.text, lang: l.lang, rule: l.rule, ...(l.lake ? { lake: l.lake } : {}), where: where(l) });
+  });
   const changed = rows.filter((r) => r.label !== r.local);
   /** @type {Map<string, number>} */
   const byRule = new Map();
@@ -226,6 +254,7 @@ async function reportLabels(osm, labels) {
   await writeFile(LABEL_REPORT, `${JSON.stringify({ labels: changed }, null, 1)}\n`);
   console.log(`water labels: ${changed.length} differ from OpenStreetMap's names (${changed.filter((r) => r.lang).length} romanised); all in ${LABEL_REPORT}`);
   for (const [rule, n] of [...byRule].sort((a, b) => b[1] - a[1])) console.log(`  ${String(n).padStart(5)}  ${rule}`);
+  reportLakes(labels.lakes);
   // A reviewed name that no label uses means OpenStreetMap changed (an id or a name): say so,
   // so the review is redone rather than silently lost.
   const unused = REVIEWED_NAMES.filter((e) => !rows.some((r) => r.rule.includes(`reviewed: ${e.why}`) && r.local.includes(e.name)));

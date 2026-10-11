@@ -122,9 +122,16 @@ describe('the data blocks', () => {
     }
     assert.ok(!lakes.some((n) => /reservoir|водосховищ|водохранилищ|вадасховішч|zbiornik|ūdenskrātuv|veehoidla|stausee|talsperre/i.test(n)), 'no reservoir by name');
     if (block.sources.includes('osm-water')) {
-      for (const must of ['Lubāns', 'Võrtsjärv', 'Śniardwy', 'Ladozhskoye', 'Ilmen', 'Kuršių marios', 'Zalew Wiślany', 'Drūkšiai', 'Peipsi']) {
+      for (const must of ['Lubāns', 'Võrtsjärv', 'Śniardwy', 'Ladoga', 'Ilmen', 'Kuršių marios', 'Zalew Wiślany', 'Drūkšiai', 'Peipsi']) {
         assert.ok(lakes.some((n) => n.includes(must)), `no lake called ${must}`);
       }
+      // A lake's label is just its name, without the word for lake (Ignas, 11 October 2026);
+      // where the name cannot stand alone, it keeps the word, written out.
+      for (const plain of ['Ladoga', 'Ilmen', 'Narach', 'Plateliai', 'Galvė', 'Peipsi-Pihkva', 'Kozhanovskoye ozero', 'Jezioro Mikołajskie', 'Schweriner See (Außensee)']) {
+        assert.ok(lakes.includes(plain), `no lake labelled ${plain}`);
+      }
+      for (const n of lakes) assert.ok(!/(^|\s)(ež|ez|jez|оз|воз)\.(\s|$)/.test(n), `an abbreviated word for lake: ${n}`);
+      for (const bare of ['Platelių', 'Rāznas', 'Ozero Ilmen', 'Vozyera Narach']) assert.ok(!lakes.includes(bare), `never ${bare}`);
       assert.ok(water.lineName && water.lineNames.length > 100, 'river stretches carry their local names');
       // Latin letters everywhere on the map (Ignas, 11 October 2026); the original names stay.
       const cyrillic = /[\u0400-\u052F]/;

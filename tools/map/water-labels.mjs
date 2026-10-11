@@ -8,7 +8,9 @@
 //     most such names are on a border, so the first part in Latin letters is shown; if none is
 //     in Latin letters, the first part that is the feature's Belarusian or Ukrainian name (on the
 //     border of Belarus and Ukraine, "Днепр / Дніпро" shows Dnipro), else the first part.
-//   - Abbreviations such as Lithuanian "ež." (ežeras, lake) are left out of labels.
+//   - A lake's label is just its name, without the word for lake: Ilmen, not ozero Ilmen
+//     (tools/map/lake-names.mjs). Other abbreviations, such as Lithuanian "up." (upė, river),
+//     are left out of labels.
 //   - Cyrillic names are romanised (tools/map/romanize.mjs). The language is decided per name:
 //     its own name:xx tags, letters only one language has, and otherwise the language the names
 //     around it are surely written in (in OpenStreetMap a name is in the language of the country
@@ -19,6 +21,7 @@
 //     leaves the map. So Daugava, not Zapadnaya Dvina.
 
 import { readFileSync } from 'node:fs';
+import { lakeName, LAKE_WORDS } from './lake-names.mjs';
 import { chooseLanguage, hasCyrillic, hasLatin, possibleLanguages, romanize, sameApostrophes, sureLanguage, taggedLanguages } from './romanize.mjs';
 import { isTwoLanguageName, splitNames } from './water-rules.mjs';
 
@@ -32,6 +35,8 @@ import { isTwoLanguageName, splitNames } from './water-rules.mjs';
  * @property {Lang | null} lang the language it was romanised from (null: it was already Latin)
  * @property {string} rule how the label was made, for the pack report
  * @property {[number, number]} at where the name was looked up, game units (for the report)
+ * @property {import('./lake-names.mjs').LakeRule | null} [lake] for a lake whose name has a word
+ *   for lake: dropped, data, list or kept (for the report)
  */
 
 /**
@@ -39,6 +44,12 @@ import { isTwoLanguageName, splitNames } from './water-rules.mjs';
  * Ukrainian оз., Belarusian воз.), river (Lithuanian up., Russian р.) and reservoir (вдхр.).
  */
 export const ABBREVIATIONS = new Set(['ež.', 'ež', 'ez.', 'jez.', 'оз.', 'воз.', 'up.', 'р.', 'вдхр.']);
+
+/**
+ * The abbreviations that are words for lake: a lake's label leaves them to the lake rule
+ * (tools/map/lake-names.mjs), which writes them out where the name cannot stand alone.
+ */
+const LAKE_ABBREVIATIONS = new Set([...ABBREVIATIONS].filter((w) => LAKE_WORDS[w]));
 
 /**
  * Names written with a spaced dash that are one name in one language, not two names: shown
@@ -61,9 +72,11 @@ function isTagged(name, names, langs) {
  * The one name a label shows, before romanising: one part of a two-language name, without
  * abbreviations.
  * @param {string} name @param {Record<string, string>} [names] the feature's name:xx tags
+ * @param {{ keepLakeWords?: boolean }} [opts] keepLakeWords: leave the abbreviations for lake
+ *   (ež., оз., ...) to the lake rule
  * @returns {{ text: string, rule: string }}
  */
-export function tidyName(name, names = {}) {
+export function tidyName(name, names = {}, opts = {}) {
   if (ONE_NAMES[name]) return { text: ONE_NAMES[name], rule: 'one name with a spaced dash' };
   let text = name.trim();
   const rules = [];
@@ -78,7 +91,8 @@ export function tidyName(name, names = {}) {
     rules.push(latin ? 'two names: the first in Latin letters' : notRussian ? 'two names: the first tagged Belarusian or Ukrainian' : 'two names: the first');
   }
   const words = text.split(/\s+/);
-  const kept = words.filter((w) => !ABBREVIATIONS.has(w.toLowerCase()));
+  const drop = (/** @type {string} */ w) => ABBREVIATIONS.has(w) && !(opts.keepLakeWords && LAKE_ABBREVIATIONS.has(w));
+  const kept = words.filter((w) => !drop(w.toLowerCase()));
   if (kept.length && kept.length < words.length) {
     text = kept.join(' ');
     rules.push('abbreviation left out');
@@ -100,7 +114,37 @@ const NEARBY_UNITS = 1500;
  * @property {number} x @property {number} y where it is, game units
  * @property {string} [id] the feature's OpenStreetMap id ('way/<id>' or 'relation/<id>'), for
  *   the reviewed list
+ * @property {{ other: Record<string, string> }} [lake] set for a lake: its alt_name, short_name
+ *   and official_name tags, where its plain name may be (tools/map/lake-names.mjs)
  */
+
+/**
+ * @typedef {object} Tidy a name made ready for romanising
+ * @property {string} text what the label shows, before romanising
+ * @property {string} named the name its language is decided on: for a lake, the name with its
+ *   word for lake (возера tells Belarusian), else the same as text
+ * @property {string} rule how it was made
+ * @property {import('./lake-names.mjs').LakeRule | null} lake for a lake, how its label was made
+ */
+
+/**
+ * One name made ready for romanising: one part of a two-language name, without abbreviations,
+ * and for a lake just its name (tools/map/lake-names.mjs).
+ * @param {NameItem} it
+ * @returns {Tidy}
+ */
+export function tidyItem(it) {
+  if (!it.lake) {
+    const t = tidyName(it.name, it.names);
+    return { ...t, named: t.text, lake: null };
+  }
+  const split = tidyName(it.name, it.names, { keepLakeWords: true });
+  const l = lakeName(split.text, { names: it.names, other: it.lake.other });
+  if (l.kind) return { text: l.text, named: split.text, rule: [split.rule, l.rule].filter(Boolean).join('; '), lake: l.kind };
+  // No word for lake at either end: tidied as any other name.
+  const t = tidyName(it.name, it.names);
+  return { ...t, named: t.text, lake: null };
+}
 
 /**
  * The reviewed languages (tools/map/osm-water-names.json): names the rules below get wrong, by
@@ -142,22 +186,25 @@ function sureOf(text, names) {
  */
 export function labelNames(items, reviewed = REVIEWED_NAMES) {
   const byReview = reviewIndex(reviewed);
-  const tidy = items.map((it) => tidyName(it.name, it.names));
-  const review = items.map((it, k) => (it.id ? byReview.get(`${it.id}\u0000${tidy[k].text}`) : undefined));
-  const sure = items.map((it, k) => (hasCyrillic(tidy[k].text) ? review[k]?.lang ?? sureOf(tidy[k].text, it.names) : null));
+  const tidy = items.map(tidyItem);
+  // The language is decided on the name as named (a lake's with its word for lake, which tells
+  // Belarusian возера from Russian озеро), and the label written in it.
+  const review = items.map((it, k) => (it.id ? byReview.get(`${it.id}\u0000${tidy[k].named}`) : undefined));
+  const sure = items.map((it, k) => (hasCyrillic(tidy[k].text) ? review[k]?.lang ?? sureOf(tidy[k].named, it.names) : null));
   /** @type {{ x: number, y: number, lang: Lang }[]} */
   const known = [];
   items.forEach((it, k) => { const lang = sure[k]; if (lang) known.push({ x: it.x, y: it.y, lang }); });
   return items.map((it, k) => {
-    const { text, rule } = tidy[k];
+    const { text, named, rule, lake } = tidy[k];
     const local = it.name;
     /** @type {[number, number]} */
     const at = [it.x, it.y];
-    if (!hasCyrillic(text)) return { text, local, lang: null, rule: rule || 'Latin letters already', at };
+    const lakeKind = it.lake ? { lake } : {};
+    if (!hasCyrillic(text)) return { text, local, lang: null, rule: rule || 'Latin letters already', at, ...lakeKind };
     const r = review[k];
-    const nearby = sure[k] ? null : nearbyLanguage(known, it.x, it.y, possibleLanguages(text));
-    const choice = r ? { lang: r.lang, rule: `reviewed: ${r.why}` } : chooseLanguage(text, { names: it.names, nearby });
-    return { text: romanize(text, choice.lang), local, lang: choice.lang, rule: [rule, choice.rule].filter(Boolean).join('; '), at };
+    const nearby = sure[k] ? null : nearbyLanguage(known, it.x, it.y, possibleLanguages(named));
+    const choice = r ? { lang: r.lang, rule: `reviewed: ${r.why}` } : chooseLanguage(named, { names: it.names, nearby });
+    return { text: romanize(text, choice.lang), local, lang: choice.lang, rule: [rule, choice.rule].filter(Boolean).join('; '), at, ...lakeKind };
   });
 }
 
@@ -291,7 +338,7 @@ export function lowerEndName(river) {
 /**
  * @typedef {{ rivers: { main: Label, lowerEnd: string[], stretch: Map<string, Label> }[], lakes: Label[] }} WaterLabels
  * @typedef {{ id?: string, name: string, names: Record<string, string>, lines: Flat[], lineNames?: string[] }} RiverIn
- * @typedef {{ id?: string, name: string, names: Record<string, string>, rings: Flat[] }} LakeIn
+ * @typedef {{ id?: string, name: string, names: Record<string, string>, otherNames?: Record<string, string>, rings: Flat[] }} LakeIn
  */
 
 /** The middle point of a line. @param {Flat} line @returns {[number, number]} */
@@ -344,7 +391,7 @@ export function waterLabels(rivers, lakes) {
   });
   const lakeItem = lakes.map((l) => {
     const [x, y] = centre(l.rings);
-    items.push({ id: l.id, name: l.name, names: l.names, x, y });
+    items.push({ id: l.id, name: l.name, names: l.names, x, y, lake: { other: l.otherNames ?? {} } });
     return items.length - 1;
   });
   const labels = labelNames(items);
