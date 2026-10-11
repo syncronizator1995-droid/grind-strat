@@ -178,6 +178,11 @@ export const RESERVOIR_KEYWORDS = [
   { word: 'tvenkinys', re: /tvenkin|\btv\./i },
   { word: 'dīķis', re: /dīķ/i },
   { word: 'mine lake', re: /tagebau|restsee|bergbau|odkrywk|kopalni|карьер|кар'єр|kar'?jer/i },
+  // Gravel and sand pits, storage basins, and ponds made by people (Swedish -dammen, Russian
+  // пруд, Ukrainian ставок, Belarusian сажалка).
+  { word: 'Kiesgrube', re: /kiesgrube|sandgrube|speicherbecken/i },
+  { word: 'dammen', re: /dammen(?![\p{L}])/iu },
+  { word: 'пруд', re: /(?:^|[^\p{L}])(?:пруд|ставок|сажалка)(?![\p{L}])/iu },
 ];
 
 /** The reservoir keywords found in any of a feature's names. @param {Tags} tags */
