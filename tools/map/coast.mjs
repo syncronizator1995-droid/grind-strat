@@ -27,6 +27,13 @@ export const COAST_PARAMS = Object.freeze({
   radiusKm: 150,
   /** Where the sea fell less than this since 1219 nothing changes: whole-metre heights cannot show it. */
   minFallM: 0.5,
+  /**
+   * Nothing changes south of this latitude either: east Zealand, Bornholm and the coasts from
+   * Pomerania to Lithuania, where the sea has moved less than 1 m since AD 1 (Lampe et al. 2010;
+   * the HOLSEA points at Puck and on the German coast) and the coast changed by sand and by
+   * people, which hand-drawn fixes show instead.
+   */
+  southLimitLat: 56.0,
   /** Today's land is read at least this high: GEBCO rounds to whole metres, and its coast is not ours. */
   minLandM: 0.5,
   /**

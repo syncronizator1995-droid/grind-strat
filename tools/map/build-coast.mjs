@@ -200,7 +200,10 @@ export async function makeCoastField({ fetchSgu = false } = {}) {
   const groups = fitGroups(anchors.points, at);
   const kAt = kField(groups);
   /** @param {number} x @param {number} y */
-  const fallAt = (x, y) => { const [lon, lat] = MAP.toDegrees(x, y); return seaFall(uplift.at(lon, lat), kAt(x, y)); };
+  const fallAt = (x, y) => {
+    const [lon, lat] = MAP.toDegrees(x, y);
+    return lat < COAST_PARAMS.southLimitLat ? 0 : seaFall(uplift.at(lon, lat), kAt(x, y));
+  };
   const box = findBox(fallAt);
   const { cols, rows, cell } = box;
   const n = cols * rows;
@@ -231,7 +234,7 @@ export async function makeCoastField({ fetchSgu = false } = {}) {
       const [lon, lat] = MAP.toDegrees(x, y);
       upCell[i] = uplift.at(lon, lat);
       kCell[i] = kAt(x, y);
-      fall[i] = seaFall(upCell[i], kCell[i]);
+      fall[i] = lat < COAST_PARAMS.southLimitLat ? 0 : seaFall(upCell[i], kCell[i]);
     }
   }
   const land = new Uint8Array(n);
@@ -316,7 +319,7 @@ async function main() {
     seam,
     cells: { land: land.reduce((a, b) => a + b, 0), dryLandChangingSince1219: changing, unknownHeights },
     outlets,
-    notes: 'An estimate. Relative sea fall = k x (NKG_RF17vel uplift - 0.5) mm a year, k fitted at the control points of tools/map/coast-anchors.json and blended by inverse distance (1 beyond 150 km); a cell of today\'s land at GEBCO height h (GEBCO\'s land only, at least 0.5 m; where GEBCO has no land, half its neighbours\' mean, 0.5 to 1 m) was sea until 2021 - 1000 h / fall, unless a higher sill cut it off sooner (widest-path flood from the sea, 4 neighbours). Lake Mälaren is a bay until its outlet at Stockholm closed (about 1300, given by hand). Cells of today\'s sea within 2 cells of the land take the smallest code of that land.',
+    notes: 'An estimate. Relative sea fall = k x (NKG_RF17vel uplift - 0.5) mm a year, k fitted at the control points of tools/map/coast-anchors.json and blended by inverse distance (1 beyond 150 km); a cell of today\'s land at GEBCO height h (GEBCO\'s land only, at least 0.5 m; where GEBCO has no land, half its neighbours\' mean, 0.5 to 1 m) was sea until 2021 - 1000 h / fall, unless a higher sill cut it off sooner (widest-path flood from the sea, 4 neighbours). Lake Mälaren is a bay until its outlet at Stockholm closed (about 1300, given by hand). Cells of today\'s sea within 2 cells of the land take the smallest code of that land. Nothing changes south of 56N.',
   });
   console.log(`wrote ${join(DERIVED, OUT_NAME)} (${((Date.now() - started) / 1000).toFixed(1)} s)`);
 }
