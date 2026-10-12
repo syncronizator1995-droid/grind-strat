@@ -61,12 +61,14 @@ export const seaAtLevel = (code, level) => code > level;
 export function createCoast({ box, codes }) {
   const { col0, row0, cols, rows, cell } = box;
   if (codes.length !== cols * rows) throw new Error(`coast field: ${codes.length} cells for a box of ${cols} x ${rows}`);
-  for (const k of codes) if (k > COAST_CODE.last && k !== COAST_CODE.sea) throw new Error(`coast field: unknown code ${k}`);
 
   // The cells that change, sorted by code (a counting sort), so the cells that change between two
   // years are one stretch of this list: start[k] is where the cells of code k begin.
+  const count = new Int32Array(256);
+  for (let i = 0; i < codes.length; i++) count[codes[i]]++;
+  for (let k = COAST_CODE.last + 1; k < 256; k++) if (count[k] && k !== COAST_CODE.sea) throw new Error(`coast field: unknown code ${k}`);
   const start = new Int32Array(COAST_CODE.last + 2);
-  for (const k of codes) if (k >= COAST_CODE.first && k <= COAST_CODE.last) start[k + 1]++;
+  for (let k = COAST_CODE.first; k <= COAST_CODE.last; k++) start[k + 1] = count[k];
   for (let k = 1; k <= COAST_CODE.last + 1; k++) start[k] += start[k - 1];
   const order = new Int32Array(start[COAST_CODE.last + 1]);
   const fill = start.slice();

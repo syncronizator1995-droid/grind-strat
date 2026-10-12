@@ -15,7 +15,7 @@ import { COAST_SOURCES, readSguCenturies } from '../tools/map/build-coast.mjs';
 import { COAST_BLOCK, coastStaleReasons } from '../tools/map/pack-coast.mjs';
 import { unbundleBlocks } from '../src/ui/map/codec.js';
 import { COAST_BASE_YEAR, COAST_CODE, coastLevel, createCoast, emergedYearOf } from '../src/sim/coast-date.js';
-import { shoreAt, shoreSquares } from '../src/ui/map/shore.js';
+import { ringList, shoreAt, shoreSquares } from '../src/ui/map/shore.js';
 import {
   chamferDistance, codeOfYear, codesFromCenturies, COAST_PARAMS, coastParamsSha256, fillUnknownHeights, fitGroups, floodCodes, kField,
   LAST_LAND_CODE, openOutlet, ownCodes, seaAbove, spreadIntoSea,
@@ -362,7 +362,8 @@ describe('the old shore (src/ui/map/shore.js)', () => {
     const s = shoreSquares(box, codes);
     for (const year of [1219, 1400, 1600, 1800]) {
       const level = coastLevel(year);
-      const { fill, lines } = shoreAt(s, level);
+      const { fill: rings, lines } = shoreAt(s, level);
+      const fill = ringList(rings);
       for (const ring of fill) assert.ok(area(ring) > 0, 'counter-clockwise');
       const filled = fill.reduce((t, r) => t + area(r), 0) / (box.cell * box.cell);
       // Sea cells, counted over the squares' area (cell centres of the inner grid).
@@ -381,7 +382,22 @@ describe('the old shore (src/ui/map/shore.js)', () => {
     }
     // Once everything has risen there is nothing left to draw.
     const done = shoreAt(s, coastLevel(2021));
-    assert.deepEqual([done.fill.length, done.lines.length], [0, 0]);
+    assert.deepEqual([done.fill.ends.length, done.lines.length], [0, 0]);
+  });
+
+  it('can work on part of the field only (the view), giving the same shapes there', () => {
+    const cols = 60; const rows = 60;
+    const box = { col0: 0, row0: 0, cols, rows, cell: 5 };
+    const s = shoreSquares(box, island(cols, rows, false));
+    const level = coastLevel(1500);
+    const all = ringList(shoreAt(s, level).fill);
+    const within = { x0: 0, y0: 0, x1: 150, y1: 150 }; // the south-west quarter
+    const part = ringList(shoreAt(s, level, { within }).fill);
+    assert.ok(part.length > 0 && part.length < all.length / 2, `${part.length} of ${all.length}`);
+    const key = (/** @type {number[]} */ r) => r.map((v) => v.toFixed(6)).join(',');
+    const keys = new Set(all.map(key));
+    // Rings inside the quarter are the same (runs may be cut at its edge, so only pieces count).
+    for (const r of part) if (r.length !== 8) assert.ok(keys.has(key(r)), 'a piece the whole field does not have');
   });
 
   it('visits only the squares still partly sea, fewer as the land rises', () => {
@@ -390,8 +406,7 @@ describe('the old shore (src/ui/map/shore.js)', () => {
     const counts = [1219, 1500, 1800, 2021].map((y) => shoreAt(s, coastLevel(y)).squares);
     for (let i = 1; i < counts.length; i++) assert.ok(counts[i] <= counts[i - 1], `${counts}`);
     assert.ok(counts[2] < counts[0] / 3, `${counts}`);
-    // What stays is the ring of squares with a corner in today's open sea, drawn under today's coast.
-    assert.equal(counts[3], s.squares.length - s.highest.findIndex((v) => v === COAST_CODE.sea));
+    assert.equal(counts[3], 0, 'squares with a corner in today\'s open sea are never listed');
   });
 
   it('draws no shore line along a stable coast (where a corner is today\'s open sea)', () => {
@@ -404,8 +419,7 @@ describe('the old shore (src/ui/map/shore.js)', () => {
     for (const year of [1219, 1500, 2021]) {
       const { lines, fill } = shoreAt(s, coastLevel(year));
       assert.equal(lines.length, 0, `${year}`);
-      // Old sea is drawn only over today's sea: never west of the coast cells' centres + 2 cells.
-      for (const ring of fill) for (let i = 0; i < ring.length; i += 2) assert.ok(ring[i] >= 6.5 * 5, `${year}: ${ring[i]}`);
+      assert.equal(fill.ends.length, 0, `${year}: no old sea along a coast that does not change`);
     }
   });
 
@@ -413,12 +427,17 @@ describe('the old shore (src/ui/map/shore.js)', () => {
     const box = { col0: 0, row0: 0, cols: 2, rows: 2, cell: 10 };
     // Corners (counter-clockwise from the south-west): sea, land, sea, land.
     const apart = shoreAt(shoreSquares(box, Uint8Array.of(12, 0, 0, 12)), 10);
-    assert.equal(apart.fill.length, 2, 'two triangles');
+    const apartRings = ringList(apart.fill);
+    assert.equal(apartRings.length, 2, 'two triangles');
+    assert.deepEqual(apartRings.map((r) => r.length), [6, 6]);
     assert.equal(apart.lines.length, 2);
     const joined = shoreAt(shoreSquares(box, Uint8Array.of(200, 5, 5, 200)), 10);
-    assert.equal(joined.fill.length, 1, 'one band across the square');
+    const joinedRings = ringList(joined.fill);
+    assert.equal(joinedRings.length, 1, 'one band across the square');
     assert.equal(joined.lines.length, 2);
-    for (const f of [...apart.fill, ...joined.fill]) assert.ok(area(f) > 0);
+    for (const f of [...apartRings, ...joinedRings]) assert.ok(area(f) > 0);
+    // The triangles sit at the sea corners (south-west and north-east).
+    assert.ok(apartRings.some((r) => r.includes(5) && r[2] === 5 && r[3] === 5));
   });
 });
 
@@ -519,7 +538,7 @@ describe('the shipped coast block (src/data/by/coast.json)', () => {
   it('draws an old shore near Stockholm, Turku and Tallinn in 1219, and none along the stable south', () => {
     const s = shoreSquares(box, codes);
     const { fill, lines } = shoreAt(s, coastLevel(COAST_BASE_YEAR));
-    assert.ok(fill.length > 1000 && lines.length > 100, `${fill.length} rings, ${lines.length} lines`);
+    assert.ok(fill.ends.length > 1000 && lines.length > 100, `${fill.ends.length} rings, ${lines.length} lines`);
     const near = (/** @type {number} */ lon, /** @type {number} */ lat) => {
       const [x, y] = MAP.toUnits(lon, lat);
       return lines.some((l) => { for (let i = 0; i < l.length; i += 2) if (Math.hypot(l[i] - x, l[i + 1] - y) < 200) return true; return false; });
