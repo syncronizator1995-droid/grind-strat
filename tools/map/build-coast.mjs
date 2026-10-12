@@ -120,6 +120,20 @@ async function readSgu(box, fetchIt) {
   if (source.licenceStatus !== 'read') {
     return { centuries: null, reason: 'SGU\'s files are here, but their licence has not been read on resource.sgu.se yet (sources.json): not used.' };
   }
+  const centuries = await readSguCenturies(path, box);
+  if (!centuries.length) return { centuries: null, reason: 'SGU\'s file holds no issjohav tables for the game\'s years' };
+  return { centuries, reason: `SGU's shore model used in Sweden: ${centuries.length} century maps, ${centuries.map((c) => c.year).join(', ')}` };
+}
+
+/**
+ * SGU's century maps from one of its GeoPackages, as sea masks over the box: tables
+ * issjohav_<cal BP> (years before 1950) of polygons in SWEREF 99 TM, where Code 1 is sea
+ * (2 ice-dammed lake, 4 lake, 5 ice; land is where no polygon lies). Only maps from a century
+ * before 1219 on are read. Oldest first.
+ * @param {string} path @param {{ col0: number, row0: number, cols: number, rows: number, cell: number }} box
+ * @returns {Promise<{ year: number, sea: Uint8Array }[]>}
+ */
+export async function readSguCenturies(path, box) {
   const gpkg = await openGeoPackage(path);
   try {
     /** @type {{ year: number, sea: Uint8Array }[]} */
@@ -141,9 +155,7 @@ async function readSgu(box, fetchIt) {
       fillRings(sea, box.cols, box.rows, box.cell, rings, 1);
       centuries.push({ year, sea });
     }
-    centuries.sort((a, b) => a.year - b.year);
-    if (!centuries.length) return { centuries: null, reason: 'SGU\'s file holds no issjohav tables for the game\'s years' };
-    return { centuries, reason: `SGU's shore model used in Sweden: ${centuries.length} century maps, ${centuries.map((c) => c.year).join(', ')}` };
+    return centuries.sort((a, b) => a.year - b.year);
   } finally {
     gpkg.close();
   }

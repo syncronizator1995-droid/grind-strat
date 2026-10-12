@@ -11,7 +11,7 @@ import { describe, it } from 'node:test';
 import { inflateSync } from 'node:zlib';
 import { licenceProblems } from '../tools/build.mjs';
 import { ROOT } from '../tools/map/block.mjs';
-import { COAST_SOURCES } from '../tools/map/build-coast.mjs';
+import { COAST_SOURCES, readSguCenturies } from '../tools/map/build-coast.mjs';
 import { COAST_BLOCK, coastStaleReasons } from '../tools/map/pack-coast.mjs';
 import { unbundleBlocks } from '../src/ui/map/codec.js';
 import { COAST_BASE_YEAR, COAST_CODE, coastLevel, createCoast, emergedYearOf } from '../src/sim/coast-date.js';
@@ -124,6 +124,53 @@ describe('the GeoPackage reader (on a small GeoPackage the test makes)', () => {
       assert.equal(features[0].polygons[0][0][2], 610000);
       assert.throws(() => gpkg.features('issjohav_700', ['Nope']), /no column Nope/);
       gpkg.close();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('turns SGU-shaped century tables into sea maps on the game\'s grid, and those into codes', async () => {
+    // A made-up bay near Stockholm, in SWEREF 99 TM: sea over a 10 km square in 800 cal BP
+    // (AD 1150), over its eastern half in 700 cal BP (AD 1250), gone in 100 cal BP; a lake (code 4)
+    // that is never sea. Today it is all land.
+    const [e0, n0] = SWEREF99TM.forward(18.0, 59.5);
+    const sq = (/** @type {number} */ x0, /** @type {number} */ x1) => [[[x0, n0, x1, n0, x1, n0 + 10000, x0, n0 + 10000, x0, n0]]];
+    const dir = await mkdtemp(join(tmpdir(), 'grind-strat-sgu-'));
+    const path = join(dir, 'strandforskjutning_test.gpkg');
+    try {
+      const { DatabaseSync } = await import('node:sqlite');
+      const db = new DatabaseSync(path);
+      db.exec(`PRAGMA application_id = ${0x47504b47};
+        CREATE TABLE gpkg_contents (table_name TEXT PRIMARY KEY, data_type TEXT NOT NULL);
+        CREATE TABLE gpkg_geometry_columns (table_name TEXT, column_name TEXT, geometry_type_name TEXT, srs_id INTEGER);`);
+      for (const bp of [1200, 800, 700, 100]) {
+        db.exec(`CREATE TABLE issjohav_${bp} (fid INTEGER PRIMARY KEY, geom BLOB, Bp INTEGER, Year INTEGER, Code INTEGER);
+          INSERT INTO gpkg_contents VALUES ('issjohav_${bp}', 'features');
+          INSERT INTO gpkg_geometry_columns VALUES ('issjohav_${bp}', 'geom', 'MULTIPOLYGON', 3006);`);
+        const insert = db.prepare(`INSERT INTO issjohav_${bp} (geom, Bp, Year, Code) VALUES (?, ${bp}, ${1950 - bp}, ?)`);
+        if (bp >= 800) insert.run(gpkgGeometryBlob(sq(e0, e0 + 10000), 3006), 1);
+        if (bp === 700) insert.run(gpkgGeometryBlob(sq(e0 + 5000, e0 + 10000), 3006), 1);
+        insert.run(gpkgGeometryBlob(sq(e0 - 8000, e0 - 2000), 3006), 4);
+      }
+      db.close();
+      const [x, y] = MAP.toUnits(18.0, 59.5);
+      const box = { col0: Math.floor(x / 5) - 30, row0: Math.floor(y / 5) - 10, cols: 80, rows: 50, cell: 5 };
+      const centuries = await readSguCenturies(path, box);
+      assert.deepEqual(centuries.map((c) => c.year), [1150, 1250, 1850], 'tables older than 1119 are skipped');
+      const count = (/** @type {Uint8Array} */ m) => m.reduce((a, b) => a + b, 0);
+      // 10 km x 10 km of 500 m cells is about 400; half of it about 200; none at the end.
+      assert.ok(Math.abs(count(centuries[0].sea) - 400) < 40, `${count(centuries[0].sea)}`);
+      assert.ok(Math.abs(count(centuries[1].sea) - 200) < 30, `${count(centuries[1].sea)}`);
+      assert.equal(count(centuries[2].sea), 0);
+      const land = new Uint8Array(box.cols * box.rows).fill(1);
+      const codes = codesFromCenturies(centuries, land, box.cols, box.rows);
+      let west = 0; let east = 0;
+      for (let i = 0; i < codes.length; i++) {
+        if (!centuries[0].sea[i]) { assert.equal(codes[i], 0); continue; }
+        const year = 1219 + 4 * codes[i];
+        if (centuries[1].sea[i]) { east++; assert.ok(year > 1250 && year <= 1851, `${year}`); } else { west++; assert.ok(codes[i] <= codeOfYear(1250), `${year}`); }
+      }
+      assert.ok(west > 150 && east > 150);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
