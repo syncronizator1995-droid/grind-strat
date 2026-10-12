@@ -93,8 +93,9 @@ holds that change, on the same grid, as four change planes, one per stretch betw
   cell sat from its new class when the stretch began, in 2 km steps.
 - The game works out each changing cell's switch year from that (src/sim/map-date.js): nearer
   bands first, so clearings spread out from open land and new forest grows out from old; and
-  each 32 x 32 km block changes at a steady pace through the stretch. So the map moves a little
-  every year, not in jumps at the anchors.
+  each 32 x 32 km block changes at a steady pace through the stretch, blended with the blocks
+  round it so no block edge shows. So the map moves a little every year, not in jumps at the
+  anchors.
 - `meta` has the anchors with their notes, the stretches, the seed and block size of the switch
   years, the fingerprint of the 1219 grid it starts from, and of the settings it was built with.
 

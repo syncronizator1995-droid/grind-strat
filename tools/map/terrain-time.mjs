@@ -61,7 +61,7 @@ export const ANCHORS = Object.freeze([
 export const TIME_PARAMS = Object.freeze({
   bandKm: 2, // distance bands to the new class, this wide: nearer cells switch first
   bands: 32, // band 31 holds everything 62 km away or more (5 bits of a byte)
-  blockCells: 32, // each 32 x 32 km block of the 1 km grid changes at a steady pace
+  blockCells: 32, // each 32 x 32 km block of the 1 km grid changes at a steady pace (blended)
   seed: 1250, // for the order inside a band (src/sim/map-date.js)
   minPatch: TERRAIN_PARAMS.minPatch, // the 1219 tidy rule
   tolerance: TERRAIN_PARAMS.tolerance, // the 1219 solver target
