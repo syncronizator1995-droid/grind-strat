@@ -10,6 +10,7 @@ The map data comes in blocks split by licence (tools/map/pack.mjs writes them; `
   are chosen by the reviewed list in tools/map/ne-water-1219.json). It goes once the OpenStreetMap
   water (the next milestone) is packed.
 - `by-sa/`: CC BY-SA 4.0. `terrain-1219.json`, the land around 1219 (see its LICENSE.md and README.md).
+- `by/`: CC BY 4.0. `coast.json`, the northern coast over time (see its LICENSE.md and README.md).
 - `odbl/`: ODbL 1.0, from the next milestone: `water.json`, OpenStreetMap rivers and lakes (see its
   LICENSE.md and README.md). Not there yet: no OpenStreetMap data ships in M2.
 - `fingerprints.json`: the SHA-256 of every block, so tests notice a block edited by hand.
