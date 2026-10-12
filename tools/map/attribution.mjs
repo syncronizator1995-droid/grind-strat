@@ -25,6 +25,7 @@ const USES = /** @type {Record<string, string>} */ ({
   base: 'land, coast, heights and sea depths',
   terrain: 'the land around 1219: forest, open land, marsh and heath',
   water: 'rivers, lakes and their names',
+  'terrain-time': 'how the land changes from 1250 to today: forest cleared and grown back',
 });
 
 /** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
@@ -41,6 +42,7 @@ export const usedFor = (uses) => {
 const TERRAIN_NOTES = 'the notes that come with the terrain data in the game\'s source code';
 const BLOCK_CHANGES = /** @type {Record<string, string>} */ ({
   terrain: `Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (${TERRAIN_NOTES} say how).`,
+  'terrain-time': `Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (${TERRAIN_NOTES} say how).`,
 });
 
 /** The honest labels: what the map is, and what it is not. */
@@ -70,7 +72,7 @@ const INTERIM = /** @type {Record<string, string>} */ ({
 /** Which licence covers which folder of the repository (the ODbL folder only once it ships). */
 const ODBL_FOLDER = ['src/data/odbl/', 'Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes, as the Overture Maps Foundation publishes them (see its LICENSE.md and README.md). Nothing else is mixed into it.'];
 const FOLDERS = [
-  ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid (see its LICENSE.md and README.md).'],
+  ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid and how it changes up to today (see its LICENSE.md and README.md).'],
   ['src/data/map/', 'Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
   // Raw bytes of Overture's OpenStreetMap water data, kept to test the Parquet reader: ODbL too,

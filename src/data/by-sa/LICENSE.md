@@ -1,6 +1,7 @@
 # Licence of everything in this folder (src/data/by-sa/)
 
-The terrain grid in this folder (`terrain-1219.json`) is shared under the Creative Commons
+The terrain data in this folder (`terrain-1219.json`, the land around 1219, and `terrain-time.json`,
+how it changes up to 2021) is shared under the Creative Commons
 Attribution-ShareAlike 4.0 International licence (CC BY-SA 4.0):
 https://creativecommons.org/licenses/by-sa/4.0/
 
@@ -15,6 +16,8 @@ their licences ask:
   Githumbi, E., Pirzamanbein, B., et al. (2022), Pollen-Based Maps of Past Regional Vegetation
   Cover in Europe Over 12 Millennia - Evaluation and Potential, Frontiers in Ecology and Evolution
   10:795794, doi:10.3389/fevo.2022.795794. CC BY-SA 4.0.
+  The land over time uses the same maps' time windows 3, 2 and 1 (about AD 1250-1600, 1600-1850
+  and 1850-1950), from the same commit of the author's repository.
 - © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by
   ESA WorldCover consortium. Zanaga, D. et al. (2022), ESA WorldCover 10 m 2021 v200,
   doi:10.5281/zenodo.7254221. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).

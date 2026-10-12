@@ -1,4 +1,4 @@
-# src/data/by-sa: the land around 1219
+# src/data/by-sa: the land around 1219, and how it changes
 
 `terrain-1219.json` is Grind Strat's terrain grid: the land of the Baltic map as it was around
 AD 1219, as far as it can be worked out, one class per 1 km cell. Licence: CC BY-SA 4.0 (see
@@ -73,3 +73,38 @@ LICENSE.md in this folder).
 
 All the tools are in this repository. To make the grid again: `npm run map:grids`, then
 `npm run map:terrain`, then `npm run map:pack`.
+
+## terrain-time.json: how the land changes from 1219 to 2021
+
+The map follows the game's date, so the forest changes as the years pass. `terrain-time.json`
+holds that change, on the same grid, as four change planes, one per stretch between anchors:
+
+| Anchor | Forest and conifer shares from |
+| --- | --- |
+| 1219, held until 1250 | `terrain-1219.json` itself (pollen, about AD 750-1250) |
+| 1425 | pollen window 3 (about AD 1250-1600; 1425 is its middle) |
+| 1725 | pollen window 2 (about AD 1600-1850) |
+| 1900 | pollen window 1 (about AD 1850-1950) |
+| 2021 | ESA WorldCover 2021 tree cover; conifer share still from pollen window 1 |
+
+- Each plane (layers `p1250`, `p1425`, `p1725`, `p1900`) has one byte per cell:
+  `(band << 3) | newClass`. `newClass` 0 means the cell does not change in that stretch;
+  otherwise it is the class the cell has from its switch year on. `band` (0-31) is how far the
+  cell sat from its new class when the stretch began, in 2 km steps.
+- The game works out each changing cell's switch year from that (src/sim/map-date.js): nearer
+  bands first, so clearings spread out from open land and new forest grows out from old; and
+  each 32 x 32 km block changes at a steady pace through the stretch. So the map moves a little
+  every year, not in jumps at the anchors.
+- `meta` has the anchors with their notes, the stretches, the seed and block size of the switch
+  years, the fingerprint of the 1219 grid it starts from, and of the settings it was built with.
+
+What it is not (the honest labels): the forest share of each 1 degree cell at each anchor is the
+pollen map's (or WorldCover's for 2021); which 1 km cells were cleared or grew back, and in which
+year, is a rule, not a historical map. The anchors are nested: where a 1 degree cell's forest
+falls, only the previous anchor's forest can stay forest, and where it rises, the old forest all
+stays. Marsh and heath do not change. Cells that are water today take the class of their shores at
+each anchor.
+
+To make it again: `npm run map:grids` (for the pollen windows), `npm run map:terrain`, then
+`npm run map:terrain-time` (tools/map/build-terrain-time.mjs with the rules in
+tools/map/terrain-time.mjs, then tools/map/pack-terrain-time.mjs).
