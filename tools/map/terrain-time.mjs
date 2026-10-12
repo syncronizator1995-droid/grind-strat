@@ -53,7 +53,7 @@ export const ANCHORS = Object.freeze([
   }),
   Object.freeze({
     year: 2021, source: 'worldcover-2021', window: '2021',
-    note: 'Forest share per 1 degree square from ESA WorldCover 2021 tree cover, over the cells that may be forest. Conifer share from pollen window 1 (AD 1850-1950): WorldCover has no conifer class, and the satellite conifer maps tried would show Lithuania\'s conifer collapsing, which it did not.',
+    note: 'Forest share per 1 degree square from ESA WorldCover 2021 tree cover, over the cells that may be forest. Conifer share from pollen window 1 (AD 1850-1950): WorldCover has no conifer class, and the satellite conifer map tried would show far less conifer in Lithuania than its forest inventory reports (TO CHECK, see data/sources.md).',
   }),
 ]);
 
