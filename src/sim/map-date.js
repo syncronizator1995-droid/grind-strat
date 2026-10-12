@@ -13,13 +13,17 @@
 // from open land and new forest grows out from old; and each 32 x 32 cell block changes at a
 // steady pace through the interval, so the map moves smoothly instead of jumping at the anchors.
 //
-// The switch year of a changing cell, inside its block:
-//   t = y0 + 1 + floor(((cum[band] + hash01(c, r, seed) * count[band]) / blockCount) * (y1 - y0))
-// where count[band] is how many of the block's changing cells sit in that band, cum[band] how
-// many sit in nearer bands, and blockCount all the block's changing cells. That puts t in
-// (y0, y1], nearer bands first, and one counting pass works it out for every cell: no sorting
-// and no distance maths on the phone.
-//
+// The switch year of a changing cell. Inside one block, a cell in a given band sits at
+//   f = (cum[band] + hash01(c, r, seed) * count[band]) / blockCount
+// of the way through the interval, where count[band] is how many of the block's changing cells
+// sit in that band, cum[band] how many sit in nearer bands, and blockCount all the block's
+// changing cells: nearer bands first, and the block's changes spread evenly over the years. Used
+// as it is, that would draw the block edges mid-interval (a band can come early in one block and
+// late in the next), so each cell blends f from the four block centres round it, weighted by
+// nearness, as the quota thresholds are blended between square centres. Then
+//   t = y0 + 1 + floor(f * (y1 - y0)),  in (y0, y1].
+// One counting pass works it out for every cell: no sorting and no distance maths on the phone.
+
 // Years: BC years are negative and there is no year 0 (1 BC comes right before AD 1), as in
 // src/sim/calendar.js. Year spans are counted on "year indexes" (AD 1 is 0, 1 BC is -1), so a
 // span across the BC/AD line is one year shorter than plain subtraction would say.
@@ -104,7 +108,8 @@ const indexYear = (index) => (index >= 0 ? index + 1 : index);
 
 /**
  * Switch years for cells grouped in blocks and bands, by the rule at the top of this file:
- * inside each block, nearer bands first, spread evenly over `span` years from `first`.
+ * nearer bands first, spread evenly over `span` years from `first` in each block, blended
+ * between block centres so no block edge shows.
  * @param {number} cols @param {number} rows
  * @param {ArrayLike<number>} cells changing cells @param {ArrayLike<number>} bands their bands
  * @param {number} first year index of the first possible year @param {number} span years
@@ -113,36 +118,79 @@ const indexYear = (index) => (index >= 0 ? index + 1 : index);
  */
 function spreadYears(cols, rows, cells, bands, first, span, seed, block) {
   const bx = Math.ceil(cols / block);
-  const blocks = bx * Math.ceil(rows / block);
+  const by = Math.ceil(rows / block);
+  const blocks = bx * by;
   const count = new Int32Array(blocks * BANDS);
   const total = new Int32Array(blocks);
-  const where = new Int32Array(cells.length);
   for (let k = 0; k < cells.length; k++) {
     const i = cells[k];
     const c = i % cols;
     const r = (i - c) / cols;
-    const b = Math.floor(r / block) * bx + Math.floor(c / block);
     const band = bands[k];
     if (!(band >= 0 && band < BANDS)) throw new RangeError(`band ${band} out of range`);
-    where[k] = b * BANDS + band;
-    count[where[k]]++;
+    const b = Math.floor(r / block) * bx + Math.floor(c / block);
+    count[b * BANDS + band]++;
     total[b]++;
   }
-  // cum[b * BANDS + band]: the block's changing cells in nearer bands.
-  const cum = new Int32Array(blocks * BANDS);
+  // start[b * BANDS + band] and width[...]: where the band's cells begin in the block, and how
+  // much of the block they take, both as shares of the block's changes.
+  const start = new Float64Array(blocks * BANDS);
+  const width = new Float64Array(blocks * BANDS);
   for (let b = 0; b < blocks; b++) {
+    if (!total[b]) continue;
     let s = 0;
-    for (let band = 0; band < BANDS; band++) { cum[b * BANDS + band] = s; s += count[b * BANDS + band]; }
+    for (let band = 0; band < BANDS; band++) {
+      const at = b * BANDS + band;
+      start[at] = s / total[b];
+      width[at] = count[at] / total[b];
+      s += count[at];
+    }
   }
+  // The four block centres round each column and row, and how near the cell is to each: worked
+  // out once per column and per row, not per cell.
+  const near = (/** @type {number} */ n, /** @type {number} */ nb) => {
+    const lo = new Int32Array(n); const hi = new Int32Array(n); const t = new Float64Array(n);
+    for (let x = 0; x < n; x++) {
+      const f = (x + 0.5) / block - 0.5;
+      lo[x] = Math.max(0, Math.min(nb - 1, Math.floor(f)));
+      hi[x] = Math.min(nb - 1, lo[x] + 1);
+      t[x] = Math.max(0, Math.min(1, f - lo[x]));
+    }
+    return { lo, hi, t };
+  };
+  const X = near(cols, bx);
+  const Y = near(rows, by);
   const out = new Int32Array(cells.length);
   for (let k = 0; k < cells.length; k++) {
     const i = cells[k];
     const c = i % cols;
     const r = (i - c) / cols;
-    const w = where[k];
-    const b = (w - (w % BANDS)) / BANDS;
-    const frac = (cum[w] + hash01(c, r, seed) * count[w]) / total[b];
-    out[k] = first + Math.min(span - 1, Math.floor(frac * span));
+    const h = hash01(c, r, seed);
+    const band = bands[k];
+    const tx = X.t[c]; const ty = Y.t[r];
+    const row0 = Y.lo[r] * bx; const row1 = Y.hi[r] * bx;
+    let sum = 0; let weight = 0;
+    // A block with no changes has no pace of its own: it takes no part.
+    /** @param {number} b @param {number} w */
+    const add = (b, w) => {
+      if (!total[b] || w <= 0) return;
+      const at = b * BANDS + band;
+      sum += w * (start[at] + h * width[at]);
+      weight += w;
+    };
+    add(row0 + X.lo[c], (1 - tx) * (1 - ty));
+    add(row0 + X.hi[c], tx * (1 - ty));
+    add(row1 + X.lo[c], (1 - tx) * ty);
+    add(row1 + X.hi[c], tx * ty);
+    // The cell's own block always has changes (this cell), but at the far edge of the blend its
+    // weight may be 0 and its neighbours' empty: then it goes by its own block alone.
+    let f;
+    if (weight > 1e-9) f = sum / weight;
+    else {
+      const at = (Math.floor(r / block) * bx + Math.floor(c / block)) * BANDS + band;
+      f = start[at] + h * width[at];
+    }
+    out[k] = first + Math.min(span - 1, Math.max(0, Math.floor(f * span)));
   }
   return out;
 }

@@ -125,26 +125,31 @@ describe('the land over time, on a made-up world', () => {
     }
   });
 
-  it('switches cells nearer their new class first, inside each 32 km block', () => {
+  it('switches cells nearer their new class first, block by block', () => {
+    // Inside a block, bands go in order; the blend with the neighbouring blocks (so no block edge
+    // shows) and the hashed order inside a band leave the order close to, not exactly, by band.
+    let blocks = 0;
     for (let k = 0; k < w.intervals.length; k++) {
       const { plane } = w.intervals[k];
       const e = tl.switches(k);
-      /** @type {Map<number, { band: number, year: number }[]>} */
+      /** @type {Map<number, { band: number[], year: number[] }>} */
       const byBlock = new Map();
       for (let j = 0; j < e.cells.length; j++) {
         const i = e.cells[j];
         const c = i % w.cols; const r = (i - c) / w.cols;
         const b = Math.floor(r / BLOCK_CELLS) * 1000 + Math.floor(c / BLOCK_CELLS);
-        byBlock.set(b, [...(byBlock.get(b) ?? []), { band: plane[i] >> 3, year: e.years[j] }]);
+        const entry = byBlock.get(b) ?? { band: [], year: [] };
+        entry.band.push(plane[i] >> 3); entry.year.push(e.years[j]);
+        byBlock.set(b, entry);
       }
-      for (const list of byBlock.values()) {
-        const latest = new Map();
-        for (const { band, year } of list) latest.set(band, Math.max(latest.get(band) ?? -Infinity, year));
-        for (const { band, year } of list) {
-          for (const [b2, y2] of latest) if (b2 < band) assert.ok(y2 <= year, `band ${b2} switches as late as ${y2}, after band ${band} at ${year}`);
-        }
+      for (const { band, year } of byBlock.values()) {
+        if (band.length < 50 || new Set(band).size < 3) continue;
+        const rho = spearman(band, year);
+        assert.ok(rho > 0.7, `interval ${k}: band and year correlate only ${rho.toFixed(3)} over ${band.length} cells`);
+        blocks++;
       }
     }
+    assert.ok(blocks >= 8, `only ${blocks} blocks checked`);
   });
 
   it('clears outward from the open land: inside each block, switch year follows distance to open land', () => {
@@ -178,31 +183,28 @@ describe('the land over time, on a made-up world', () => {
     assert.ok(blocks >= 8, `only ${blocks} blocks checked`);
   });
 
-  it('changes each block at a steady pace through the stretch', () => {
-    const k = 1;
-    const { y0, y1 } = w.intervals[k];
-    const e = tl.switches(k);
-    /** @type {Map<number, number[]>} */
-    const byBlock = new Map();
-    for (let j = 0; j < e.cells.length; j++) {
-      const i = e.cells[j];
-      const c = i % w.cols; const r = (i - c) / w.cols;
-      const b = Math.floor(r / BLOCK_CELLS) * 1000 + Math.floor(c / BLOCK_CELLS);
-      byBlock.set(b, [...(byBlock.get(b) ?? []), e.years[j]]);
-    }
-    let checked = 0;
-    for (const years of byBlock.values()) {
-      if (years.length < 50) continue;
-      checked++;
+  it('changes at a steady pace through the stretch: the whole map closely, each block roughly', () => {
+    for (let k = 0; k < w.intervals.length; k++) {
+      const { y0, y1 } = w.intervals[k];
+      const e = tl.switches(k);
+      /** @type {Map<number, number[]>} */
+      const byBlock = new Map();
+      for (let j = 0; j < e.cells.length; j++) {
+        const i = e.cells[j];
+        const c = i % w.cols; const r = (i - c) / w.cols;
+        const b = Math.floor(r / BLOCK_CELLS) * 1000 + Math.floor(c / BLOCK_CELLS);
+        byBlock.set(b, [...(byBlock.get(b) ?? []), e.years[j]]);
+      }
+      /** @type {number[]} */ const off = [];
       for (const q of [0.25, 0.5, 0.75]) {
         const at = y0 + Math.round(q * (y1 - y0));
-        const done = years.filter((t) => t <= at).length;
-        // Inside a band the order is hashed, so allow a little more than one band's worth of drift.
-        const slack = 3 + 3 * Math.sqrt(years.length);
-        assert.ok(Math.abs(done - q * years.length) <= slack, `block with ${years.length} changes: ${done} done by ${at}, expected about ${q * years.length}`);
+        const done = Array.from(e.years).filter((t) => t <= at).length / e.years.length;
+        assert.ok(Math.abs(done - q) <= 0.06, `interval ${k}: ${done} of the map done by ${at}, expected about ${q}`);
+        for (const years of byBlock.values()) if (years.length >= 50) off.push(Math.abs(years.filter((t) => t <= at).length / years.length - q));
       }
+      off.sort((a, b) => a - b);
+      assert.ok(off[off.length >> 1] <= 0.12, `interval ${k}: blocks are ${off[off.length >> 1]} off a steady pace (median)`);
     }
-    assert.ok(checked >= 4, `only ${checked} blocks checked`);
   });
 
   it('moves forward with advance() to exactly what classesAt() says, touching only cells that switch', () => {

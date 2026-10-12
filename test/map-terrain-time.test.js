@@ -10,6 +10,7 @@ import { dirname, join, resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { inflateSync } from 'node:zlib';
+import { hash01 } from '../src/sim/grid.js';
 import { timelineFromBlock } from '../src/sim/map-date.js';
 import { unbundleBlocks } from '../src/ui/map/codec.js';
 import { TERRAIN_SOURCES } from '../tools/map/build-terrain-1219.mjs';
@@ -194,6 +195,36 @@ describe('the shipped terrain-time block', () => {
     }
   });
 
+  it('shows no 32 km block edges mid-stretch, where a ranking block by block would', () => {
+    const k = 1; // 1425-1725, the biggest stretch of clearing
+    const { y0, y1, layer } = block.meta.intervals[k];
+    const plane = layers[layer];
+    const mid = Math.round((y0 + y1) / 2);
+    const e = tl.switches(k);
+    const engine = new Int16Array(cols * rows);
+    for (let j = 0; j < e.cells.length; j++) engine[e.cells[j]] = e.years[j];
+    // The control: the same bands ranked block by block, with no blend between blocks.
+    const B = block.meta.blockCells;
+    const bx = Math.ceil(cols / B);
+    const count = new Int32Array(bx * Math.ceil(rows / B) * 32);
+    const total = new Int32Array(bx * Math.ceil(rows / B));
+    const blockOf = (/** @type {number} */ i) => Math.floor(Math.floor(i / cols) / B) * bx + Math.floor((i % cols) / B);
+    for (let i = 0; i < plane.length; i++) if (plane[i] & 7) { count[blockOf(i) * 32 + (plane[i] >> 3)]++; total[blockOf(i)]++; }
+    const blocky = new Int16Array(cols * rows);
+    for (let i = 0; i < plane.length; i++) {
+      if (!(plane[i] & 7)) continue;
+      const b = blockOf(i); const band = plane[i] >> 3;
+      let cum = 0;
+      for (let q = 0; q < band; q++) cum += count[b * 32 + q];
+      const f = (cum + hash01(i % cols, Math.floor(i / cols), 3) * count[b * 32 + band]) / total[b];
+      blocky[i] = y0 + 1 + Math.min(y1 - y0 - 1, Math.floor(f * (y1 - y0)));
+    }
+    const engineSeam = seamRatio(engine, mid, cols, rows, B);
+    const blockySeam = seamRatio(blocky, mid, cols, rows, B);
+    assert.ok(blockySeam > 1.15, `the control should show block edges: ratio ${blockySeam}`);
+    assert.ok(engineSeam < 1.07, `block edges show mid-stretch: ratio ${engineSeam}`);
+  });
+
   const sidecar = join(DERIVED, `${OUT_NAME}.json`);
   it('matches the build\'s own checks: quotas within 3 points at every anchor, nothing against the flow', { skip: !existsSync(sidecar) && 'no data/raw/derived/terrain-time-1km.u8.json here' }, () => {
     const meta = JSON.parse(readFileSync(sidecar, 'utf8'));
@@ -206,6 +237,28 @@ describe('the shipped terrain-time block', () => {
     }
   });
 });
+
+/**
+ * How often two side-by-side changing cells disagree on "switched by this year" across the lines
+ * between blocks, over how often across lines half a block from them (1 when no edge shows).
+ * @param {Int16Array} yearOf switch year per cell, 0 for none @param {number} year
+ * @param {number} cols @param {number} rows @param {number} B block side
+ */
+function seamRatio(yearOf, year, cols, rows, B) {
+  const rate = (/** @type {number} */ offset) => {
+    let pairs = 0; let differ = 0;
+    /** @param {number} a @param {number} b */
+    const pair = (a, b) => {
+      if (!yearOf[a] || !yearOf[b]) return;
+      pairs++;
+      if ((yearOf[a] <= year) !== (yearOf[b] <= year)) differ++;
+    };
+    for (let r = 0; r < rows; r++) for (let c = offset || B; c < cols; c += B) pair(r * cols + c - 1, r * cols + c);
+    for (let r = offset || B; r < rows; r += B) for (let c = 0; c < cols; c++) pair((r - 1) * cols + c, r * cols + c);
+    return differ / pairs;
+  };
+  return rate(0) / rate(B / 2);
+}
 
 describe('the land over time: licence separation', () => {
   const OSM = /\bosm\b|osm-|-osm|overpass|openstreetmap\.org|\.osm\.|\.pbf\b|overture/i;
