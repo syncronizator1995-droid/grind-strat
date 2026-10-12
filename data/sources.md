@@ -239,3 +239,57 @@ New TO CHECK items:
 - Rivers through dropped reservoirs follow today's mapped line, an approximation of the river
   before the dam (for example the Dnieper through the Kyiv and Kaniv reservoirs, and the Nemunas
   through Kauno marios).
+
+## Map data used in M3a: the northern coast over time (12 October 2026)
+
+Since 1219 the land of Sweden, Åland, Finland and Estonia has risen out of the sea. The game's
+coast block (`src/data/by/coast.json`, CC BY 4.0) is an **estimate** of where the sea stood in each
+year: relative sea fall = k × (land uplift − 0.5) mm a year, with k fitted to the dated shores
+below and back to 1 within 150 km of them, over GEBCO's heights, flooded from the sea so that a
+basin behind a sill stays sea only while the sill is under water. The rule's "0.5 mm a year" is
+our own fit to dated shores (research notes, 11 October 2026), not a published figure. Rules:
+`tools/map/coast.mjs`; control points with quotes: `tools/map/coast-anchors.json`.
+
+| Collection | What the game uses | Licence, and where it was read | Status |
+| --- | --- | --- | --- |
+| Nordic Geodetic Commission, NKG_RF17vel (`nkg-rf17vel`) | The up_velocity band (mm a year), the land uplift behind the coast estimate | CC BY 4.0. Read in the file's own copyright tag ("The Nordic Geodetic Commission. Creative Commons Attribution 4.0"), in the copy the NKG publishes on its own site: https://www.nordicgeodeticcommission.com/wp-content/uploads/2025/06/eur_nkg_nkgrf17vel.tif, linked from https://www.nordicgeodeticcommission.com/products/ ("NKG_RF17vel: the official 2D+1D velocity model used in the NKG2020 transformation"). Fetched from PROJ-data release 1.25.0, byte-identical (SHA-256 515f68aeb59f659a3f3c340626cd060f58de6f93b4546df67732b906949e0d66): https://raw.githubusercontent.com/OSGeo/PROJ-data/1.25.0/eur_nkg/eur_nkg_nkgrf17vel.tif, README https://raw.githubusercontent.com/OSGeo/PROJ-data/1.25.0/eur_nkg/eur_nkg_README.txt | Read, used |
+| SGU, Strandförskjutningsmodell (`sgu-shore`) | Would replace the estimate in Sweden: sea and lake polygons per century, tables issjohav_<cal BP>, in SWEREF 99 TM. Product description: https://resource.sgu.se/dokument/produkter/oppnadata/strandforskjutningsmodell-oppnadatabeskrivning.pdf; data: https://resource.sgu.se/data/oppnadata/jord/strandforskjutningsmodell/strandforskjutning_1_900.gpkg | CC BY 4.0 ("Creative Commons Erkännande 4.0") per the product description seen during research; not yet read on resource.sgu.se | **Not used**: resource.sgu.se is blocked until Ignas allows it. The reader (`tools/map/gpkg.mjs`) and the hook (`readSguCenturies` in `tools/map/build-coast.mjs`) are built and tested on a made-up GeoPackage; the build says "SGU's shore model is not here" and uses the estimate |
+| GEBCO_2026 (`gebco-2026`) | Heights at 500 m (only GEBCO's land, above 0 m, averaged) | As listed above for M2 | Read, used |
+| Natural Earth land and lakes (`ne-land`, `ne-lakes`) | Today's coast (the game's own), and Lake Mälaren's outline | As listed above for M2 | Read, used |
+
+Control points (only their figures are used; the papers are cited, not shipped):
+
+| Place | Sea above today's | Source | Seen |
+| --- | --- | --- | --- |
+| Lake Eckarfjärden, north Uppland (60°22'N 18°12'E) | 5.5 m, isolated 850 cal BP (about AD 1100) | Hedenström and Risberg (2003), SKB TR-03-17, Table 4-1: https://skb.com/publication/20970/TR-03-17.pdf | Read |
+| Stockholm, Stadsholmen | about 2 m at the turn of the 13th/14th century (fitted); about 4 m around 1000 (check only) | Söderlund (2016), Slussen through the ages, p. 5: https://skonhetsradet.stockholm/wp-content/uploads/sites/45/2023/08/slussen-eng.pdf | Read |
+| Lake Mälaren | a bay of the sea until about 1300, then a lake: the lake's outlet at Stockholm closes in 1300 | Söderlund (2016), as above: "By around 1300, land rise had transformed Mälaren from a deep bay of the Baltic Sea to a lake." | Read |
+| Harku, Tallinn (59.42N 24.62E) | 2.73 m at 1040 cal BP (index point Harku-4) | Rosentau et al. (2020), HOLSEA Baltic database, GFZ Data Services, doi:10.5880/GFZ.1.3.2020.003 (CC BY 4.0, stated in the xlsx): https://datapub.gfz-potsdam.de/download/10.5880.GFZ.1.3.2020.003vEGWF/2020-003_Rosentau-et-al_HOLSEA_baltic_isol_21-06-18.xlsx | Read |
+| Tallinn | 2.0 m in 1219: our arithmetic on the paper's linear fall from about 12 m at 4400 cal BP | Saarse and Vassiljev (2010), Estonian Journal of Earth Sciences 59(3), 207-215: https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2010/issue_3/earth-2010-3-207-215.pdf | Read |
+| Salme, Saaremaa | about 1.0 m in 1219 (fitted), 0.8 m at AD 1300 (check) | Nirgi et al. (2022), The Holocene 32(4), doi:10.1177/09596836211066596: https://doi.org/10.1177/09596836211066596 | Abstract only (TO CHECK) |
+| Prassi, Hiiumaa (58.7289N 22.6172E) | sea at or below 6.63 m at 940 cal BP (a limiting point: a bracket, not a value) | HOLSEA Baltic database, as above (sample Prassi 1) | Read |
+| Transverse Mercator formulas (for SWEREF 99 TM) | Krüger's series and the worked example the tests use | Lantmäteriet (2008), Gauss Conformal Projection (Transverse Mercator), Krüger's Formulas: https://www.lantmateriet.se/globalassets/geodata/gps-och-geodetisk-matning/gauss_conformal_projection.pdf; SWEREF 99 TM's parameters (EPSG:3006, as UTM zone 33N on GRS80): https://spatialreference.org/ref/epsg/3006/proj4.txt | Read |
+
+What the build found (12 October 2026, without SGU): the fitted k is 0.53 at Stockholm, 0.89 in
+north Uppland, 0.91 at Tallinn and 0.60 on Saaremaa. The 1219 sea stood about 2.2 m above
+today's at Stockholm, 4.3 m at Turku, 4.4 m at Mariehamn, 1.9 m at Haapsalu and 1.2 m at Pärnu.
+Within 15 km of each, the 1219 shore lies at most 1.5 to 2.5 km inland of today's (3 to 5 cells of
+500 m). About 30,800 cells of today's dry land change, plus Lake Mälaren (7,275 cells), a bay
+until 1303.
+
+TO CHECK:
+- Stockholm's 1219 sea: Söderlund's 2 m about 1300 gives about 2.2 m in 1219; other sources allow
+  2.5 to 4.3 m. Is the 2 m measured against the sea or against Lake Mälaren?
+- When Mälaren became a lake: "about 1200" (Britannica, snippet only) or "by around 1300"
+  (Söderlund, read). The outlet's position at Stockholm is picked by hand (approximate).
+- Turku and Åland have no control point: the rule as it is gives about 4.3 m in 1219; a Turku
+  curve seen only as a snippet (Vuorela et al. 2009, about 3.8 mm a year) suggests about 3 m.
+- The Salme figures are from the abstract of Nirgi et al. (2022) only.
+- Approximate positions picked by hand: Stockholm (Stadsholmen), Tallinn's centre, Salme.
+- GEBCO's heights near Stockholm read high: Lake Mälaren's surface is 3.0 m in GEBCO against
+  about 0.3 to 0.7 m above the sea, so the estimate floods less than the rule would on true
+  heights there. A bare-earth height model (Lantmäteriet, Maanmittauslaitos, Maa-amet) or SGU's
+  model would fix it.
+- Whether NKG_RF17vel's up band is exactly the NKG2016LU_abs land-uplift model (Vestøl et al.
+  2019); neither the file nor the README says.
+- SGU's licence, read on resource.sgu.se, once Ignas allows the host.
