@@ -25,8 +25,9 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  * @property {string} id @property {string} collection @property {string} url @property {string} file
  * @property {string} what @property {string} licence @property {string} licenceUrl
  * @property {'read' | 'unverified'} licenceStatus
- * @property {'whole' | 'range' | 'overpass' | 'overture'} [access] 'overpass' and 'overture': OpenStreetMap data,
- *   fetched by tools/map/fetch-osm.mjs and tools/map/fetch-overture.mjs
+ * @property {'whole' | 'range' | 'overpass' | 'overture' | 'gpkg'} [access] 'overpass' and 'overture': OpenStreetMap data,
+ *   fetched by tools/map/fetch-osm.mjs and tools/map/fetch-overture.mjs; 'gpkg': SGU's shore model, fetched by
+ *   tools/map/build-coast.mjs once its host is allowed
  * @property {number} [maxRangeBytes] the largest single range request this host takes well
  * @property {{ url: string, what: string, maxRangeBytes?: number }} [fallback] a second copy of the same
  *   file, used only if the main url is gone; tools/map/compare-gebco.mjs checks they agree

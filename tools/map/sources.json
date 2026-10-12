@@ -283,6 +283,71 @@
         "licenceName": "Open Database License (ODbL) 1.0",
         "licenceUri": "opendatacommons.org/licenses/odbl/1-0/"
       }
+    },
+    {
+      "id": "nkg-rf17vel",
+      "collection": "nkg",
+      "url": "https://raw.githubusercontent.com/OSGeo/PROJ-data/1.25.0/eur_nkg/eur_nkg_nkgrf17vel.tif",
+      "file": "nkg/eur_nkg_nkgrf17vel.tif",
+      "what": "NKG_RF17vel, the Nordic Geodetic Commission's velocity model of the land in the Nordic and Baltic countries (the model of the NKG2020 transformation): a GeoTIFF of 301 x 313 points every 1/6 degree of longitude and 1/12 degree of latitude from 0E 75N (0-50E, 49-75N), three float32 bands (east_velocity, north_velocity, up_velocity, millimetres per year) stored as separate planes, DEFLATE, file dated 2020-11-04. Only up_velocity is used: how fast the land rises (relative to the Earth's centre, not to the sea). Pinned to PROJ-data release 1.25.0; the same file (identical SHA-256, 515f68ae...0d66) is on the NKG's own site at www.nordicgeodeticcommission.com/wp-content/uploads/2025/06/eur_nkg_nkgrf17vel.tif, linked from its Products page.",
+      "files": [
+        {
+          "name": "eur_nkg_README.txt",
+          "url": "https://raw.githubusercontent.com/OSGeo/PROJ-data/1.25.0/eur_nkg/eur_nkg_README.txt",
+          "file": "nkg/eur_nkg_README.txt"
+        }
+      ],
+      "licence": "CC BY 4.0",
+      "licenceUrl": "https://www.nordicgeodeticcommission.com/products/",
+      "licenceStatus": "read",
+      "licenceReadAt": "Inside the file itself, as the NKG publishes it on its own site (www.nordicgeodeticcommission.com/wp-content/uploads/2025/06/eur_nkg_nkgrf17vel.tif, linked from www.nordicgeodeticcommission.com/products/, read on 12 October 2026; byte-identical to the PROJ-data copy fetched here): its TIFF copyright tag (33432). Also PROJ-data's eur_nkg_README.txt at tag 1.25.0 (raw.githubusercontent.com/OSGeo/PROJ-data/1.25.0/eur_nkg/eur_nkg_README.txt), and the README of the NKG's own repository github.com/NordicGeodesy/NordicTransformations (which holds the NKG's older models, not this one), which licenses all its files CC BY 4.0 and names the NKG as the rights holder to credit.",
+      "licenceQuote": "TIFF copyright tag: \"The Nordic Geodetic Commission. Creative Commons Attribution 4.0 https://creativecommons.org/licenses/by/4.0/\". PROJ-data eur_nkg_README.txt: \"Nordic+Baltic countries: 2017 Deformation model. Source: The Nordic Geodetic Commission. Format: GeoTIFF file. License: Creative Commons Attribution 4.0 [...] eur_nkg_nkgrf17vel.tif\". NKG Products page: \"NKG_RF17vel: the official 2D+1D velocity model used in the NKG2020 transformation (file in GeoTIFF format [...] also available at: https://cdn.proj.org/)\".",
+      "unofficialCopy": "Fetched from PROJ-data (OSGeo's package of grids for the PROJ software, release 1.25.0), which is byte-identical to the file on the NKG's own site.",
+      "toCheck": [
+        "Whether the up_velocity band is exactly the NKG2016LU_abs land-uplift model (Vestøl et al. 2019); neither the file nor the README says. The coast only needs it to be the NKG's best vertical rate, which the Products page says it is.",
+        "Whether the NKG wants a particular paper cited for NKG_RF17vel; the Products page lists the NKG2020 transformation paper (doi:10.1515/jogs-2022-0155), which is cited here."
+      ],
+      "credit": {
+        "owner": "Nordic Geodetic Commission (NKG)",
+        "version": "NKG_RF17vel (file of 2020-11-04)",
+        "short": "NKG",
+        "onMap": false,
+        "line": "NKG_RF17vel land-uplift model © Nordic Geodetic Commission (NKG), CC BY 4.0.",
+        "citation": "Nordic Geodetic Commission (2020). NKG_RF17vel velocity model (eur_nkg_nkgrf17vel.tif), used in the NKG2020 transformation: An Updated Transformation between Dynamic and Static Reference Frames in the Nordic and Baltic Countries, Journal of Geodetic Science, doi:10.1515/jogs-2022-0155.",
+        "changes": "Only the up (vertical) velocity is used, read with bilinear interpolation onto 500 m cells of the game's flat map, to estimate how fast the sea has fallen against the land since 1219.",
+        "licenceName": "CC BY 4.0",
+        "licenceUri": "creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "sgu-shore",
+      "collection": "sgu",
+      "access": "gpkg",
+      "url": "https://resource.sgu.se/data/oppnadata/jord/strandforskjutningsmodell/strandforskjutning_1_900.gpkg",
+      "file": "sgu/strandforskjutning_1_900.gpkg",
+      "what": "SGU's shore-displacement model (Strandförskjutningsmodell, öppna data): GeoPackage files per 1000 years, each with one polygon table per 100 years named issjohav_<cal BP> (years before 1950), in SWEREF 99 TM (EPSG:3006); column Code: 1 sea, 2 ice-dammed lake, 4 lake, 5 ice (land is where no polygon lies). Built from shore-displacement curves and a 50 m height model in Sweden (Påsse and Daniels 2015). The file for 1-900 BP covers AD 1050-1950, the game's years. Fetched by tools/map/build-coast.mjs, not by fetch.mjs, and only once resource.sgu.se is allowed: until then the coast uses its own estimate everywhere and says so.",
+      "licence": "CC BY 4.0 (Creative Commons Erkännande 4.0), as SGU's product description states",
+      "licenceUrl": "https://resource.sgu.se/dokument/produkter/oppnadata/strandforskjutningsmodell-oppnadatabeskrivning.pdf",
+      "licenceStatus": "unverified",
+      "licenceReadAt": "Not yet read on resource.sgu.se, which this build machine cannot reach until Ignas allows it. A copy of the product description (version 1.0, 2022-06-14) seen during research says \"Licens: Creative Commons Erkännande 4.0\".",
+      "licenceQuote": null,
+      "unofficialCopy": null,
+      "toCheck": [
+        "Read the licence on resource.sgu.se (the product description PDF) once Ignas allows that host, quote it here and set licenceStatus to \"read\".",
+        "Fetch strandforskjutning_1_900.gpkg (and strandforskjutning_1000_1900.gpkg if the 1219 shore needs the table for 800 BP from it) and record their SHA-256 in the manifest.",
+        "Which tables the 1-900 BP file holds (the description says table issjohav_1100 is missing from the 1000-1900 file)."
+      ],
+      "credit": {
+        "owner": "Sveriges geologiska undersökning (SGU, the Geological Survey of Sweden)",
+        "version": "Strandförskjutningsmodell (öppna data), product description 1.0 of 2022-06-14",
+        "short": "SGU",
+        "onMap": false,
+        "line": "Shore-displacement model © SGU (Geological Survey of Sweden), CC BY 4.0.",
+        "citation": "Påsse, T. & Daniels, J. (2015). Past shore-level and sea-level displacements. Sveriges geologiska undersökning, Rapporter och meddelanden 137. Data: SGU, Strandförskjutningsmodell (öppna data).",
+        "changes": "The sea and lake polygons of each century in Sweden, moved onto 500 m cells of the game's flat map; within each century the shore is placed between the two century shores by distance.",
+        "licenceName": "CC BY 4.0",
+        "licenceUri": "creativecommons.org/licenses/by/4.0/"
+      }
     }
   ]
 }
