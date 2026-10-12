@@ -38,9 +38,9 @@ export const COAST_PARAMS = Object.freeze({
   minLandM: 0.5,
   /**
    * Where GEBCO has no land in a cell of today's land (its coast lies inland of Natural Earth's,
-   * or a strait is too narrow for Natural Earth), the height is unknown: half the mean of the
-   * neighbours' heights (the shore at 0 m and the land rising to the next cell centre), kept
-   * between minLandM and this, so such cells stay low but do not all come out of the sea at once.
+   * or a strait is too narrow for Natural Earth), the height is unknown. It is taken between
+   * minLandM and this, higher where the land beside it is higher: low, but not all alike, so such
+   * cells do not all come out of the sea in one year.
    */
   unknownMaxM: 1.0,
   /** Cell size in game units (500 m). */
@@ -311,9 +311,10 @@ export function codesFromCenturies(centuries, land, cols, rows) {
 }
 
 /**
- * Fills the heights of today's land cells where GEBCO has no land (NaN): half the mean of their
- * known neighbours (8 around), between minLandM and unknownMaxM; minLandM with no known neighbour.
- * Sea cells are left as they are.
+ * Fills the heights of today's land cells where GEBCO has no land (NaN): from the mean height m
+ * of their known land neighbours (8 around), minLandM + (unknownMaxM - minLandM) x m / (m + 2),
+ * so 0.75 m beside land of 2 m and close to 1 m beside high land; minLandM with no known
+ * neighbour. Sea cells are left as they are.
  * @param {Float32Array} heights changed in place @param {Uint8Array} land @param {number} cols @param {number} rows
  * @returns {number} how many cells were filled
  */
@@ -335,7 +336,8 @@ export function fillUnknownHeights(heights, land, cols, rows) {
           }
         }
       }
-      heights[i] = k ? Math.min(unknownMaxM, Math.max(minLandM, s / k / 2)) : minLandM;
+      const m = k ? Math.max(0, s / k) : 0;
+      heights[i] = minLandM + ((unknownMaxM - minLandM) * m) / (m + 2);
       filled++;
     }
   }

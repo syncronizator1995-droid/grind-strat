@@ -171,11 +171,11 @@
     },
     {
       "name": "Åland and south-west Finland (Turku)",
-      "error": "No control point within 150 km, so the rule is used as it is (k = 1): about 4.2 m at Turku in 1219. A Turku curve seen only as a snippet (Vuorela et al. 2009, about 3.8 mm a year) suggests about 3 m: the shore may be drawn too far inland. TO CHECK. Turku and Åland also sit on GEBCO's 60°N seam, where the land heights change source."
+      "error": "No control point within 150 km, so the rule is used as it is (k = 1): about 4.3 m at Turku and 4.4 m at Mariehamn in 1219. A Turku curve seen only as a snippet (Vuorela et al. 2009, about 3.8 mm a year) suggests about 3 m: the shore may be drawn too far inland. TO CHECK. Turku and Åland also sit on GEBCO's 60°N seam, where the land heights change source."
     },
     {
       "name": "Gulf of Finland, north coast (Helsinki to Vyborg)",
-      "error": "Mostly k = 1, nearer Tallinn bent towards Tallinn's fit. About 2.9 m at Helsinki in 1219, no control point: about ±1 m."
+      "error": "Mostly k = 1, nearer Tallinn bent towards Tallinn's fit. About 2.8 m at Helsinki in 1219, no control point: about ±1 m."
     },
     {
       "name": "North Estonia (Tallinn)",

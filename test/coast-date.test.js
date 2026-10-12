@@ -315,10 +315,13 @@ describe('the rules that make the field (tools/map/coast.mjs)', () => {
     const land = new Uint8Array(9).fill(1);
     const heights = Float32Array.of(1.6, 1.6, 1.6, 1.6, NaN, 1.6, 1.6, 1.6, 1.6);
     assert.equal(fillUnknownHeights(heights, land, 3, 3), 1);
-    assert.ok(Math.abs(heights[4] - 0.8) < 1e-6);
+    assert.ok(Math.abs(heights[4] - (0.5 + (0.5 * 1.6) / 3.6)) < 1e-6);
     const high = Float32Array.of(9, 9, 9, 9, NaN, 9, 9, 9, 9);
     fillUnknownHeights(high, land, 3, 3);
-    assert.equal(high[4], COAST_PARAMS.unknownMaxM);
+    assert.ok(high[4] > heights[4] && high[4] < COAST_PARAMS.unknownMaxM, 'higher beside higher land, below the cap');
+    const alone = Float32Array.of(NaN);
+    fillUnknownHeights(alone, Uint8Array.of(1), 1, 1);
+    assert.equal(alone[0], COAST_PARAMS.minLandM);
   });
 
   it('places cells between two century maps by their distance from the two shores', () => {

@@ -274,7 +274,7 @@ What the build found (12 October 2026, without SGU): the fitted k is 0.53 at Sto
 north Uppland, 0.91 at Tallinn and 0.60 on Saaremaa. The 1219 sea stood about 2.2 m above
 today's at Stockholm, 4.3 m at Turku, 4.4 m at Mariehamn, 1.9 m at Haapsalu and 1.2 m at Pärnu.
 Within 15 km of each, the 1219 shore lies at most 1.5 to 2.5 km inland of today's (3 to 5 cells of
-500 m). About 30,800 cells of today's dry land change, plus Lake Mälaren (7,275 cells), a bay
+500 m). About 31,000 cells of today's dry land change, plus Lake Mälaren (7,275 cells), a bay
 until 1303.
 
 TO CHECK:
