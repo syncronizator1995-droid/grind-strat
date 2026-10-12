@@ -1,0 +1,369 @@
+// @ts-check
+// Tests for the northern coast over time: the readers it needs (a band of a planar TIFF, the
+// Swedish grid, GeoPackages), the rules that make the field (tools/map/coast.mjs), the field in
+// the game (src/sim/coast-date.js) and the old shore drawn from it (src/ui/map/shore.js).
+import assert from 'node:assert/strict';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, it } from 'node:test';
+import { COAST_BASE_YEAR, COAST_CODE, coastLevel, createCoast, emergedYearOf } from '../src/sim/coast-date.js';
+import { shoreAt, shoreSquares } from '../src/ui/map/shore.js';
+import {
+  chamferDistance, codeOfYear, codesFromCenturies, COAST_PARAMS, fillUnknownHeights, fitGroups, floodCodes, kField, LAST_LAND_CODE,
+  openOutlet, ownCodes, seaAbove, spreadIntoSea,
+} from '../tools/map/coast.mjs';
+import { gpkgGeometryBlob, openGeoPackage, parseGpkgGeometry, parseWkb } from '../tools/map/gpkg.mjs';
+import { SWEREF99TM, transverseMercator } from '../tools/map/projection.mjs';
+import { bandIndex, memorySource, openTiff } from '../tools/map/tiff.mjs';
+import { writeTiff } from './tiff-writer.mjs';
+
+describe('reading one band of a TIFF with separate bands (planar configuration 2)', () => {
+  // Three float bands of 5 x 4, like NKG_RF17vel's east, north and up velocities.
+  const w = 5; const h = 4;
+  const band = (/** @type {number} */ k) => Array.from({ length: w * h }, (_, i) => k * 100 + i + 0.25);
+  const spec = (/** @type {any} */ more) => ({
+    images: [{ width: w, height: h, bits: /** @type {32} */ (32), values: band(0), bands: [band(1), band(2)],
+      bandNames: ['east_velocity', 'north_velocity', 'up_velocity'], geo: { west: 0, north: 75, dx: 1 / 6, dy: 1 / 12 }, ...more }],
+  });
+
+  for (const [name, more] of /** @type {[string, any][]} */ ([['strips, DEFLATE', { compression: 8, rowsPerStrip: 3 }], ['tiles, none', { tile: [16, 16] }], ['strips, LZW, big-endian', { compression: 5 }]])) {
+    it(`reads band 3 by number and by name (${name})`, async () => {
+      const bytes = writeTiff({ ...spec(more), littleEndian: !name.includes('big') });
+      const tiff = await openTiff(memorySource(bytes));
+      const img = tiff.images[0];
+      assert.equal(img.samplesPerPixel, 3);
+      assert.deepEqual(img.bandNames, ['east_velocity', 'north_velocity', 'up_velocity']);
+      assert.equal(bandIndex(img, 'up_velocity'), 2);
+      const up = await tiff.readWindow(img, 0, 0, w, h, { band: 2 });
+      assert.ok(up instanceof Float32Array);
+      assert.deepEqual([...up], band(2));
+      // A window inside the image, from another band.
+      const part = await tiff.readWindow(img, 1, 1, 3, 2, { band: 1 });
+      assert.deepEqual([...part], [106.25, 107.25, 108.25, 111.25, 112.25, 113.25]);
+    });
+  }
+
+  it('asks which band to read, and refuses a band that is not there or a name it does not have', async () => {
+    const tiff = await openTiff(memorySource(writeTiff(spec({}))));
+    const img = tiff.images[0];
+    await assert.rejects(tiff.readWindow(img, 0, 0, w, h), /3 bands: say which band/);
+    await assert.rejects(tiff.readWindow(img, 0, 0, w, h, { band: 3 }), /no band 3/);
+    assert.throws(() => bandIndex(img, 'down_velocity'), /no band "down_velocity"/);
+  });
+});
+
+describe('SWEREF 99 TM (the Swedish grid SGU publishes in)', () => {
+  it('matches Lantmäteriet\'s worked example both ways (Gauss conformal projection, Krüger\'s formulas, 2008)', () => {
+    // Lantmäteriet's example: a local Transverse Mercator on GRS80, 66°N 24°E.
+    const tm = transverseMercator({ lon0: 13 + 35 / 60 + 7.692 / 3600, k0: 1.00000254, fe: 84182.879, fn: -6226307.864 });
+    const [e, n] = tm.forward(24, 66);
+    assert.ok(Math.abs(n - 1135809.413803) < 0.001, `northing ${n}`);
+    assert.ok(Math.abs(e - 555304.016555) < 0.001, `easting ${e}`);
+    const [lon, lat] = tm.inverse(555304.016555, 1135809.413803);
+    assert.ok(Math.abs(lon - 24) < 1e-9 && Math.abs(lat - 66) < 1e-9, `${lon} ${lat}`);
+  });
+
+  it('puts the central meridian at easting 500 000 m, and goes there and back over Sweden', () => {
+    const [e, n] = SWEREF99TM.forward(15, 60);
+    assert.ok(Math.abs(e - 500000) < 1e-6);
+    assert.ok(n > 6650000 && n < 6660000, `northing of 60°N: ${n}`);
+    for (const [lon, lat] of [[11.2, 55.4], [18.07, 59.33], [24.1, 65.8], [19.3, 57.9]]) {
+      const [x, y] = SWEREF99TM.forward(lon, lat);
+      const [lon2, lat2] = SWEREF99TM.inverse(x, y);
+      assert.ok(Math.abs(lon2 - lon) < 1e-9 && Math.abs(lat2 - lat) < 1e-9, `${lon} ${lat}`);
+    }
+  });
+});
+
+describe('the GeoPackage reader (on a small GeoPackage the test makes)', () => {
+  it('reads polygons and multipolygons, with and without holes and Z values', () => {
+    const square = [0, 0, 10, 0, 10, 10, 0, 10, 0, 0];
+    const hole = [2, 2, 2, 4, 4, 4, 4, 2, 2, 2];
+    const one = parseGpkgGeometry(gpkgGeometryBlob([[square, hole]], 3006));
+    assert.equal(one.srsId, 3006);
+    assert.deepEqual(one.polygons, [[square, hole]]);
+    const two = parseGpkgGeometry(gpkgGeometryBlob([[square], [hole]], 3006));
+    assert.equal(two.polygons.length, 2);
+    // A polygon Z (ISO code 1003), written by hand: the Z values are dropped.
+    const wkb = new Uint8Array(9 + 4 + 3 * 24);
+    const dv = new DataView(wkb.buffer);
+    dv.setUint8(0, 1); dv.setUint32(1, 1003, true); dv.setUint32(5, 1, true); dv.setUint32(9, 3, true);
+    [[1, 2, 9], [3, 4, 9], [1, 2, 9]].forEach(([x, y, z], k) => { dv.setFloat64(13 + k * 24, x, true); dv.setFloat64(21 + k * 24, y, true); dv.setFloat64(29 + k * 24, z, true); });
+    assert.deepEqual(parseWkb(wkb), [[[1, 2, 3, 4, 1, 2]]]);
+    assert.throws(() => parseWkb(Uint8Array.of(1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)), /not a polygon/);
+  });
+
+  it('opens a GeoPackage made with SQLite and reads a table of SGU\'s shape', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'grind-strat-gpkg-'));
+    const path = join(dir, 'tiny.gpkg');
+    try {
+      const { DatabaseSync } = await import('node:sqlite');
+      const db = new DatabaseSync(path);
+      db.exec(`PRAGMA application_id = ${0x47504b47};
+        CREATE TABLE gpkg_contents (table_name TEXT PRIMARY KEY, data_type TEXT NOT NULL);
+        CREATE TABLE gpkg_geometry_columns (table_name TEXT, column_name TEXT, geometry_type_name TEXT, srs_id INTEGER);
+        CREATE TABLE issjohav_700 (fid INTEGER PRIMARY KEY, geom BLOB, Bp INTEGER, Year INTEGER, Code INTEGER, Description TEXT);
+        INSERT INTO gpkg_contents VALUES ('issjohav_700', 'features');
+        INSERT INTO gpkg_geometry_columns VALUES ('issjohav_700', 'geom', 'MULTIPOLYGON', 3006);`);
+      const insert = db.prepare('INSERT INTO issjohav_700 (geom, Bp, Year, Code, Description) VALUES (?, 700, 1250, ?, ?)');
+      insert.run(gpkgGeometryBlob([[[600000, 6600000, 610000, 6600000, 610000, 6610000, 600000, 6600000]]], 3006), 1, 'Hav');
+      insert.run(gpkgGeometryBlob([[[620000, 6600000, 630000, 6600000, 630000, 6610000, 620000, 6600000]]], 3006), 4, 'Sjö');
+      db.close();
+      const gpkg = await openGeoPackage(path);
+      assert.deepEqual(gpkg.tables(), [{ name: 'issjohav_700', geometry: 'geom', type: 'MULTIPOLYGON', srsId: 3006 }]);
+      const features = gpkg.features('issjohav_700', ['Code', 'Year']);
+      assert.deepEqual(features.map((f) => f.properties.Code), [1, 4]);
+      assert.equal(features[0].polygons[0][0][2], 610000);
+      assert.throws(() => gpkg.features('issjohav_700', ['Nope']), /no column Nope/);
+      gpkg.close();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('the coast field in the game (src/sim/coast-date.js)', () => {
+  // A strip of 6 cells: land of 1219, three cells that come out of the sea, the open sea.
+  const box = { col0: 100, row0: 200, cols: 6, rows: 1, cell: 5 };
+  const codes = Uint8Array.of(0, 1, 50, 200, 254, 254);
+
+  it('reads the codes as years (no year 0, nothing before 1219)', () => {
+    assert.equal(emergedYearOf(0), -Infinity);
+    assert.equal(emergedYearOf(1), 1223);
+    assert.equal(emergedYearOf(201), 2023);
+    assert.equal(emergedYearOf(254), Infinity);
+    assert.throws(() => emergedYearOf(230), /not a coast code/);
+    assert.equal(coastLevel(-10000), 0);
+    assert.equal(coastLevel(1222), 0);
+    assert.equal(coastLevel(1223), 1);
+    assert.equal(coastLevel(2021), 200);
+    assert.equal(coastLevel(3000), 201);
+  });
+
+  it('answers seaAt by place and by cell, and never by guess outside its box', () => {
+    const coast = createCoast({ box, codes });
+    const x = (/** @type {number} */ c) => (box.col0 + c + 0.5) * box.cell;
+    const y = (box.row0 + 0.5) * box.cell;
+    assert.equal(coast.seaAt(x(0), y, 1219), false);
+    assert.equal(coast.seaAt(x(1), y, 1222), true);
+    assert.equal(coast.seaAt(x(1), y, 1223), false);
+    assert.equal(coast.seaAt(x(2), y, 1418), true);
+    assert.equal(coast.seaAt(x(2), y, 1419), false);
+    assert.equal(coast.seaAt(x(4), y, 2500), true);
+    assert.equal(coast.seaAt(x(-1), y, 1219), false, 'outside the box nothing changes');
+    assert.equal(coast.seaAtCell(3, 2018), true);
+    assert.equal(coast.seaAtCell(3, 2019), false);
+    assert.equal(coast.emergedYear(2), 1419);
+  });
+
+  it('land never turns back into sea as the years go on, and step lists exactly the cells that change', () => {
+    const coast = createCoast({ box, codes });
+    let before = codes.map(() => 1);
+    for (let year = 1100; year <= 2100; year += 3) {
+      const { cells, toLand } = coast.step(year);
+      const now = codes.map((_, i) => (coast.seaAtCell(i, year) ? 1 : 0));
+      for (let i = 0; i < codes.length; i++) assert.ok(now[i] <= before[i], `cell ${i} turned back into sea in ${year}`);
+      const changed = [...codes.keys()].filter((i) => now[i] !== before[i] && year !== 1100);
+      if (year !== 1100) { assert.deepEqual([...cells].sort(), changed); assert.ok(toLand); }
+      before = now;
+    }
+    // Going back in time lists the same cells, the other way.
+    const back = coast.step(1300);
+    assert.equal(back.toLand, false);
+    assert.deepEqual([...back.cells].sort(), [2, 3]);
+  });
+});
+
+describe('the rules that make the field (tools/map/coast.mjs)', () => {
+  it('fits k to the control points and fades it back to 1 by 150 km', () => {
+    const pts = /** @type {import('../tools/map/coast.mjs').ControlPoint[]} */ ([
+      { id: 'a', group: 'g', use: 'value', place: 'A', lon: 0, lat: 0, year: 1300, rslM: 2, toleranceM: 0.5 },
+      { id: 'b', group: 'g', use: 'value', place: 'B', lon: 0, lat: 0, year: 1000, rslM: 4, toleranceM: 0.5 },
+      { id: 'c', group: 'g', use: 'check', place: 'C', lon: 0, lat: 0, year: 1000, rslM: 9, toleranceM: 0.5 },
+      { id: 'd', group: 'h', use: 'below', place: 'D', lon: 0, lat: 0, year: 1000, rslM: 9, toleranceM: 0.5 },
+    ]);
+    const [g] = fitGroups(pts, () => ({ up: 5.5, x: 1000, y: 1000 }));
+    // Least squares through zero: k = sum(H u) / sum(u^2), with u the metres at k = 1.
+    const u1 = (5 * (2021 - 1300)) / 1000; const u2 = (5 * (2021 - 1000)) / 1000;
+    assert.ok(Math.abs(g.k - (2 * u1 + 4 * u2) / (u1 * u1 + u2 * u2)) < 1e-12);
+    assert.deepEqual(g.points, ['a', 'b'], 'checks and brackets are never fitted');
+    const k = kField([{ ...g, k: 0.5 }]);
+    assert.equal(k(1000, 1000), 0.5);
+    assert.ok(k(1000 + 500, 1000) > 0.5 && k(1000 + 500, 1000) < 1, 'in between at 50 km');
+    assert.equal(k(1000 + 1500, 1000), 1, 'back to 1 at 150 km');
+    assert.equal(k(1000, 1000 + 4000), 1);
+    assert.throws(() => fitGroups([{ ...pts[0], year: 500 }], () => ({ up: 5, x: 0, y: 0 })), /older than the rule/);
+    assert.ok(Math.abs(seaAbove(5.5, 1, 1219) - 4.01) < 1e-9);
+  });
+
+  it('turns heights into codes: land below the minimum reads at it, a small fall changes nothing', () => {
+    const land = Uint8Array.of(1, 1, 1, 1, 0);
+    const heights = Float32Array.of(-3, 1, 10, 1, -20);
+    const fall = Float32Array.of(5, 5, 5, 0.5, 5);
+    const own = ownCodes({ land, heights, fall });
+    assert.equal(own[0], codeOfYear(2021 - (1000 * COAST_PARAMS.minLandM) / 5));
+    assert.equal(own[1], codeOfYear(2021 - 1000 / 5));
+    assert.equal(own[2], 0, '10 m was land before 1219');
+    assert.equal(own[3], 0, 'a fall of 0.4 m since 1219 is too small to show');
+    assert.equal(own[4], COAST_CODE.sea);
+    assert.equal(codeOfYear(1219), 0);
+    assert.equal(codeOfYear(1220), 1);
+    assert.equal(codeOfYear(2050), LAST_LAND_CODE, 'today\'s land is land by today');
+  });
+
+  it('keeps a basin behind a sill sea until the sill comes out of the water', () => {
+    // A row: open sea | shore 120 | sill 30 | basin 150 150 | far shore 60 | high land 0.
+    const own = Uint8Array.of(254, 120, 30, 150, 150, 60, 0);
+    const codes = floodCodes(own, 7, 1);
+    assert.deepEqual([...codes], [254, 120, 30, 30, 30, 30, 0]);
+    // A second, lower way out keeps the basin open longer.
+    const two = floodCodes(Uint8Array.of(254, 120, 30, 150, 150, 90, 254), 7, 1);
+    assert.deepEqual([...two], [254, 120, 30, 90, 90, 90, 254]);
+    // The sea joins across edges only: a basin touching the sea at a corner is not reached.
+    const grid = Uint8Array.of(
+      254, 0, 0,
+      0, 150, 0,
+      0, 0, 0,
+    );
+    assert.equal(floodCodes(grid, 3, 3)[4], 0);
+    // In time: the basin is sea exactly as long as the sill.
+    const coast = createCoast({ box: { col0: 0, row0: 0, cols: 7, rows: 1, cell: 5 }, codes });
+    for (const year of [1219, 1300, 1338, 1339, 1340, 1500, 1800]) {
+      assert.equal(coast.seaAtCell(3, year), coast.seaAtCell(2, year), `${year}`);
+      assert.equal(coast.seaAtCell(4, year), coast.seaAtCell(2, year), `${year}`);
+    }
+  });
+
+  it('opens a bay\'s outlet until its year, so the whole bay becomes a lake then', () => {
+    // 5 x 3: sea on the left column; a lake of 3 cells on the right, behind high land.
+    const cols = 5; const rows = 3;
+    const land = Uint8Array.of(0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1);
+    const lake = Uint8Array.of(0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1);
+    const own = Uint8Array.of(254, 0, 0, 0, 0, 254, 0, 0, 0, 0, 254, 0, 0, 0, 0);
+    const channel = openOutlet(own, lake, land, cols, rows, 1 * cols + 3, 1300);
+    assert.deepEqual(channel.sort((a, b) => a - b), [6, 7]);
+    const codes = floodCodes(own, cols, rows);
+    for (const i of [4, 8, 9, 14]) assert.equal(codes[i], codeOfYear(1300), `lake cell ${i}`);
+    assert.equal(codes[1], 0, 'the high land beside it stays land');
+  });
+
+  it('spreads the land\'s smallest code two cells into today\'s sea', () => {
+    const cols = 7;
+    const land = Uint8Array.of(1, 1, 0, 0, 0, 0, 0);
+    const codes = spreadIntoSea(Uint8Array.of(80, 40, 254, 254, 254, 254, 254), land, cols, 1, 2);
+    assert.deepEqual([...codes], [80, 40, 40, 40, 254, 254, 254]);
+    const stable = spreadIntoSea(Uint8Array.of(0, 40, 254, 254, 254), Uint8Array.of(1, 1, 0, 0, 0), 5, 1, 2);
+    assert.deepEqual([...stable], [0, 40, 0, 40, 254]);
+  });
+
+  it('fills unknown heights from the neighbours, low but not all alike', () => {
+    const land = new Uint8Array(9).fill(1);
+    const heights = Float32Array.of(1.6, 1.6, 1.6, 1.6, NaN, 1.6, 1.6, 1.6, 1.6);
+    assert.equal(fillUnknownHeights(heights, land, 3, 3), 1);
+    assert.ok(Math.abs(heights[4] - 0.8) < 1e-6);
+    const high = Float32Array.of(9, 9, 9, 9, NaN, 9, 9, 9, 9);
+    fillUnknownHeights(high, land, 3, 3);
+    assert.equal(high[4], COAST_PARAMS.unknownMaxM);
+  });
+
+  it('places cells between two century maps by their distance from the two shores', () => {
+    // One row, sea from the right: in 1250 sea from cell 2, in 1350 from cell 6, today from cell 8.
+    const cols = 10;
+    const sea = (/** @type {number} */ from) => new Uint8Array(cols).map((_, i) => (i >= from ? 1 : 0));
+    const land = new Uint8Array(cols).map((_, i) => (i < 8 ? 1 : 0));
+    const codes = codesFromCenturies([{ year: 1250, sea: sea(2) }, { year: 1350, sea: sea(6) }], land, cols, 1);
+    assert.deepEqual([...codes.slice(0, 2)], [0, 0], 'land in the oldest map');
+    const years = [...codes.slice(2, 8)].map((k) => 1219 + 4 * k);
+    for (let i = 1; i < years.length; i++) assert.ok(years[i] >= years[i - 1], 'further out comes later');
+    assert.ok(years[0] > 1250 && years[3] <= 1352, `${years}`);
+    assert.ok(years[4] > 1350 && years[5] <= 2021, `${years}`);
+    assert.deepEqual([...codes.slice(8)], [254, 254]);
+    assert.deepEqual([...chamferDistance(Uint8Array.of(1, 0, 0), 3, 1)], [0, 1, 2]);
+  });
+});
+
+describe('the old shore (src/ui/map/shore.js)', () => {
+  /** A round island rising out of the sea: code grows away from its middle. */
+  const island = (/** @type {number} */ cols, /** @type {number} */ rows, /** @type {boolean} */ openSea) => {
+    const codes = new Uint8Array(cols * rows);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const d = Math.hypot(c - cols / 2, r - rows / 2);
+        codes[r * cols + c] = d < 4 ? 0 : openSea && d > cols / 2 - 2 ? 254 : Math.min(200, Math.round((d - 4) * 9));
+      }
+    }
+    return codes;
+  };
+  const area = (/** @type {number[]} */ ring) => {
+    let a = 0;
+    for (let i = 0, n = ring.length / 2, j = n - 1; i < n; j = i++) a += ring[j * 2] * ring[i * 2 + 1] - ring[i * 2] * ring[j * 2 + 1];
+    return a / 2;
+  };
+
+  it('fills as much old sea as the field has sea cells, in counter-clockwise rings', () => {
+    const cols = 60; const rows = 60;
+    const box = { col0: 3, row0: 7, cols, rows, cell: 5 };
+    const codes = island(cols, rows, false);
+    const s = shoreSquares(box, codes);
+    for (const year of [1219, 1400, 1600, 1800]) {
+      const level = coastLevel(year);
+      const { fill, lines } = shoreAt(s, level);
+      for (const ring of fill) assert.ok(area(ring) > 0, 'counter-clockwise');
+      const filled = fill.reduce((t, r) => t + area(r), 0) / (box.cell * box.cell);
+      // Sea cells, counted over the squares' area (cell centres of the inner grid).
+      let seaCells = 0;
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (codes[r * cols + c] > level) seaCells++;
+      const edge = 2 * (cols + rows);
+      assert.ok(Math.abs(filled - seaCells) < 0.05 * seaCells + edge, `${year}: filled ${filled.toFixed(0)} against ${seaCells} sea cells`);
+      // The shore is one closed loop round the island, inside the box.
+      assert.equal(lines.length, 1, `${year}`);
+      const l = lines[0];
+      assert.deepEqual(l.slice(0, 2), l.slice(-2), 'closed');
+      for (let i = 0; i < l.length; i += 2) {
+        assert.ok(l[i] > (box.col0) * box.cell && l[i] < (box.col0 + cols) * box.cell);
+        assert.ok(l[i + 1] > (box.row0) * box.cell && l[i + 1] < (box.row0 + rows) * box.cell);
+      }
+    }
+    // Once everything has risen there is nothing left to draw.
+    const done = shoreAt(s, coastLevel(2021));
+    assert.deepEqual([done.fill.length, done.lines.length], [0, 0]);
+  });
+
+  it('visits only the squares still partly sea, fewer as the land rises', () => {
+    const box = { col0: 0, row0: 0, cols: 40, rows: 40, cell: 5 };
+    const s = shoreSquares(box, island(40, 40, true));
+    const counts = [1219, 1500, 1800, 2021].map((y) => shoreAt(s, coastLevel(y)).squares);
+    for (let i = 1; i < counts.length; i++) assert.ok(counts[i] <= counts[i - 1], `${counts}`);
+    assert.ok(counts[2] < counts[0] / 3, `${counts}`);
+    // What stays is the ring of squares with a corner in today's open sea, drawn under today's coast.
+    assert.equal(counts[3], s.squares.length - s.highest.findIndex((v) => v === COAST_CODE.sea));
+  });
+
+  it('draws no shore line along a stable coast (where a corner is today\'s open sea)', () => {
+    // Land of 1219 next to the open sea, with the land's code spread two cells out.
+    const cols = 12; const rows = 8;
+    const land = new Uint8Array(cols * rows).map((_, i) => (i % cols < 5 ? 1 : 0));
+    const codes = new Uint8Array(cols * rows).map((_, i) => (land[i] ? 0 : 254));
+    spreadIntoSea(codes, land, cols, rows, 2);
+    const s = shoreSquares({ col0: 0, row0: 0, cols, rows, cell: 5 }, codes);
+    for (const year of [1219, 1500, 2021]) {
+      const { lines, fill } = shoreAt(s, coastLevel(year));
+      assert.equal(lines.length, 0, `${year}`);
+      // Old sea is drawn only over today's sea: never west of the coast cells' centres + 2 cells.
+      for (const ring of fill) for (let i = 0; i < ring.length; i += 2) assert.ok(ring[i] >= 6.5 * 5, `${year}: ${ring[i]}`);
+    }
+  });
+
+  it('handles a saddle both ways: two sea corners joined or apart', () => {
+    const box = { col0: 0, row0: 0, cols: 2, rows: 2, cell: 10 };
+    // Corners (counter-clockwise from the south-west): sea, land, sea, land.
+    const apart = shoreAt(shoreSquares(box, Uint8Array.of(12, 0, 0, 12)), 10);
+    assert.equal(apart.fill.length, 2, 'two triangles');
+    assert.equal(apart.lines.length, 2);
+    const joined = shoreAt(shoreSquares(box, Uint8Array.of(200, 5, 5, 200)), 10);
+    assert.equal(joined.fill.length, 1, 'one band across the square');
+    assert.equal(joined.lines.length, 2);
+    for (const f of [...apart.fill, ...joined.fill]) assert.ok(area(f) > 0);
+  });
+});
