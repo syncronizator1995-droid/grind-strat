@@ -3,18 +3,25 @@
 // Swedish grid, GeoPackages), the rules that make the field (tools/map/coast.mjs), the field in
 // the game (src/sim/coast-date.js) and the old shore drawn from it (src/ui/map/shore.js).
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { describe, it } from 'node:test';
+import { inflateSync } from 'node:zlib';
+import { licenceProblems } from '../tools/build.mjs';
+import { ROOT } from '../tools/map/block.mjs';
+import { COAST_SOURCES } from '../tools/map/build-coast.mjs';
+import { COAST_BLOCK, coastStaleReasons } from '../tools/map/pack-coast.mjs';
+import { unbundleBlocks } from '../src/ui/map/codec.js';
 import { COAST_BASE_YEAR, COAST_CODE, coastLevel, createCoast, emergedYearOf } from '../src/sim/coast-date.js';
 import { shoreAt, shoreSquares } from '../src/ui/map/shore.js';
 import {
-  chamferDistance, codeOfYear, codesFromCenturies, COAST_PARAMS, fillUnknownHeights, fitGroups, floodCodes, kField, LAST_LAND_CODE,
-  openOutlet, ownCodes, seaAbove, spreadIntoSea,
+  chamferDistance, codeOfYear, codesFromCenturies, COAST_PARAMS, coastParamsSha256, fillUnknownHeights, fitGroups, floodCodes, kField,
+  LAST_LAND_CODE, openOutlet, ownCodes, seaAbove, spreadIntoSea,
 } from '../tools/map/coast.mjs';
 import { gpkgGeometryBlob, openGeoPackage, parseGpkgGeometry, parseWkb } from '../tools/map/gpkg.mjs';
-import { SWEREF99TM, transverseMercator } from '../tools/map/projection.mjs';
+import { MAP, SWEREF99TM, transverseMercator } from '../tools/map/projection.mjs';
 import { bandIndex, memorySource, openTiff } from '../tools/map/tiff.mjs';
 import { writeTiff } from './tiff-writer.mjs';
 
@@ -365,5 +372,132 @@ describe('the old shore (src/ui/map/shore.js)', () => {
     assert.equal(joined.fill.length, 1, 'one band across the square');
     assert.equal(joined.lines.length, 2);
     for (const f of [...apart.fill, ...joined.fill]) assert.ok(area(f) > 0);
+  });
+});
+
+describe('the shipped coast block (src/data/by/coast.json)', () => {
+  const read = (/** @type {string} */ path) => readFileSync(join(ROOT, path), 'utf8');
+  const text = read(COAST_BLOCK);
+  const block = JSON.parse(text);
+  const anchorsText = read('tools/map/coast-anchors.json');
+  const anchors = JSON.parse(anchorsText);
+  const codes = unbundleBlocks(new Uint8Array(inflateSync(Buffer.from(block.bundle, 'base64')))).coast;
+  const box = block.meta.coast;
+  const coast = createCoast({ box, codes });
+  /** The lon/lat of a cell's centre. @param {number} i */
+  const lonLat = (i) => {
+    const c = i % box.cols; const r = (i - c) / box.cols;
+    return MAP.toDegrees((box.col0 + c + 0.5) * box.cell, (box.row0 + r + 0.5) * box.cell);
+  };
+
+  it('is CC BY 4.0, from CC BY and public-domain sources only, and the licence guard agrees', () => {
+    assert.equal(block.kind, 'coast');
+    assert.equal(block.licence, 'CC-BY-4.0');
+    const sources = JSON.parse(read('tools/map/sources.json')).sources;
+    for (const id of block.sources) {
+      const src = sources.find((/** @type {{ id: string }} */ x) => x.id === id);
+      assert.ok(src, id);
+      assert.match(src.credit.licenceName, /^(CC BY 4\.0|Public domain)/, id);
+      assert.notEqual(src.collection, 'osm');
+    }
+    assert.deepEqual(licenceProblems([{ kind: 'coast', text }], sources), []);
+    assert.ok(block.meta.estimate, 'marked as an estimate');
+  });
+
+  it('was built from today\'s settings and control points', () => {
+    assert.equal(block.meta.built.paramsSha256, coastParamsSha256(anchorsText), 'stale: run npm run map:coast, then npm run map:pack');
+    assert.deepEqual(coastStaleReasons({ paramsSha256: block.meta.built.paramsSha256 }, anchorsText), []);
+    assert.equal(codes.length, box.cols * box.rows);
+    assert.equal(box.cell, COAST_PARAMS.cell);
+  });
+
+  it('meets every control point within its tolerance, and every bracket', () => {
+    const ids = anchors.points.map((/** @type {{ id: string }} */ p) => p.id);
+    assert.deepEqual(block.meta.checks.map((/** @type {{ id: string }} */ c) => c.id), ids, 'every control point is checked');
+    for (const c of block.meta.checks) {
+      assert.ok(c.ok, `${c.id}: model ${c.modelM} m against ${c.observedM} m (${c.use}, ±${c.toleranceM})`);
+      const p = anchors.points.find((/** @type {{ id: string }} */ x) => x.id === c.id);
+      if (p.use === 'value' || p.use === 'check') assert.ok(Math.abs(c.modelM - p.rslM) <= p.toleranceM, c.id);
+      if (p.use === 'below') assert.ok(c.modelM <= p.rslM + p.toleranceM, c.id);
+      if (p.use === 'above') assert.ok(c.modelM >= p.rslM - p.toleranceM, c.id);
+    }
+    // Every control point names its source, and says how far it was read.
+    for (const p of anchors.points) assert.ok(p.source && p.url && p.seen && p.quote, p.id);
+    for (const r of anchors.regions) assert.ok(r.name && r.error.length > 40, r.name);
+  });
+
+  it('changes nothing south of the uplift zone', () => {
+    let changing = 0;
+    for (let i = 0; i < codes.length; i++) {
+      const k = codes[i];
+      if (k === COAST_CODE.land || k === COAST_CODE.sea) continue;
+      changing++;
+      const [, lat] = lonLat(i);
+      assert.ok(lat >= COAST_PARAMS.southLimitLat, `cell ${i} at ${lat.toFixed(2)}N changes`);
+    }
+    assert.ok(changing > 10000, `${changing} cells change`);
+    // Riga (0.3 m of fall since 1219) and Klaipėda: no change near them.
+    for (const [lon, lat] of [[24.1, 56.95], [21.13, 55.71], [18.65, 54.35]]) {
+      const [x, y] = MAP.toUnits(lon, lat);
+      for (let dy = -100; dy <= 100; dy += 5) {
+        for (let dx = -100; dx <= 100; dx += 5) {
+          assert.equal(coast.seaAt(x + dx, y + dy, 1219), coast.seaAt(x + dx, y + dy, 2021), `${lon} ${lat}`);
+        }
+      }
+    }
+  });
+
+  it('only ever turns sea into land, and is today\'s coast by today', () => {
+    const levels = [1219, 1300, 1500, 1700, 1900, 2021].map(coastLevel);
+    for (let i = 0; i < codes.length; i++) {
+      const k = codes[i];
+      const sea = levels.map((L) => k > L);
+      for (let j = 1; j < sea.length; j++) assert.ok(!sea[j] || sea[j - 1], `cell ${i} back to sea`);
+      assert.ok(k <= LAST_LAND_CODE || k === COAST_CODE.sea, `cell ${i}: code ${k} is still sea in 2021 though not today's sea`);
+    }
+  });
+
+  it('keeps Lake Mälaren a bay of the sea in 1219 and makes it a lake when its outlet closed', () => {
+    const malaren = anchors.lakes.find((/** @type {{ id: string }} */ l) => l.id === 'malaren');
+    const [x, y] = MAP.toUnits(16.9, 59.5); // the Västerås basin
+    const closed = malaren.outlet.closedYear;
+    assert.equal(coast.seaAt(x, y, 1219), true);
+    assert.equal(coast.seaAt(x, y, closed - 5), true);
+    assert.equal(coast.seaAt(x, y, closed + 4), false);
+    assert.deepEqual(block.meta.lakes.map((/** @type {{ id: string }} */ l) => l.id), ['malaren']);
+    if (block.meta.sgu.used) assert.fail('SGU\'s model is used: check Mälaren against SGU\'s own century here');
+    assert.match(block.meta.sgu.note, /not/);
+  });
+
+  it('draws an old shore near Stockholm, Turku and Tallinn in 1219, and none along the stable south', () => {
+    const s = shoreSquares(box, codes);
+    const { fill, lines } = shoreAt(s, coastLevel(COAST_BASE_YEAR));
+    assert.ok(fill.length > 1000 && lines.length > 100, `${fill.length} rings, ${lines.length} lines`);
+    const near = (/** @type {number} */ lon, /** @type {number} */ lat) => {
+      const [x, y] = MAP.toUnits(lon, lat);
+      return lines.some((l) => { for (let i = 0; i < l.length; i += 2) if (Math.hypot(l[i] - x, l[i + 1] - y) < 200) return true; return false; });
+    };
+    for (const [lon, lat] of [[18.07, 59.33], [22.27, 60.45], [24.75, 59.44]]) assert.ok(near(lon, lat), `no old shore within 20 km of ${lon} ${lat}`);
+    assert.equal(shoreAt(s, coastLevel(2021)).lines.length, 0, 'by today the old shore is today\'s');
+  });
+
+  it('is made without OpenStreetMap: the coast tools read only their own sources', () => {
+    const OSM = /\bosm\b|osm-|-osm|overpass|openstreetmap\.org|\.osm\.|\.pbf\b/i;
+    const seen = new Set();
+    const todo = ['build-coast.mjs', 'pack-coast.mjs', 'coast.mjs'].map((f) => join(ROOT, 'tools', 'map', f));
+    while (todo.length) {
+      const file = /** @type {string} */ (todo.pop());
+      if (seen.has(file)) continue;
+      seen.add(file);
+      const src = readFileSync(file, 'utf8');
+      for (const m of src.matchAll(/^\s*(?:import|export)\s[^;]*?from\s+'([^']+)'/gm)) {
+        assert.doesNotMatch(m[1], OSM, `${file} imports ${m[1]}`);
+        if (m[1].startsWith('.')) todo.push(resolve(dirname(file), m[1]));
+      }
+    }
+    assert.ok(seen.size >= 10, `${seen.size} files`);
+    const build = readFileSync(join(ROOT, 'tools', 'map', 'build-coast.mjs'), 'utf8');
+    for (const m of build.matchAll(/readRaw\('([^']+)'/g)) assert.ok(['nkg-rf17vel', 'ne-lakes'].includes(m[1]), `reads ${m[1]}`);
+    for (const id of COAST_SOURCES) assert.doesNotMatch(id, OSM);
   });
 });

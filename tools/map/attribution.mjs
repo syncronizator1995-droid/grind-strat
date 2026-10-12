@@ -25,6 +25,7 @@ const USES = /** @type {Record<string, string>} */ ({
   base: 'land, coast, heights and sea depths',
   terrain: 'the land around 1219: forest, open land, marsh and heath',
   water: 'rivers, lakes and their names',
+  coast: 'the northern coast over time (where the sea stood higher in the game\'s year)',
 });
 
 /** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
@@ -39,8 +40,11 @@ export const usedFor = (uses) => {
  */
 /** In the game, where the terrain rule is written up; ATTRIBUTION.md names the file instead. */
 const TERRAIN_NOTES = 'the notes that come with the terrain data in the game\'s source code';
+/** In the game, where the coast rule is written up; ATTRIBUTION.md names the file instead. */
+const COAST_NOTES = 'the notes that come with the coast data in the game\'s source code';
 const BLOCK_CHANGES = /** @type {Record<string, string>} */ ({
   terrain: `Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (${TERRAIN_NOTES} say how).`,
+  coast: `Coast over time: combined with the other coast sources into one code per 500 m cell, the year the sea left it, by a rule fitted to dated shores (${COAST_NOTES} say how). An estimate.`,
 });
 
 /** The honest labels: what the map is, and what it is not. */
@@ -49,6 +53,10 @@ const ABOUT = [
   'Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today\'s land cover, terrain and rivers; they are not from a historical map.',
   'Marsh: from today\'s peat-soil and wetland maps plus today\'s open bogs. Where those maps show more bog than the pollen allows, bog wins and there is less forest than the pollen share (parts of north-west Russia, south-east Finland and east Estonia).',
   'Under modern reservoirs the land shows flat, at today\'s water level.',
+];
+/** What the northern coast is, when the coast block ships. */
+const ABOUT_COAST = [
+  'The northern coast (Sweden, Åland, Finland, Estonia) follows the game\'s year: since 1219 the land there has risen out of the sea. Where the sea stood is an estimate from today\'s land uplift, fitted to dated shores from local studies; Lake Mälaren is a bay of the sea until about 1300.',
 ];
 /** What the rivers and lakes are, by where the shipped water comes from. */
 const ABOUT_WATER = {
@@ -71,6 +79,7 @@ const INTERIM = /** @type {Record<string, string>} */ ({
 const ODBL_FOLDER = ['src/data/odbl/', 'Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes, as the Overture Maps Foundation publishes them (see its LICENSE.md and README.md). Nothing else is mixed into it.'];
 const FOLDERS = [
   ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid (see its LICENSE.md and README.md).'],
+  ['src/data/by/', 'Creative Commons Attribution 4.0 (CC BY 4.0): the northern coast over time (see its LICENSE.md and README.md). Nothing share-alike or from OpenStreetMap is mixed into it.'],
   ['src/data/map/', 'Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
   // Raw bytes of Overture's OpenStreetMap water data, kept to test the Parquet reader: ODbL too,
@@ -163,7 +172,7 @@ export function makeAttribution({ sources, blocks, ofl }) {
   const osmWater = Boolean(water?.block.sources.some((/** @type {string} */ id) => sources.find((s) => s.id === id)?.collection === 'osm'));
   /** @type {Credits} */
   const credits = {
-    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : [])],
+    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : []), ...(blocks.some((b) => b.kind === 'coast') ? ABOUT_COAST : [])],
     interim: blocks.filter((b) => b.block.interim).map((b) => INTERIM[b.kind] ?? `Interim: the ${b.kind} data is a stand-in.`),
     mapLine: [...onMap.map(short), 'more'].join(' · '),
     datasets: all.map((d) => d.entry),
@@ -249,7 +258,8 @@ function markdownOf(credits, all, blocks) {
  * @param {string[]} changes
  */
 function changesList(changes) {
-  changes = changes.map((c) => c.replace(`${TERRAIN_NOTES} say how`, '`src/data/by-sa/README.md` says how'));
+  changes = changes.map((c) => c.replace(`${TERRAIN_NOTES} say how`, '`src/data/by-sa/README.md` says how')
+    .replace(`${COAST_NOTES} say how`, '`src/data/by/README.md` says how'));
   return changes.length === 1 ? [`- Changes we made: ${changes[0]}`] : ['- Changes we made:', ...changes.map((c) => `  - ${c}`)];
 }
 
