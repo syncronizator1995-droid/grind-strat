@@ -253,6 +253,129 @@
       }
     },
     {
+      "id": "spatiocompo-tw3",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_550.csv",
+      "file": "spatiocompo/Land_Cover_550.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 3 (about AD 1250-1600 (350-700 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub. Used for the forest anchor of M3a's changing map in the middle of the window.",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too. Check with Ignas how the game shows and shares that.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP and then 500-year steps (BP = AD 1950); the README lists the 25 files by name only. That Land_Cover_550.csv is the AD 1250-1600 (350-700 years BP) window rests on the count and the names (each named after its rounded middle), not on a per-file statement."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 3 (about AD 1250-1600)",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest from 1250 to the 20th century: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 3 (about AD 1250-1600) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of one forest anchor; which 1 km cells change, and in which year, is a rule (see the terrain-time block).",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
+      "id": "spatiocompo-tw2",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_225.csv",
+      "file": "spatiocompo/Land_Cover_225.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 2 (about AD 1600-1850 (100-350 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub. Used for the forest anchor of M3a's changing map in the middle of the window.",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too. Check with Ignas how the game shows and shares that.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP and then 500-year steps (BP = AD 1950); the README lists the 25 files by name only. That Land_Cover_225.csv is the AD 1600-1850 (100-350 years BP) window rests on the count and the names (each named after its rounded middle), not on a per-file statement."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 2 (about AD 1600-1850)",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest from 1250 to the 20th century: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 2 (about AD 1600-1850) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of one forest anchor; which 1 km cells change, and in which year, is a rule (see the terrain-time block).",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
+      "id": "spatiocompo-tw1",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_50.csv",
+      "file": "spatiocompo/Land_Cover_50.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 1 (about AD 1850-1950 (0-100 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub. Used for the forest anchor of M3a's changing map in the middle of the window.",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too. Check with Ignas how the game shows and shares that.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP and then 500-year steps (BP = AD 1950); the README lists the 25 files by name only. That Land_Cover_50.csv is the AD 1850-1950 (0-100 years BP) window rests on the count and the names (each named after its rounded middle), not on a per-file statement."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 1 (about AD 1850-1950)",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest from 1250 to the 20th century: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 1 (about AD 1850-1950) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of one forest anchor; which 1 km cells change, and in which year, is a rule (see the terrain-time block).",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
       "id": "osm-water",
       "collection": "osm",
       "access": "overture",
