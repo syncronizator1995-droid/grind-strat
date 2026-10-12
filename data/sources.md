@@ -239,3 +239,70 @@ New TO CHECK items:
 - Rivers through dropped reservoirs follow today's mapped line, an approximation of the river
   before the dam (for example the Dnieper through the Kyiv and Kaniv reservoirs, and the Nemunas
   through Kauno marios).
+
+## Map data used in M3a: Date engine and forest over time (12 October 2026)
+
+The map follows the game's date (Ignas, 11 October 2026), so the forest changes from 1250 to
+today. What is evidence and what is a rule:
+
+- Evidence: how much of each 1 degree square is forest, and how much of that forest is conifer,
+  at four anchors: 1425, 1725 and 1900 from the pollen maps below, 2021 from ESA WorldCover 2021
+  (already listed under the M2 map data, `worldcover-2021`, CC BY 4.0).
+- Rule (not a historical map, and labelled so): which 1 km cells are cleared or grow back, and in
+  which year. Clearings spread out from open land; each 32 km block changes at a steady pace
+  (tools/map/terrain-time.mjs, src/sim/map-date.js).
+
+### SpatioCompo pollen land cover, time windows 3, 2 and 1
+
+- What: pollen-based land cover (gap-filled REVEALS), conifer, broadleaf and open shares per
+  1 degree cell, by Behnaz Pirzamanbein, the same dataset as the 1219 grid (`spatiocompo-tw4`).
+- Files (pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of the author's own repository,
+  fetched 12 October 2026 through tools/map/fetch.mjs; fingerprints in data/raw/manifest.json):
+  - `spatiocompo-tw3`, about AD 1250-1600:
+    https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_550.csv
+    (sha256 fb7cb5e379ab9932036db31043da1f5b505a3b868a7001781bdb6a66daddd1a0)
+  - `spatiocompo-tw2`, about AD 1600-1850:
+    https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_225.csv
+    (sha256 d8f34305b6977a3472637584ba3a33f260b74796cdf1477f9156db27d059dae9)
+  - `spatiocompo-tw1`, about AD 1850-1950:
+    https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_50.csv
+    (sha256 a4e1d95f0f40a33657cbf6114d59ea7d86a8ed1aaa6ef4333a774ff2345492fb)
+- Licence: CC BY-SA 4.0, read in the repository's README.md at the same commit
+  (https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md),
+  as for `spatiocompo-tw4`. So the shipped `src/data/by-sa/terrain-time.json` is CC BY-SA 4.0 too.
+- What was read: the README's list of the 25 files and its column names (C_ conifer, B_ broadleaf,
+  U_ open); each CSV's header (`Lon,Lat,C_KK10LonLatElev,B_KK10LonLatElev,U_KK10LonLatElev`);
+  423 one-degree cells of each window touch the map window.
+- The time windows: Githumbi, E., Pirzamanbein, B., et al. (2022), Pollen-Based Maps of Past
+  Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential, Frontiers in
+  Ecology and Evolution 10:795794,
+  https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2022.795794/full
+  (read by the M3 research, 11 October 2026): "present-100, 100-350, 350-700, 700-1200,
+  1200-1700 until 11700 calibrated years BP" (BP = before AD 1950). So 0-100 BP is AD 1850-1950,
+  100-350 BP is AD 1600-1850, 350-700 BP is AD 1250-1600.
+- Our choices (not facts): each anchor sits in the middle of its window (1425, 1725, 1900); the
+  1219 grid holds until 1250, the end of its own window (AD 750-1250); between anchors the change
+  is spread evenly over the years.
+- Today's (2021) conifer share is window 1's (AD 1850-1950), per square: WorldCover has no conifer
+  class, and the satellite conifer maps the research tried would show Lithuania's conifer
+  collapsing (one gave 15% needleleaf among forest pixels).
+
+Computed from the shipped data (a check, not a source): forest share of the land in a box over
+Lithuania (21-27E, 54-56N): 64.3% in 1219, 51.9% in 1425, 44.2% in 1725, 42.0% in 1900, 39.4% in
+2021. Every 1 degree square meets its pollen (or WorldCover) forest and conifer shares within
+3 points at every anchor, except squares where marsh leaves too little open land (the "capped"
+squares of the 1219 grid, listed in data/raw/derived/terrain-time-1km.u8.json).
+
+TO CHECK:
+- Which file is which window: the paper lists the windows and the README lists the 25 file names,
+  but no source states the window of each file. Land_Cover_50, 225 and 550 as 0-100, 100-350 and
+  350-700 BP rests on the count and the names (each a rounded window middle).
+- The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0
+  (the same open question as for window 4; the author is being asked).
+- Today's conifer share from window 1 (1850-1950) rather than measured today. Lithuania's national
+  forest inventory puts conifer stands at about 55% of forest area (2018 inventory slides, Stakėnas,
+  sc2018.thuenen.de/fileadmin/sc2018/26_Stakenas_ICP_Forests_SC2018.pdf; seen only in search
+  snippets by the M3 research). Whether to use national inventories per country instead is
+  Ignas's call.
+- Marsh and heath do not change over time in M3a (no drainage of bogs and fens yet); the Żuławy
+  diking comes from the water part's own dated list.
