@@ -424,7 +424,7 @@ function waterBodies(water, cols) {
 }
 
 /** The lon/lat box of a set of points. @param {Float64Array} lon @param {Float64Array} lat */
-function boxOf(lon, lat) {
+export function boxOf(lon, lat) {
   let west = Infinity; let east = -Infinity; let south = Infinity; let north = -Infinity;
   for (let i = 0; i < lon.length; i++) {
     west = Math.min(west, lon[i]); east = Math.max(east, lon[i]);
