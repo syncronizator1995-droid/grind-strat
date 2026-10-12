@@ -6,9 +6,11 @@
 // window touches are read.
 //
 // Supported: little- and big-endian, classic TIFF and BigTIFF, several images per file (a COG's
-// overviews are the later images), tiles and strips, one sample per pixel, uint8/int8/uint16/
-// int16/uint32/int32/float32, compression none (1), LZW (5) and DEFLATE (8 and 32946), predictor
-// 1 (none) and 2 (horizontal differencing). The GeoTIFF tags give each image's lon/lat grid.
+// overviews are the later images), tiles and strips, one sample per pixel or several stored as
+// separate bands (planar configuration 2, as in the NKG_RF17vel land-uplift file: one band is
+// read at a time, picked by number or by its GDAL name), uint8/int8/uint16/int16/uint32/int32/
+// float32, compression none (1), LZW (5) and DEFLATE (8 and 32946), predictor 1 (none) and 2
+// (horizontal differencing). The GeoTIFF tags give each image's lon/lat grid.
 
 import { inflateSync } from 'node:zlib';
 
@@ -42,6 +44,8 @@ import { inflateSync } from 'node:zlib';
  * @property {boolean} tiled
  * @property {number} bitsPerSample
  * @property {number} sampleFormat 1 unsigned, 2 signed, 3 float
+ * @property {number} samplesPerPixel bands; more than one only as separate planes (planar configuration 2)
+ * @property {string[]} bandNames each band's GDAL description ('' where the file gives none)
  * @property {number} compression
  * @property {number} predictor
  * @property {number | null} noData the GDAL_NODATA value, if any
@@ -56,7 +60,7 @@ const TAG = Object.freeze({
   width: 256, height: 257, bitsPerSample: 258, compression: 259, stripOffsets: 273, samplesPerPixel: 277,
   rowsPerStrip: 278, stripByteCounts: 279, planarConfig: 284, predictor: 317, tileWidth: 322, tileLength: 323,
   tileOffsets: 324, tileByteCounts: 325, sampleFormat: 339, pixelScale: 33550, tiepoint: 33922,
-  geoKeys: 34735, gdalNoData: 42113,
+  geoKeys: 34735, gdalMetadata: 42112, gdalNoData: 42113,
 });
 
 /** How many bytes to read at the start: a cloud-optimised file keeps all its IFDs there. */
@@ -130,7 +134,10 @@ export async function openTiff(source) {
     littleEndian: le,
     bigTiff: big,
     images,
-    /** @param {TiffImage} image @param {number} x0 @param {number} y0 @param {number} w @param {number} h @param {{ fill?: number }} [opts] */
+    /**
+     * @param {TiffImage} image @param {number} x0 @param {number} y0 @param {number} w @param {number} h
+     * @param {{ fill?: number, band?: number }} [opts] band: which band of a several-band image (from 0)
+     */
     readWindow: (image, x0, y0, w, h, opts = {}) => readWindow(source, reader, image, x0, y0, w, h, opts),
   };
 }
@@ -206,9 +213,18 @@ async function describeImage(index, entries, reader, bytesAt) {
   const height = await one(TAG.height, 0);
   const tiled = entries.has(TAG.tileOffsets);
   const spp = await one(TAG.samplesPerPixel, 1);
-  if (spp !== 1) throw new Error(`image ${index}: ${spp} samples per pixel (only 1 is supported)`);
+  // Several samples per pixel are read only when stored as separate bands: interleaved samples
+  // (planar configuration 1, as in RGB pictures) would need another copy loop for no use here.
+  if (spp !== 1 && await one(TAG.planarConfig, 1) !== 2) {
+    throw new Error(`image ${index}: ${spp} samples per pixel, interleaved (only one, or separate bands, is supported)`);
+  }
+  for (const tag of [TAG.bitsPerSample, TAG.sampleFormat]) {
+    const all = await tagValues(entries, tag, reader, bytesAt);
+    if (all && new Set(all).size > 1) throw new Error(`image ${index}: bands of different sample types (tag ${tag}: ${all.join(', ')})`);
+  }
   const noDataText = await tagValues(entries, TAG.gdalNoData, reader, bytesAt);
   const noDataString = noDataText ? String.fromCharCode(...noDataText.filter((c) => c !== 0)).trim() : '';
+  const metaText = await tagValues(entries, TAG.gdalMetadata, reader, bytesAt);
   return {
     index,
     width,
@@ -218,12 +234,40 @@ async function describeImage(index, entries, reader, bytesAt) {
     blockHeight: tiled ? await one(TAG.tileLength, 0) : Math.min(height, await one(TAG.rowsPerStrip, height)),
     bitsPerSample: await one(TAG.bitsPerSample, 1),
     sampleFormat: await one(TAG.sampleFormat, 1),
+    samplesPerPixel: spp,
+    bandNames: bandNamesOf(metaText ? String.fromCharCode(...metaText) : '', spp),
     compression: await one(TAG.compression, 1),
     predictor: await one(TAG.predictor, 1),
     noData: noDataString === '' ? null : Number(noDataString),
     geo: await readGeo(entries, reader, bytesAt),
     entries,
   };
+}
+
+/**
+ * Each band's name from GDAL's metadata tag, e.g. <Item name="DESCRIPTION" sample="2"
+ * role="description">up_velocity</Item>; '' for a band it does not name.
+ * @param {string} xml @param {number} bands
+ * @returns {string[]}
+ */
+export function bandNamesOf(xml, bands) {
+  const names = new Array(bands).fill('');
+  for (const m of xml.matchAll(/<Item\s+name="DESCRIPTION"\s+sample="(\d+)"[^>]*>([^<]*)<\/Item>/g)) {
+    const k = Number(m[1]);
+    if (k < bands) names[k] = m[2].trim();
+  }
+  return names;
+}
+
+/**
+ * The number of the band with this GDAL name. Throws when the image has no such band, so a
+ * file whose bands were reordered can never be read as the wrong quantity.
+ * @param {TiffImage} image @param {string} name
+ */
+export function bandIndex(image, name) {
+  const k = image.bandNames.indexOf(name);
+  if (k < 0) throw new Error(`image ${image.index} has no band "${name}" (bands: ${image.bandNames.map((n) => n || '(unnamed)').join(', ')})`);
+  return k;
 }
 
 /**
@@ -271,26 +315,34 @@ async function blocksOf(source, reader, image) {
 /**
  * Reads a window of pixels: columns x0..x0+w-1, rows y0..y0+h-1 (row 0 at the top, as in the
  * file). Parts outside the image, and blocks the file leaves empty, read as `fill` (the image's
- * no-data value if it has one, else 0).
+ * no-data value if it has one, else 0). An image of several bands needs `band`: its blocks are
+ * stored band after band, so band k's blocks follow all of band k-1's.
  * @param {ByteSource} source @param {Reader} reader @param {TiffImage} image
- * @param {number} x0 @param {number} y0 @param {number} w @param {number} h @param {{ fill?: number }} opts
+ * @param {number} x0 @param {number} y0 @param {number} w @param {number} h @param {{ fill?: number, band?: number }} opts
  * @returns {Promise<Samples>}
  */
 async function readWindow(source, reader, image, x0, y0, w, h, opts) {
+  const bands = image.samplesPerPixel;
+  if (bands > 1 && opts.band === undefined) throw new Error(`image ${image.index} has ${bands} bands: say which band to read`);
+  const band = opts.band ?? 0;
+  if (!Number.isInteger(band) || band < 0 || band >= bands) throw new Error(`image ${image.index} has no band ${band} (it has ${bands})`);
   const out = newSamples(image, w * h);
   const fill = opts.fill ?? image.noData ?? 0;
   if (fill !== 0) out.fill(fill);
   const { offsets, counts } = await blocksOf(source, reader, image);
   const across = Math.ceil(image.width / image.blockWidth);
+  const down = Math.ceil(image.height / image.blockHeight);
+  if (bands > 1 && offsets.length !== across * down * bands) throw new Error(`image ${image.index}: ${offsets.length} blocks listed, expected ${across * down * bands}`);
+  const first = band * across * down;
   const bx0 = Math.max(0, Math.floor(x0 / image.blockWidth));
   const bx1 = Math.min(across - 1, Math.floor((x0 + w - 1) / image.blockWidth));
   const by0 = Math.max(0, Math.floor(y0 / image.blockHeight));
-  const by1 = Math.min(Math.ceil(image.height / image.blockHeight) - 1, Math.floor((y0 + h - 1) / image.blockHeight));
+  const by1 = Math.min(down - 1, Math.floor((y0 + h - 1) / image.blockHeight));
   /** @type {{ bx: number, by: number, i: number }[]} */
   const wanted = [];
   for (let by = by0; by <= by1; by++) {
     for (let bx = bx0; bx <= bx1; bx++) {
-      const i = by * across + bx;
+      const i = first + by * across + bx;
       if (counts[i] > 0) wanted.push({ bx, by, i });
     }
   }
