@@ -95,10 +95,24 @@ export function isReservoirTagged(tags) {
 export function madeAfter1219(tags) {
   if (tags.lake === 'quarry' || tags['was:lake'] === 'quarry') return 'OSM tags it as a flooded quarry or open-cast mine (lake=quarry)';
   for (const k of ['old_resource', 'was:resource', 'resource']) if (tags[k]) return `OSM tags it as a flooded mine (${k}=${tags[k]})`;
-  const year = /\b(\d{3,4})\b/.exec(tags.start_date ?? '')?.[1];
-  if (year && Number(year) > 1219) return `OSM gives it start_date=${tags.start_date}: made after 1219`;
+  const year = osmStartYear(tags.start_date);
+  if (year !== null && year > 1219) return `OSM gives it start_date=${tags.start_date}: made after 1219`;
   return null;
 }
+
+/**
+ * The year in an OpenStreetMap start_date tag: its first number of 3 or 4 digits ("1956;1977"
+ * gives 1956, "1974-09-22" gives 1974), or null. The map shows a left-out lake from this year,
+ * marked "year from OpenStreetMap".
+ * @param {string | null | undefined} startDate
+ */
+export function osmStartYear(startDate) {
+  const year = /\b(\d{3,4})\b/.exec(startDate ?? '')?.[1];
+  return year ? Number(year) : null;
+}
+
+/** The tag of a lake shown from the year in its OpenStreetMap start_date: "osm-year-1956". */
+export const OSM_YEAR_TAG = 'osm-year-';
 
 /**
  * Whether a name is two (or more) names in one, as OpenStreetMap writes features on a border:
@@ -564,4 +578,42 @@ function crossings(ax, ay, bx, by, rings) {
     }
   }
   return out;
+}
+
+/**
+ * Splits lines where they pass through a mask (a ring in the same units), so the stretch inside
+ * can carry a tag of its own: each line that has points inside is cut at its first and last point
+ * inside, into up to three pieces that share their end points, so the line stays whole. Lines
+ * with no point inside, and the pieces outside, keep their own tag. A single point inside tags the
+ * step after it (or before it, at the line's end).
+ * @param {Flat[]} lines @param {string[]} names one per line @param {string[]} tags one per line
+ * @param {Flat} mask @param {string} tag
+ * @returns {{ lines: Flat[], names: string[], tags: string[], points: number }} points: how many
+ *   points lay inside the mask (0 means the mask missed the river)
+ */
+export function splitAtMask(lines, names, tags, mask, tag) {
+  /** @type {Flat[]} */ const outLines = [];
+  /** @type {string[]} */ const outNames = [];
+  /** @type {string[]} */ const outTags = [];
+  let points = 0;
+  /** @param {Flat} l @param {string} n @param {string} t */
+  const push = (l, n, t) => { outLines.push(l); outNames.push(n); outTags.push(t); };
+  lines.forEach((line, i) => {
+    const n = line.length / 2;
+    const name = names[i] ?? '';
+    const own = tags[i] ?? '';
+    let first = -1; let last = -1;
+    for (let k = 0; k < n; k++) {
+      if (!pointInRings(line[k * 2], line[k * 2 + 1], [mask])) continue;
+      if (first < 0) first = k;
+      last = k;
+      points++;
+    }
+    if (first < 0 || n < 2) { push(line, name, own); return; }
+    if (last === first) { if (last < n - 1) last++; else first--; }
+    if (first > 0) push(line.slice(0, (first + 1) * 2), name, own);
+    push(line.slice(first * 2, (last + 1) * 2), name, tag);
+    if (last < n - 1) push(line.slice(last * 2), name, own);
+  });
+  return { lines: outLines, names: outNames, tags: outTags, points };
 }
