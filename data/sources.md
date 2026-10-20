@@ -240,7 +240,7 @@ New TO CHECK items:
   before the dam (for example the Dnieper through the Kyiv and Kaniv reservoirs, and the Nemunas
   through Kauno marios).
 
-## Map data used in M3a: Date engine and forest over time (12 October 2026)
+## Map data used in M3a: date engine and forest over time (20 October 2026)
 
 The map follows the game's date (Ignas, 11 October 2026), so the forest changes from 1250 to
 today. What is evidence and what is a rule:
