@@ -75,6 +75,13 @@ describe('SWEREF 99 TM (the Swedish grid SGU publishes in)', () => {
     const [e, n] = SWEREF99TM.forward(15, 60);
     assert.ok(Math.abs(e - 500000) < 1e-6);
     assert.ok(n > 6650000 && n < 6660000, `northing of 60°N: ${n}`);
+    // EPSG:3006 points as PROJ 9 gives them (pyproj, EPSG:4326 to EPSG:3006), to the millimetre.
+    for (const [lon, lat, e0, n0] of [[15, 60, 500000, 6651411.190], [18.07, 59.33, 674647.882, 6580824.576], [11, 55, 244196.963, 6102110.745], [24.1, 65.8, 915084.451, 7327768.609]]) {
+      const [e1, n1] = SWEREF99TM.forward(lon, lat);
+      assert.ok(Math.abs(e1 - e0) < 0.002 && Math.abs(n1 - n0) < 0.002, `${lon} ${lat}: ${e1} ${n1}`);
+      const [lon1, lat1] = SWEREF99TM.inverse(e0, n0);
+      assert.ok(Math.abs(lon1 - lon) < 1e-7 && Math.abs(lat1 - lat) < 1e-7, `inverse of ${e0} ${n0}: ${lon1} ${lat1}`);
+    }
     for (const [lon, lat] of [[11.2, 55.4], [18.07, 59.33], [24.1, 65.8], [19.3, 57.9]]) {
       const [x, y] = SWEREF99TM.forward(lon, lat);
       const [lon2, lat2] = SWEREF99TM.inverse(x, y);
@@ -248,6 +255,16 @@ describe('the rules that make the field (tools/map/coast.mjs)', () => {
     assert.equal(k(1000 + 1500, 1000), 1, 'back to 1 at 150 km');
     assert.equal(k(1000, 1000 + 4000), 1);
     assert.throws(() => fitGroups([{ ...pts[0], year: 500 }], () => ({ up: 5, x: 0, y: 0 })), /older than the rule/);
+    // Two places 100 km apart: k never steps, also where a place crosses the other's 150 km circle.
+    const two = kField([{ ...g, k: 0.5 }, { ...g, x: 2000, k: 0.9 }]);
+    assert.equal(two(1000, 1000), 0.5);
+    assert.equal(two(2000, 1000), 0.9);
+    for (let x = -2000; x <= 5000; x += 5) {
+      for (const y of [1000, 1600, 2300]) {
+        const step = Math.abs(two(x + 5, y) - two(x, y));
+        assert.ok(step < 0.01, `k steps by ${step.toFixed(4)} at ${x}, ${y}`);
+      }
+    }
     assert.ok(Math.abs(seaAbove(5.5, 1, 1219) - 4.01) < 1e-9);
   });
 

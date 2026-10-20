@@ -2,7 +2,7 @@
 
 `coast.json` is Grind Strat's estimate of where the sea stood in the north of the map, year by
 year from AD 1219 to today. Since 1219 the land of Sweden, Åland, Finland and Estonia has risen out
-of the sea (by about 2 m at Stockholm and Tallinn, 4 to 5 m in north Uppland and on Åland), so the
+of the sea (by our estimate about 2 m at Stockholm and Tallinn, 4 to 5 m in north Uppland and on Åland), so the
 sea then reached over some of today's land, and Lake Mälaren was still a bay of the sea. Licence:
 CC BY 4.0 (see LICENSE.md in this folder).
 

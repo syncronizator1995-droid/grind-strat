@@ -113,8 +113,8 @@
       "toleranceM": 0.5,
       "source": "Nirgi, T., Grudzinska, I., Kalińska, E., Konsa, M., Jõeleht, A., Alexanderson, H., Hang, T. and Rosentau, A. (2022), Late-Holocene relative sea-level changes and palaeoenvironment of the Pre-Viking Age ship burials in Salme, Saaremaa Island, eastern Baltic Sea, The Holocene 32(4), doi:10.1177/09596836211066596",
       "url": "https://doi.org/10.1177/09596836211066596",
-      "seen": "abstract only (through a search snippet): TO CHECK",
-      "quote": "the relative sea level fell almost linearly from 5.5 to 0.8 m a.s.l. between 1000 BC and AD 1300 (abstract, as seen in a search snippet)",
+      "seen": "abstract read in full (Crossref metadata, api.crossref.org/works/10.1177/09596836211066596); the paper itself not read (closed access): TO CHECK",
+      "quote": "The curve shows an almost linear RSL fall from 5.5 to 0.8 m a.s.l. between 1000 BC and 1300 AD with an average rate of 2 mm/year. A slowdown in regression may be attributed to accelerated sea-level rise after the Little Ice Age and during the industrial period (abstract)",
       "derived": "Interpolated along that line: about 1.0 m in 1219.",
       "toCheck": [
         "Read the paper itself: the figures here are from its abstract only."
@@ -134,8 +134,8 @@
       "toleranceM": 0.5,
       "source": "Nirgi, T. et al. (2022), The Holocene 32(4), doi:10.1177/09596836211066596",
       "url": "https://doi.org/10.1177/09596836211066596",
-      "seen": "abstract only (through a search snippet): TO CHECK",
-      "quote": "from 5.5 to 0.8 m a.s.l. between 1000 BC and AD 1300",
+      "seen": "abstract read in full (Crossref metadata, api.crossref.org/works/10.1177/09596836211066596); the paper itself not read (closed access): TO CHECK",
+      "quote": "an almost linear RSL fall from 5.5 to 0.8 m a.s.l. between 1000 BC and 1300 AD (abstract)",
       "toCheck": [
         "Read the paper itself."
       ]
@@ -171,7 +171,7 @@
     },
     {
       "name": "Åland and south-west Finland (Turku)",
-      "error": "No control point within 150 km, so the rule is used as it is (k = 1): about 4.3 m at Turku and 4.4 m at Mariehamn in 1219. A Turku curve seen only as a snippet (Vuorela et al. 2009, about 3.8 mm a year) suggests about 3 m: the shore may be drawn too far inland. TO CHECK. Turku and Åland also sit on GEBCO's 60°N seam, where the land heights change source."
+      "error": "No control point of their own: Turku is more than 150 km from every control place, so the rule is used as it is there (k = 1, about 4.3 m in 1219); Mariehamn is just inside the reach of Stockholm and north Uppland and is bent a little (k about 0.96, about 4.6 m). A Turku curve seen only as a snippet (Vuorela et al. 2009, about 3.8 mm a year) suggests about 3 m: the shore may be drawn too far inland. TO CHECK. Turku and Åland also sit on GEBCO's 60°N seam, where the land heights change source."
     },
     {
       "name": "Gulf of Finland, north coast (Helsinki to Vyborg)",

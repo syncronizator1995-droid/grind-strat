@@ -130,6 +130,10 @@ export function fitGroups(points, at) {
 /**
  * k at a place: 1 plus each group's pull (k_i - 1), weighted by inverse distance squared and faded
  * to nothing at radiusKm, so it is exactly k_i at a control place and 1 far from all of them.
+ * Each group's weight fades with its own distance too (f_i / d_i^2, not 1 / d_i^2): otherwise a
+ * group's weight would jump from 1 / R^2 to 0 as a place crosses its 150 km circle, and where that
+ * circle runs inside another group's reach k would step there (by up to 0.04, about 0.2 m of 1219
+ * sea, between Stockholm and north Uppland), leaving a seam in the shore's years.
  * @param {FittedGroup[]} groups @param {number} unitKm km per game unit
  * @returns {(x: number, y: number) => number}
  */
@@ -141,8 +145,8 @@ export function kField(groups, unitKm = 0.1) {
       const d = Math.hypot(x - g.x, y - g.y) * unitKm;
       if (d < 1e-6) return g.k;
       if (d >= R) continue;
-      const w = 1 / (d * d);
       const f = (1 - (d / R) ** 2) ** 2;
+      const w = f / (d * d);
       sw += w; swk += w * (g.k - 1);
       fade = Math.max(fade, f);
     }

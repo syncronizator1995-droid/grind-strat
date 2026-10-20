@@ -335,7 +335,8 @@
       "toCheck": [
         "Read the licence on resource.sgu.se (the product description PDF) once Ignas allows that host, quote it here and set licenceStatus to \"read\".",
         "Fetch strandforskjutning_1_900.gpkg (and strandforskjutning_1000_1900.gpkg if the 1219 shore needs the table for 800 BP from it) and record their SHA-256 in the manifest.",
-        "Which tables the 1-900 BP file holds (the description says table issjohav_1100 is missing from the 1000-1900 file)."
+        "Which tables the 1-900 BP file holds (the description says table issjohav_1100 is missing from the 1000-1900 file).",
+        "The product description warns that the dating error can be up to about 500 years, so its 100-year tables are not real years, only the relative change between the 1000-year files: decide with Ignas whether its century shores should replace the fitted estimate (Stockholm, Mälaren) or only be compared with it."
       ],
       "credit": {
         "owner": "Sveriges geologiska undersökning (SGU, the Geological Survey of Sweden)",

@@ -240,7 +240,7 @@ New TO CHECK items:
   before the dam (for example the Dnieper through the Kyiv and Kaniv reservoirs, and the Nemunas
   through Kauno marios).
 
-## Map data used in M3a: the northern coast over time (12 October 2026)
+## Map data used in M3a: the northern coast over time (20 October 2026)
 
 Since 1219 the land of Sweden, Åland, Finland and Estonia has risen out of the sea. The game's
 coast block (`src/data/by/coast.json`, CC BY 4.0) is an **estimate** of where the sea stood in each
@@ -266,15 +266,16 @@ Control points (only their figures are used; the papers are cited, not shipped):
 | Lake Mälaren | a bay of the sea until about 1300, then a lake: the lake's outlet at Stockholm closes in 1300 | Söderlund (2016), as above: "By around 1300, land rise had transformed Mälaren from a deep bay of the Baltic Sea to a lake." | Read |
 | Harku, Tallinn (59.42N 24.62E) | 2.73 m at 1040 cal BP (index point Harku-4) | Rosentau et al. (2020), HOLSEA Baltic database, GFZ Data Services, doi:10.5880/GFZ.1.3.2020.003 (CC BY 4.0, stated in the xlsx): https://datapub.gfz-potsdam.de/download/10.5880.GFZ.1.3.2020.003vEGWF/2020-003_Rosentau-et-al_HOLSEA_baltic_isol_21-06-18.xlsx | Read |
 | Tallinn | 2.0 m in 1219: our arithmetic on the paper's linear fall from about 12 m at 4400 cal BP | Saarse and Vassiljev (2010), Estonian Journal of Earth Sciences 59(3), 207-215: https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2010/issue_3/earth-2010-3-207-215.pdf | Read |
-| Salme, Saaremaa | about 1.0 m in 1219 (fitted), 0.8 m at AD 1300 (check) | Nirgi et al. (2022), The Holocene 32(4), doi:10.1177/09596836211066596: https://doi.org/10.1177/09596836211066596 | Abstract only (TO CHECK) |
+| Salme, Saaremaa | about 1.0 m in 1219 (fitted), 0.8 m at AD 1300 (check): "an almost linear RSL fall from 5.5 to 0.8 m a.s.l. between 1000 BC and 1300 AD" | Nirgi et al. (2022), The Holocene 32(4), doi:10.1177/09596836211066596: https://doi.org/10.1177/09596836211066596 (abstract read in Crossref's record: https://api.crossref.org/works/10.1177/09596836211066596) | Abstract only; the paper is closed access (TO CHECK) |
 | Prassi, Hiiumaa (58.7289N 22.6172E) | sea at or below 6.63 m at 940 cal BP (a limiting point: a bracket, not a value) | HOLSEA Baltic database, as above (sample Prassi 1) | Read |
 | Transverse Mercator formulas (for SWEREF 99 TM) | Krüger's series and the worked example the tests use | Lantmäteriet (2008), Gauss Conformal Projection (Transverse Mercator), Krüger's Formulas: https://www.lantmateriet.se/globalassets/geodata/gps-och-geodetisk-matning/gauss_conformal_projection.pdf; SWEREF 99 TM's parameters (EPSG:3006, as UTM zone 33N on GRS80): https://spatialreference.org/ref/epsg/3006/proj4.txt | Read |
 
-What the build found (12 October 2026, without SGU): the fitted k is 0.53 at Stockholm, 0.89 in
+What the build found (20 October 2026, without SGU): the fitted k is 0.53 at Stockholm, 0.89 in
 north Uppland, 0.91 at Tallinn and 0.60 on Saaremaa. The 1219 sea stood about 2.2 m above
-today's at Stockholm, 4.3 m at Turku, 4.4 m at Mariehamn, 1.9 m at Haapsalu and 1.2 m at Pärnu.
-Within 15 km of each, the 1219 shore lies at most 1.5 to 2.5 km inland of today's (3 to 5 cells of
-500 m). About 31,000 cells of today's dry land change, plus Lake Mälaren (7,275 cells), a bay
+today's at Stockholm, 4.3 m at Turku, 4.6 m at Mariehamn, 1.9 m at Haapsalu and 1.2 m at Pärnu
+(our estimate). Within 15 km of each, the 1219 shore lies at most 1.5 to 2.2 km inland of today's
+(3 to 4 cells of 500 m), and up to 4.5 km round Mariehamn, where low basins behind sills are
+cut off. About 31,000 cells of today's dry land change, plus Lake Mälaren (7,275 cells), a bay
 until 1303.
 
 TO CHECK:
@@ -284,7 +285,7 @@ TO CHECK:
   (Söderlund, read). The outlet's position at Stockholm is picked by hand (approximate).
 - Turku and Åland have no control point: the rule as it is gives about 4.3 m in 1219; a Turku
   curve seen only as a snippet (Vuorela et al. 2009, about 3.8 mm a year) suggests about 3 m.
-- The Salme figures are from the abstract of Nirgi et al. (2022) only.
+- The Salme figures are from the abstract of Nirgi et al. (2022) only; the abstract also says the fall slowed after 1300, which the straight-line rule does not follow.
 - Approximate positions picked by hand: Stockholm (Stadsholmen), Tallinn's centre, Salme.
 - GEBCO's heights near Stockholm read high: Lake Mälaren's surface is 3.0 m in GEBCO against
   about 0.3 to 0.7 m above the sea, so the estimate floods less than the rule would on true
