@@ -259,6 +259,35 @@ describe('the land over time, on a made-up world', () => {
     assert.ok(same(tl.classesAt(1725), other.classesAt(1725)), 'the anchors do not depend on the seed');
   });
 
+  it('takes a finished stretch whole, with no switch years worked out (a late save opens fast)', () => {
+    const fresh = createTerrainTimeline({ cols: w.cols, rows: w.rows, base: w.anchors[0], intervals: w.intervals, seed: 1250 });
+    assert.ok(same(fresh.classesAt(1725), w.anchors[2]));
+    assert.deepEqual([0, 1, 2, 3].map(fresh.isPrepared), [false, false, false, false]);
+    assert.ok(same(fresh.classesAt(1800), tl.classesAt(1800)));
+    assert.deepEqual([0, 1, 2, 3].map(fresh.isPrepared), [false, false, true, false], 'only the stretch 1800 is inside of');
+    const grid = fresh.classesAt(1219);
+    fresh.advance(grid, 1219, 2021);
+    assert.ok(same(grid, w.anchors[4]));
+    assert.deepEqual([0, 1, 2, 3].map(fresh.isPrepared), [false, false, true, false], 'a jump over whole stretches needs none');
+  });
+
+  it('prepares ahead in small pieces, the stretch the year is in first, to the very same switches', () => {
+    const ahead = createTerrainTimeline({ cols: w.cols, rows: w.rows, base: w.anchors[0], intervals: w.intervals, seed: 1250 });
+    let steps = 0;
+    while (!ahead.isPrepared(2)) { assert.ok(ahead.prepareStep(1800)); steps++; }
+    assert.ok(steps > 2, `one stretch took ${steps} pieces`);
+    assert.deepEqual([0, 1, 2, 3].map(ahead.isPrepared), [false, false, true, false]);
+    // Half of a stretch done ahead, then asked for: it finishes and gives the same answer.
+    ahead.prepareStep(1800);
+    assert.ok(same(ahead.classesAt(1950), tl.classesAt(1950)));
+    while (ahead.prepareStep(1800)) steps++;
+    assert.equal(ahead.prepareStep(1800), false, 'nothing left');
+    for (let k = 0; k < w.intervals.length; k++) {
+      const a = ahead.switches(k); const b = tl.switches(k);
+      assert.ok(same(new Uint8Array(a.cells.buffer), new Uint8Array(b.cells.buffer)) && same(new Uint8Array(a.years.buffer), new Uint8Array(b.years.buffer)) && same(a.cls, b.cls), `interval ${k}`);
+    }
+  });
+
   it('reads the shipped block\'s layout (timelineFromBlock)', () => {
     /** @type {Record<string, Uint8Array>} */ const layers = {};
     const intervals = w.intervals.map(({ y0, y1, plane }) => { layers[`p${y0}`] = plane; return { y0, y1, layer: `p${y0}` }; });
@@ -272,6 +301,8 @@ describe('the land over time, on a made-up world', () => {
     assert.throws(() => createTerrainTimeline({ cols: w.cols, rows: w.rows, base: w.anchors[0], intervals: [{ y0: 1425, y1: 1250, plane }], seed: 1 }), /does not move forward/);
     assert.throws(() => createTerrainTimeline({ cols: w.cols, rows: w.rows, base: w.anchors[0], intervals: [{ y0: 1250, y1: 1425, plane }, { y0: 1400, y1: 1500, plane }], seed: 1 }), /starts before/);
     assert.throws(() => createTerrainTimeline({ cols: w.cols, rows: w.rows, base: w.anchors[0], intervals: [{ y0: 1250, y1: 1425, plane: plane.subarray(1) }], seed: 1 }), /plane has/);
+    assert.throws(() => createTerrainTimeline({ cols: w.cols, rows: w.rows, base: w.anchors[0], intervals: [{ y0: 1250, y1: 40000, plane }], seed: 1 }), /beyond/);
+    assert.throws(() => createTerrainTimeline({ cols: w.cols, rows: w.rows, base: w.anchors[0], intervals: [{ y0: 0, y1: 1425, plane }], seed: 1 }), /no year 0/);
   });
 });
 
