@@ -10,6 +10,8 @@
 //                                     1219 from tools/map/ne-water-1219.json. Never both: the
 //                                     OSMF asks that OSM's rivers and lakes are not drawn in one
 //                                     layer with another source's.
+//   src/data/own/changes.json         our own work, under the game's own terms: the dated facts and
+//                                     drawn shapes of the map over time (tools/map/pack-changes.mjs)
 // and records their fingerprints in src/data/fingerprints.json.
 //   node tools/map/pack.mjs     (npm run map:pack also rewrites the credits)
 // Needs the derived grids (npm run map:grids) and the Natural Earth files (node tools/map/fetch.mjs).
@@ -19,6 +21,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROOT, writeBlock, writeFingerprints } from './block.mjs';
 import { packBase } from './pack-base.mjs';
+import { CHANGES_BLOCK, packChanges } from './pack-changes.mjs';
 import { packTerrain } from './pack-terrain.mjs';
 import { packWater } from './pack-water.mjs';
 
@@ -33,6 +36,7 @@ async function main() {
   written.push({ path: water.path, text: await writeBlock(water.path, water.block) });
   // Once the OpenStreetMap water is in, the Natural Earth water must not linger next to it.
   if (water.path !== 'src/data/map/water-ne.json') await rm(join(ROOT, 'src/data/map/water-ne.json'), { force: true });
+  written.push({ path: CHANGES_BLOCK, text: await writeBlock(CHANGES_BLOCK, await packChanges()) });
   await writeFingerprints();
   for (const w of written) {
     const block = JSON.parse(w.text);
