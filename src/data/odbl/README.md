@@ -9,16 +9,19 @@ it. The rest of the repository has its own terms.
 
 ## What the database contains
 
-`water.json` holds the rivers and natural lakes of Grind Strat's map of the Baltic lands (the land
-as around AD 1219), taken from OpenStreetMap:
+`water.json` holds the rivers and lakes of Grind Strat's map of the Baltic lands, taken from
+OpenStreetMap: the natural ones of the land around AD 1219, and (from M3a, when the map follows
+the game's date) the reservoirs and river cuts that come later, each tagged with its date (see
+"Dated features" below):
 
-- **Rivers** (2,375): one feature per river. Each has its local name (OSM `name`), its names in
+- **Rivers** (2,377): one feature per river. Each has its local name (OSM `name`), its names in
   Lithuanian, Latvian, Estonian, Polish, German, Russian, Belarusian, Ukrainian, Finnish, Swedish
   and English (OSM `name:lt` ... `name:en`, where mapped), its Wikidata id, its length inside the
   map in km, and its lines. Each line also carries the local name of that stretch where it
   differs from the river's own (the Nemunas is "Nemunas" in Lithuania and "Нёман" in Belarus).
   The names the map shows (labels) are kept next to OpenStreetMap's own (see "Labels" below).
-- **Lakes** (7,007): natural lakes, lagoons and oxbow lakes with the same name fields, the
+- **Lakes** (7,046): 7,007 natural lakes, lagoons and oxbow lakes, and 39 reservoirs and other
+  lakes made later (dated), with the same name fields, the
   Wikidata id, the area inside the map in km², a point for the name, and the rings (outer rings
   and holes for islands).
 
@@ -31,6 +34,30 @@ tools/map/projection.mjs), measured from the south-west corner of the map rectan
 is the game's data block: the lines and rings are packed (delta-encoded, deflated, base64) as
 `src/ui/map/codec.js` reads them, with one level of detail per point; the names and facts are
 JSON inside the same bundle (its `info` layer). `src/ui/map/load.js` unpacks it.
+
+## Dated features
+
+The game's map follows its date, so what was made after 1219 is in the database too, with a tag
+saying it is dated: layer `riverTag` (one per line) and `lakeTag` (one per lake), indexes into
+`info.tags`; 0 (`''`) means shown at every date. A tag is either one of Grind Strat's own ids
+(for example `kaunas-reservoir`, `vistula-przekop`), whose years and facts are Grind Strat's own
+work and live in `src/data/own/changes.json`, not here; or `osm-year-<year>`, for a reservoir or
+other man-made lake that is shown from the year in its own OpenStreetMap `start_date` tag (the
+first number of 3 or 4 digits in it). This database holds no other years.
+
+- **Our dated lakes** (13): the reservoirs Kaunas, Narva, Kyiv, Kaniv, Vileyka, Zaslawye,
+  Elektrėnai, Włocławek, Zegrze, Jeziorsko, Sulejów, Soodla and Rīga, each found by its OSM id
+  (pieces with the same Wikidata id joined).
+- **Lakes by OpenStreetMap's year** (26): every other lake left out of 1219 (reservoirs, flooded
+  mines, ponds) that passes the size rule and has a `start_date` after 1219. The 413 others that
+  pass the size rule but have no year are not in the database.
+- They are added after the natural lakes are chosen, so a natural lake inside a reservoir stays.
+- **Dated river stretches**: the Vistula's line is cut where it enters and leaves a coarse box
+  round the Przekop (its start and mouth as published), on the projected lines before
+  simplifying, with a shared point, and the piece inside is tagged; the same for the Lielupe's
+  mouth. The Wisła Śmiała (way 60914906) is a whole dated river.
+- **Short rivers kept at every date** (tools/map/osm-water-1219.json, kind `river`): the Buļļupe,
+  the Lielupe's old way to the sea.
 
 ## Source and snapshot
 
@@ -76,6 +103,7 @@ Everything is done by scripts in tools/map/ in this repository, which are public
      0.5 km² (2,301 of the lakes kept are under 1 km²). Pieces with the same Wikidata id are one
      lake. A lake that OSM maps a second time inside a bigger lake (Peipus proper inside
      Peipus-Pskov, parts of Saimaa) is left out (27).
+   - Dated features (above) are added after this, with their tags.
    - The lakes of 1219: whatever OSM tags as a reservoir (`water=reservoir`, `landuse=reservoir`,
      `reservoir_type`, Overture's subtype `reservoir`) is left out (528 of 0.5 km² or more), and
      so is a lake whose OSM tags show it was made later (a flooded quarry or mine: `lake=quarry`,
