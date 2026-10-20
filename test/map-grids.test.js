@@ -214,7 +214,7 @@ describe('sources.json', () => {
       assert.ok(Array.isArray(s.toCheck) && s.toCheck.every((/** @type {unknown} */ t) => typeof t === 'string'), `${s.id}.toCheck`);
       if (s.licenceStatus === 'read') assert.ok(typeof s.licenceQuote === 'string' && s.licenceQuote.length > 20, `${s.id}: a read licence needs its quote`);
       if (s.licenceStatus === 'unverified') assert.ok(s.toCheck.length > 0, `${s.id}: an unverified licence must say what to check`);
-      assert.ok(['whole', 'range', 'overpass', 'overture', undefined].includes(s.access), `${s.id}.access`);
+      assert.ok(['whole', 'range', 'overpass', 'overture', 'own', undefined].includes(s.access), `${s.id}.access`);
       for (const f of s.files ?? []) assert.ok(f.name && f.url.startsWith('https://') && f.file, `${s.id} extra file`);
       assert.ok(s.url.startsWith('https://'), `${s.id}.url`);
       if (s.fallback) assert.ok(s.fallback.url.startsWith('https://') && s.fallback.what.length > 20, `${s.id}.fallback needs a url and a description`);
