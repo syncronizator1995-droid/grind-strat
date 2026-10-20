@@ -239,3 +239,112 @@ New TO CHECK items:
 - Rivers through dropped reservoirs follow today's mapped line, an approximation of the river
   before the dam (for example the Dnieper through the Kyiv and Kaniv reservoirs, and the Nemunas
   through Kauno marios).
+
+
+## Map data used in M3a: water works and drawn shapes (20 October 2026)
+
+The map follows the game's date. Reservoirs fill in their years, channels appear when they were
+cut, the Vistula Lagoon's outlets open and close, Ruden loses its land bridge, and the Vistula
+delta is diked. The dated list is `tools/map/water-changes.json` (reviewed by hand); our own drawn
+shapes are `tools/map/history-shapes.json`; both are packed into `src/data/own/changes.json`, our
+own work under the game's own terms (not yet chosen). The OpenStreetMap features that are dated
+carry only our ids, as tags, in `src/data/odbl/water.json`.
+
+Sources of the dated facts:
+
+| Id | Source | Link | Status |
+| --- | --- | --- | --- |
+| `wp-kaunas-reservoir` | Wikipedia, 'Kaunas Reservoir' | https://en.wikipedia.org/wiki/Kaunas_Reservoir | Read |
+| `wp-narva-reservoir` | Wikipedia, 'Narva Reservoir' | https://en.wikipedia.org/wiki/Narva_Reservoir | Read |
+| `wp-kyiv-reservoir` | Wikipedia, 'Kyiv Reservoir' | https://en.wikipedia.org/wiki/Kyiv_Reservoir | Read |
+| `wp-kaniv-reservoir` | Wikipedia, 'Kaniv Reservoir' | https://en.wikipedia.org/wiki/Kaniv_Reservoir | Read |
+| `wp-vileyka-reservoir` | Wikipedia, 'Vileyka reservoir' | https://en.wikipedia.org/wiki/Vileyka_reservoir | Read |
+| `wp-zaslawye-reservoir` | Wikipedia, 'Zaslawskaye reservoir' | https://en.wikipedia.org/wiki/Zaslawskaye_reservoir | Read |
+| `wp-elektrenai-reservoir` | Wikipedia, 'Elektrėnai Reservoir' | https://en.wikipedia.org/wiki/Elektr%C4%97nai_Reservoir | Read |
+| `wp-wloclawek-reservoir` | Wikipedia, 'Włocławek Reservoir' | https://en.wikipedia.org/wiki/W%C5%82oc%C5%82awek_Reservoir | Read |
+| `wp-zegrze-reservoir` | Wikipedia, 'Zegrze Reservoir' | https://en.wikipedia.org/wiki/Zegrze_Reservoir | Read |
+| `kaczmarek-2010-jeziorsko` | Kaczmarek, H. (2010), 'Analiza zdjęć lotniczych oraz wyników pomiarów geodezyjnych w badaniach dynamiki strefy brzegowej sztucznych zbiorników wodnych – zbiornik Jeziorsko, rzeka Warta', Landform Analysis 13: 19–26 | https://bibliotekanauki.pl/articles/295062.pdf | Read |
+| `wp-sulejow-reservoir` | Wikipedia, 'Sulejów Reservoir' | https://en.wikipedia.org/wiki/Sulej%C3%B3w_Reservoir | Read |
+| `wp-et-soodla` | Wikipedia (Estonian), 'Soodla veehoidla', citing A. Mäemets, 'Uus kaunis veehoidla Soodla jõel', Eesti Loodus, July 1983, p. 468 | https://et.wikipedia.org/wiki/Soodla_veehoidla | Read |
+| `wp-riga-hes` | Wikipedia, 'Riga Hydroelectric Power Plant' | https://en.wikipedia.org/wiki/Riga_Hydroelectric_Power_Plant | Read |
+| `wp-plavinas-hes` | Wikipedia, 'Pļaviņas Hydroelectric Power Station' | https://en.wikipedia.org/wiki/P%C4%BCavi%C5%86as_Hydroelectric_Power_Station | Read |
+| `wp-kegums-hes` | Wikipedia, 'Ķegums Hydroelectric Power Station' | https://en.wikipedia.org/wiki/%C4%B6egums_Hydroelectric_Power_Station | Read |
+| `wp-przekop` | Wikipedia, 'Przekop Wisły' | https://en.wikipedia.org/wiki/Przekop_Wis%C5%82y | Read |
+| `wp-smiala-wisla` | Wikipedia, 'Śmiała Wisła' | https://en.wikipedia.org/wiki/%C5%9Amia%C5%82a_Wis%C5%82a | Read |
+| `wp-pl-martwa-wisla` | Wikipedia (Polish), 'Martwa Wisła' | https://pl.wikipedia.org/wiki/Martwa_Wis%C5%82a | Read |
+| `wp-bulli` | Wikipedia, 'Buļļi' (the history of the Buļļupe and the Lielupe's mouths) | https://en.wikipedia.org/wiki/Bu%C4%BC%C4%BCi | Read |
+| `wp-lielupe` | Wikipedia, 'Lielupe' (the coordinates of its mouth) | https://en.wikipedia.org/wiki/Lielupe | Read |
+| `hagen-1883-pillau` | L. Hagen, 'Der Hafen zu Pillau', Zeitschrift für Bauwesen 33 (1883), cols. 249–250 (after G. Hagen, Handbuch der Wasserbaukunst); scan in the Lower Silesian Digital Library | https://dbc.wroc.pl/Content/17630/PDF/19634.pdf | Read |
+| `wp-strait-of-baltiysk` | Wikipedia, 'Strait of Baltiysk' | https://en.wikipedia.org/wiki/Strait_of_Baltiysk | Read |
+| `wp-de-lochstedt` | Wikipedia (German), 'Burg Lochstedt' (the castle's coordinates) | https://de.wikipedia.org/wiki/Burg_Lochstedt | Read |
+| `wp-de-ruden` | Wikipedia (German), 'Ruden (Insel)', citing F.-W. Dwars on the 'supposed' land bridge and N. Petzholdt, 'Der Mönchgraben bei Baabe und die Landverbindung zwischen Rügen und dem Ruden', Pommern 1/2014 | https://de.wikipedia.org/wiki/Ruden_(Insel) | Read |
+| `wp-druzno` | Wikipedia, 'Druzno' | https://en.wikipedia.org/wiki/Druzno | Read |
+| `nitychoruk-2016` | Nitychoruk, J., Szymanek, M., Bińka, K., Kasprzycka, M. and Zbucki, Ł. (2016), 'Changes of sedimentation in the Drużno Lake based on geoarchaeological data from the Teutonic fortress in Elbląg', Acta Geologica Polonica 66(1): 85–98, Text-fig. 9 (the lake in the 13th century, after Kasprzycka 1996, 1997, 1999), doi:10.1515/agp-2016-0004 | https://www.czasopisma.pan.pl//Content/81982/PDF/04_nitychoruk.pdf | Read |
+| `koperska-2025` | Koperska-Kośmicka, M. (2025), 'The state of preservation of medieval street-square village in the landscape of northern Poland', Miscellanea Geographica 29(3): 185–193, doi:10.2478/mgrsd-2025-0008 (CC BY 4.0) | https://reference-global.com/download/article/10.2478/mgrsd-2025-0008.pdf | Read |
+| `osm-start-date` | OpenStreetMap's own start_date tag on the lake, read with the rest of the OpenStreetMap water (© OpenStreetMap contributors, ODbL 1.0); not checked by us | https://wiki.openstreetmap.org/wiki/Key:start_date | Read |
+
+The dated entries (years: shown from the first, up to but not including the second):
+
+| Entry | Years | Fact | Source | Status |
+| --- | --- | --- | --- | --- |
+| `kaunas-reservoir` | 1959 to today | Reservoir, made in 1959 by damming the Nemunas near Kaunas. | `wp-kaunas-reservoir` | Read |
+| `narva-reservoir` | 1955 to today | Reservoir, made in 1955-1956 for the Narva hydro station. | `wp-narva-reservoir` | TO CHECK: 1955 or 1956 for the filling: the page gives the years it was made, 1955-1956 |
+| `kyiv-reservoir` | 1964 to today | Reservoir, filled in 1964-1966 behind the dam of the Kyiv hydro station at Vyshhorod. | `wp-kyiv-reservoir` | Read |
+| `kaniv-reservoir` | 1972 to today | Reservoir, held by the dam of the Kaniv hydro station, built in 1972. | `wp-kaniv-reservoir` | TO CHECK: the year it filled; the map uses the dam's year |
+| `vileyka-reservoir` | 1973 to today | Reservoir, begun in 1968; the Viliya (Neris) was dammed in 1973, and its water reached Minsk in 1975. | `wp-vileyka-reservoir` | TO CHECK: the year it filled; the map uses the year the river was dammed (OpenStreetMap's start_date says 1975) |
+| `zaslawye-reservoir` | 1956 to today | Reservoir, made in 1956 by a dam on the Svislach to control floods in Minsk. | `wp-zaslawye-reservoir` | TO CHECK: what OpenStreetMap's second date, 1977, means |
+| `elektrenai-reservoir` | 1961 to today | Reservoir, made in 1961 by damming the Strėva, for the Elektrėnai power station. | `wp-elektrenai-reservoir` | TO CHECK: one page says 1962; the natural lakes it drowned (about 8, a search result only) are not drawn before then |
+| `wloclawek-reservoir` | 1970 to today | Reservoir on the Vistula, there since 1970, when the dam at Włocławek was built. | `wp-wloclawek-reservoir` | Read |
+| `zegrze-reservoir` | 1963 to today | Reservoir on the Narew, formed by a dam built in 1963. | `wp-zegrze-reservoir` | Read |
+| `jeziorsko-reservoir` | 1986 to today | Reservoir on the Warta: filling began in 1986 and it was full in 1992. | `kaczmarek-2010-jeziorsko` | Read |
+| `sulejow-reservoir` | 1973 to today | Reservoir on the Pilica, built in 1969-1974 to supply Łódź with water; in use from May 1973. | `wp-sulejow-reservoir` | Read |
+| `soodla-reservoir` | 1981 to today | Reservoir on the Soodla river, made for Tallinn's water supply; it had formed by the summer of 1981. | `wp-et-soodla` | Read |
+| `riga-reservoir` | 1974 to today | Reservoir of the Rīga hydro station on the Daugava, which started work in 1974; it drowned about half of the island Doles sala. | `wp-riga-hes` | TO CHECK: the filling year: the page says 1974 for the station but also that the dam was 'built in the late 1970s'; not one of the 12 reservoirs Ignas listed, added because OpenStreetMap does have its shape (relation/5462605) |
+| `plavinas-dam` | 1965 to today | The Pļaviņas dam on the Daugava was finished in 1965; its reservoir drowned the Staburags cliff and the ruins of Koknese castle. | `wp-plavinas-hes` | Read |
+| `kegums-dam` | 1939 to today | The Ķegums hydro station, the oldest on the Daugava, was built in 1936-1939. | `wp-kegums-hes` | TO CHECK: 1939 (the plant) or 1940 (the dam finished, by the page's category) for the reservoir |
+| `osm-start-date` | (rule) | A reservoir or man-made lake. The year it appears is the one OpenStreetMap gives for it; we have not checked it. | `osm-start-date` | Read (year from OpenStreetMap) |
+| `vistula-przekop` | 1895 to today | The Przekop, a new mouth for the Vistula, was dug from June 1891 and opened on 31 March 1895. | `wp-przekop` | Read |
+| `martwa-wisla-old-mouth` | always was to today | The Martwa Wisła ('Dead Vistula') is the Vistula's old way to the sea past Gdańsk. Its lower part took the name after 1840, when the river broke a new mouth at Górki, and the rest after the Przekop was cut in 1890-1895. | `wp-pl-martwa-wisla` | Read |
+| `wisla-smiala` | 1840 to today | The Wisła Śmiała ('Daring Vistula') formed in the flood of 1840, when an ice jam sent the river through to the sea at Górki, and became a new mouth of the Vistula. | `wp-smiala-wisla` | TO CHECK: a scholarly source for 1840; the day (1 February 1840) is from a search result only |
+| `lielupe-new-mouth` | 1755 to today | In the spring floods of 1755 (some sources say 1757) the Lielupe broke through the dunes to the sea, making its modern mouth. An earlier mouth, cut by an ice jam in 1697, later silted up. | `wp-bulli` | TO CHECK: 1755 or 1757: sources differ |
+| `bullupe-old-lielupe` | always was to today | The Buļļupe is the Lielupe's old lower course, down to its old meeting with the Daugava; before the Lielupe broke its own mouths (1697, 1755), it reached the sea this way. | `wp-bulli` | Read |
+| `lochstedt-outlet` | always was to 1350 | The lagoon once drained to the sea through a channel by Lochstedt; it closed in the 14th century. | `hagen-1883-pillau` | TO CHECK: where exactly the channel ran (drawn just south-west of Lochstedt castle), and the year it closed (the map uses 1350 for 'the 14th century') (reconstructed, estimate) |
+| `vogler-outlet` | always was to 1350 | The lagoon once drained to the sea opposite Frauenburg (Frombork), between the spit villages of Vogler and Schmeergrube; it closed in the 14th century. | `hagen-1883-pillau` | TO CHECK: where exactly the channel ran (drawn across the spit north-west of Frombork), and the year it closed (the map uses 1350 for 'the 14th century') (reconstructed, estimate) |
+| `balga-outlet` | 1350 to 1520 | The Balga channel through the spit formed in the 14th century, opposite Rosenberg. Danzig sank ships in it in 1456 to block it, and in 1520 closed it with a wall of piles. | `hagen-1883-pillau` | TO CHECK: where exactly it ran (Hagen: opposite Rosenberg, about 4 km south of the spit settlement Alt Tief; drawn across the spit north-west of Balga), and the year it opened (the map uses 1350) (reconstructed, estimate) |
+| `pillau-strait` | 1497 to today | A storm surge cut the Pillau channel through the Vistula Spit in 1497, and another in 1510 made it deep enough for ships. It is the lagoon's way to the sea today. | `wp-strait-of-baltiysk` | TO CHECK: Hagen (1883) quotes a church inscription at Alt-Pillau saying a new channel had broken through by 1479 (reconstructed) |
+| `ruden-island` | always was to today | Ruden is a small island, 2.3 km long, between Rügen and Usedom; it is first written of in 1254, as 'portus ruden'. | `wp-de-ruden` | Read (reconstructed) |
+| `ruden-land-bridge` | always was to 1304 | Ruden may have been joined to Rügen by a strip of land until the All Saints' storm flood of 1304 broke it. Local lore tells of it; one study calls it supposed, a 2014 study finds it possible. | `wp-de-ruden` | TO CHECK: whether the land bridge existed at all, and its course and width (a guess); the storm's year (1304) as given by the page (reconstructed, estimate) |
+| `zulawy-diking-1` | always was to 1400, spread 1308-1400 | Permanent settlement of the Vistula delta began around 1200. Most of its villages were founded in the Teutonic Order's colonisation of the 14th century, which one study dates to 1308-1400; the land was diked and drained as it was settled. | `koperska-2025` | TO CHECK: how much of the delta was undiked marsh in 1219, and that the diking went with the settlement (the source dates the villages, not the dikes); the delta's outline is drawn by us from the heights (reconstructed, estimate) |
+| `zulawy-diking-2` | always was to 1650, spread 1550-1650 | Dutch settlers drained and settled the lowest parts of the delta from the middle of the 16th century into the 17th. | `koperska-2025` | TO CHECK: which ground was drained then (the map takes the cells the heights put below sea level), and when it ended (the map uses 1550-1650) (reconstructed, estimate) |
+| `druzno-larger` | always was to 1860 | Lake Drużno was larger in the 13th century than today, reaching to Elbląg, though much smaller than older maps show; it has been filling in and growing over since. | `nitychoruk-2016` | TO CHECK: its outline (drawn by us from the heights, sized after the 13th-century range in Nitychoruk et al. 2016) and when it shrank to about today's size (the map uses 1860, the year the Elbląg Canal opened through the lake) (reconstructed, estimate) |
+
+Notes:
+- Smaller reservoirs and other man-made lakes (26 that ship) show from the year in their own
+  OpenStreetMap `start_date` tag, marked "year from OpenStreetMap"; we have not checked these
+  years. The 413 others that pass the size rule have no such year and are not shown at any date.
+- The Pļaviņas and Ķegums reservoirs have no shape of their own in OpenStreetMap (the Daugava there
+  is mapped only as river area, which the map does not draw): their dates are facts on the Daugava.
+  The Rīga reservoir does have one (relation/5462605, 12.9 km²) and ships dated.
+- Every drawn shape is marked "reconstructed": drawn by us on GEBCO's heights and sea depths
+  (public domain), Natural Earth's land (public domain) and published coordinates, never traced
+  from OpenStreetMap or a map in copyright. Lake Drużno's 13th-century size follows Text-fig. 9 of
+  Nitychoruk et al. (2016), looked at, not traced.
+- The masks that cut the dated river stretches (the Przekop, the Lielupe's mouth) are coarse
+  boxes round the published coordinates; they are tools only and never ship.
+
+New TO CHECK items:
+- Every outlet's exact place and the years they opened and closed (Hagen gives "the 14th
+  century"; the map uses 1350); the 1479 inscription at Alt-Pillau against the 1497 storm.
+- Whether Ruden was ever joined to Rügen (local lore; one study calls it supposed, a 2014 study
+  allows it), and the strip's course and width.
+- Żuławy: how much of the delta was undiked marsh in 1219; that the diking went with the 14th
+  century settlement; which ground the Dutch settlers drained from about 1550, and when that ended
+  (the map uses 1550-1650); the delta's outline (ours, from the heights).
+- Lake Drużno: its 13th-century outline and when it shrank to about today's size (the map uses
+  1860).
+- The filling years of Narva (1955 or 1956), Kaniv, Vileyka, Elektrėnai (1961 or 1962), Rīga and
+  Ķegums; the Lielupe's mouth (1755 or 1757); a scholarly source for the Wisła Śmiała's 1840.
+- Not yet on the list (from the research, all TO CHECK): canals (Augustów, Ogiński, Dnieper-Bug,
+  Elbląg, Bydgoszcz, Klaipėda, the Masurian Canal), the Daugava's old mouth, lake lowerings
+  (Hjälmaren, Lubāns, Engure, Võrtsjärv, Tåkern, Hornborgasjön, Søborg Sø), the Vuoksi and Lake
+  Suvanto, the Oder's new channel, the Volkhov and Svir dams, and Hel.
