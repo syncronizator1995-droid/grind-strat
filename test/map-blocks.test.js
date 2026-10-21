@@ -192,8 +192,9 @@ describe('the credits', () => {
     assert.ok(!/https?:|\/\//.test(text), 'credits.json goes into the game code: no "https://" or "//"');
     const used = new Set(shippedBlockFiles().flatMap(({ path }) => JSON.parse(read(path)).sources));
     for (const id of used) {
-      const line = sourceOf(id).credit.line;
-      assert.ok(credits.datasets.some((/** @type {any} */ d) => d.line === line), `${id} is not credited`);
+      // Sources sharing a citation (SpatioCompo's four time windows) share one entry and its line.
+      const { line, citation } = sourceOf(id).credit;
+      assert.ok(credits.datasets.some((/** @type {any} */ d) => d.line === line || d.citation === citation), `${id} is not credited`);
     }
     assert.match(credits.mapLine, /GEBCO/);
     assert.match(credits.mapLine, /more$/);

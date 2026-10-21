@@ -152,6 +152,9 @@ export function makeAttribution({ sources, blocks, ofl }) {
         have.urls.push(s.url);
         if (s.licenceReadAt) have.readAt.add(s.licenceReadAt);
         if (!have.entry.changes.includes(c.changes)) have.entry.changes.push(c.changes);
+        // Several sources, one entry: a source may say how the whole group is named.
+        if (c.groupVersion) have.entry.version = c.groupVersion;
+        if (c.groupLine) have.entry.line = c.groupLine;
       }
       const extra = BLOCK_CHANGES[kind];
       if (extra && !block.interim && !have.entry.changes.includes(extra)) have.entry.changes.push(extra);

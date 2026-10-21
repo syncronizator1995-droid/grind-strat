@@ -20,6 +20,9 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  * @property {string} line @property {string} citation @property {string} changes
  * @property {string} licenceName @property {string} licenceUri without "https://"
  * @property {string[]} [notes]
+ * @property {string} [groupVersion] @property {string} [groupLine] the version and line of the one entry
+ *   that several sources sharing a citation get (SpatioCompo's four time windows); line stays each
+ *   source's own, as the blocks' notices quote it
  *
  * @typedef {object} RawSource
  * @property {string} id @property {string} collection @property {string} url @property {string} file
