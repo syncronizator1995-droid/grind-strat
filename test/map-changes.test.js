@@ -165,8 +165,11 @@ describe('the 1219 water', () => {
 
 describe('cutting the water: date-free tiles plus small dated sets', () => {
   it('hold every point once between them, as the old cut did', async () => {
-    const data = await loadWater(waterBlock, noTimes());
-    const dated = { ...data, lineTag: decodeUints(blockLayers(waterBlock).riverTag), lakeTag: decodeUints(blockLayers(waterBlock).lakeTag) };
+    // loadWater reads the date tags; without them the cut is the old, date-free one.
+    const dated = await loadWater(waterBlock, noTimes());
+    assert.deepEqual(dated.lineTag, decodeUints(blockLayers(waterBlock).riverTag));
+    assert.deepEqual(dated.lakeTag, decodeUints(blockLayers(waterBlock).lakeTag));
+    const data = { ...dated, lineTag: null, lakeTag: null };
     /** @param {number[][]} shapes */
     const points = (shapes) => shapes.reduce((n, s) => n + s.length / 2, 0);
     for (const level of [0, 1, 2]) {
