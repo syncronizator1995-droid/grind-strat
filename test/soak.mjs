@@ -1,7 +1,9 @@
 // @ts-check
 // Soak runner: lets the computer play many long games and checks the invariants every game year.
-//   npm run soak                          100 seeds from 1219 to 1569
+//   npm run soak                          100 seeds from 1219 to 1569, then one map run 1219-2021
 //   node test/soak.mjs --seeds 10 --to 1300
+// The map run (M3a) moves the map's date a year at a time from 1219 to 2021 on the shipped data,
+// as the view does while the game runs, and checks it ends on today's map.
 // Every game starts on 1 January 1219, the start of the Middle Ages campaign.
 // Reports errors (must be zero), time per game year, save size and start-up time.
 // In step 1 there is almost nothing to simulate; step 3 fills this in with computer-run rulers
@@ -13,6 +15,13 @@ import { pathToFileURL } from 'node:url';
 import { DAYS_PER_YEAR, dateFromDay, dayFromDate } from '../src/sim/calendar.js';
 import { advanceDay, fromSave, newGame, START_DAY, toSave } from '../src/sim/game.js';
 import { checkInvariants } from '../src/sim/invariants.js';
+import { readFileSync } from 'node:fs';
+import { coastLevel } from '../src/sim/coast-date.js';
+import { timelineFromBlock } from '../src/sim/map-date.js';
+import { unbundleBlocks } from '../src/ui/map/codec.js';
+import { createDateLayer } from '../src/ui/map/dated.js';
+import { loadDated, loadMap, loadWater, noTimes } from '../src/ui/map/load.js';
+import { inflateSync } from 'node:zlib';
 
 /**
  * @typedef {object} SoakReport
@@ -75,6 +84,43 @@ export function runSoak({ seeds = 100, toYear = 1569, firstSeed = 1 } = {}) {
   };
 }
 
+/**
+ * One map run from 1219 to 2021, a year at a time, with everything the view moves: the land (with
+ * the Żuławy overrides), the dated rivers and lakes, our shapes and the northern coast.
+ * @returns {Promise<{ errors: string[], years: number, msPerYear: number, cells: number }>}
+ */
+export async function runMapSoak() {
+  const root = new URL('..', import.meta.url).pathname;
+  const read = (/** @type {string} */ p) => JSON.parse(readFileSync(root + p, 'utf8'));
+  const { map } = await loadMap(read('src/data/map/base.json'), read('src/data/by-sa/terrain-1219.json'));
+  const water = await loadWater(read('src/data/odbl/water.json'), noTimes());
+  const timeBlock = read('src/data/by-sa/terrain-time.json');
+  const data = await loadDated({ terrainTime: timeBlock, coast: read('src/data/by/coast.json'), changes: read('src/data/own/changes.json') }, map.terrain.data, noTimes());
+  const grid = map.terrain.data.slice();
+  const layer = createDateLayer(data, grid, 1219);
+  layer.setTags(/** @type {string[]} */ (water.tags));
+  layer.sync(() => {});
+  /** @type {string[]} */
+  const errors = [];
+  let cells = 0;
+  const t0 = performance.now();
+  for (let y = 1220; y <= 2021; y++) {
+    cells += layer.goTo(y, () => {}).cells;
+  }
+  const ms = performance.now() - t0;
+  if (grid.some((v) => v > 6 || v === 1)) errors.push('a cell of a class the map does not know');
+  // Today's anchor: the land over time without our overrides (they hold only until 1650), in 2021.
+  const layers = unbundleBlocks(new Uint8Array(inflateSync(Buffer.from(timeBlock.bundle, 'base64'))));
+  const today = timelineFromBlock({ meta: timeBlock.meta, layers, base: map.terrain.data, overrides: [] }).classesAt(2021);
+  const differ = grid.reduce((n, v, i) => n + (v === today[i] ? 0 : 1), 0);
+  if (differ) errors.push(`the run ends ${differ} cells away from today's anchor`);
+  if (layer.coastLevel !== coastLevel(2021)) errors.push(`the coast ends at level ${layer.coastLevel}, not 2021's (${coastLevel(2021)})`);
+  const on = /** @type {Uint8Array} */ (layer.tagOn);
+  const off = /** @type {string[]} */ (water.tags).filter((t, k) => t && !on[k]);
+  if (off.length) errors.push(`dated water still off in 2021: ${off.join(', ')}`);
+  return { errors, years: 2021 - 1219, msPerYear: ms / (2021 - 1219), cells };
+}
+
 /** @param {SoakReport} r */
 export function formatReport(r) {
   return [
@@ -112,5 +158,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   }
   const report = runSoak({ seeds: num('--seeds', 100), toYear });
   console.log(formatReport(report));
-  if (report.errors.length) process.exit(1);
+  const mapRun = await runMapSoak();
+  console.log([
+    `Map run: 1219 to 2021, a year at a time`,
+    `  errors:            ${mapRun.errors.length}`,
+    ...mapRun.errors.map((e) => `    ${e}`),
+    `  cells changed:     ${mapRun.cells}`,
+    `  time per map year: ${mapRun.msPerYear.toFixed(3)} ms`,
+  ].join('\n'));
+  if (report.errors.length || mapRun.errors.length) process.exit(1);
 }

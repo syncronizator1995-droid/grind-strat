@@ -1,7 +1,9 @@
 // @ts-check
 // Writes small synthetic TIFF and BigTIFF files for the reader's tests: strips or tiles, no
-// compression, LZW or DEFLATE, predictor 1 or 2, uint8 or int16, either byte order, several
-// images (like a COG's overviews), and GeoTIFF tie point, pixel size and GDAL no-data tags.
+// compression, LZW or DEFLATE, predictor 1 or 2, uint8, int16 or float32, either byte order,
+// several images (like a COG's overviews), several bands stored as separate planes (planar
+// configuration 2, named in a GDAL metadata tag), and GeoTIFF tie point, pixel size and GDAL
+// no-data tags.
 // Independent of tools/map/tiff.mjs on purpose, so the two check each other.
 
 import { deflateSync } from 'node:zlib';
@@ -10,8 +12,10 @@ import { deflateSync } from 'node:zlib';
  * @typedef {object} ImageSpec
  * @property {number} width
  * @property {number} height
- * @property {number[]} values row 0 at the top
- * @property {8 | 16} bits
+ * @property {number[]} values row 0 at the top (band 0 when `bands` is given)
+ * @property {number[][]} [bands] more bands after the first, written as separate planes
+ * @property {string[]} [bandNames] GDAL descriptions of the bands
+ * @property {8 | 16 | 32} bits 32 means float32
  * @property {boolean} [signed]
  * @property {[number, number]} [tile] tile width and height (multiples of 16), or strips if absent
  * @property {number} [rowsPerStrip]
@@ -57,25 +61,28 @@ function writeBlocks(out, img, le) {
   const across = Math.ceil(img.width / bw);
   const down = Math.ceil(img.height / bh);
   const offsets = []; const counts = [];
-  for (let by = 0; by < down; by++) {
-    for (let bx = 0; bx < across; bx++) {
-      const rows = tiled ? bh : Math.min(bh, img.height - by * bh);
-      const samples = new Array(bw * rows).fill(0);
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < bw; x++) {
-          const gx = bx * bw + x; const gy = by * bh + y;
-          if (gx < img.width && gy < img.height) samples[y * bw + x] = img.values[gy * img.width + gx];
+  // Planar configuration 2: every block of band 0, then every block of band 1, and so on.
+  for (const values of [img.values, ...(img.bands ?? [])]) {
+    for (let by = 0; by < down; by++) {
+      for (let bx = 0; bx < across; bx++) {
+        const rows = tiled ? bh : Math.min(bh, img.height - by * bh);
+        const samples = new Array(bw * rows).fill(0);
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < bw; x++) {
+            const gx = bx * bw + x; const gy = by * bh + y;
+            if (gx < img.width && gy < img.height) samples[y * bw + x] = values[gy * img.width + gx];
+          }
         }
+        if (img.predictor === 2) {
+          for (let y = 0; y < rows; y++) for (let x = bw - 1; x > 0; x--) samples[y * bw + x] -= samples[y * bw + x - 1];
+        }
+        const raw = encodeSamples(samples, img.bits, le);
+        const comp = img.compression ?? 1;
+        const data = comp === 1 ? raw : comp === 5 ? lzwEncode(raw) : new Uint8Array(deflateSync(raw));
+        offsets.push(out.length);
+        counts.push(data.length);
+        out.bytes(data);
       }
-      if (img.predictor === 2) {
-        for (let y = 0; y < rows; y++) for (let x = bw - 1; x > 0; x--) samples[y * bw + x] -= samples[y * bw + x - 1];
-      }
-      const raw = encodeSamples(samples, img.bits, le);
-      const comp = img.compression ?? 1;
-      const data = comp === 1 ? raw : comp === 5 ? lzwEncode(raw) : new Uint8Array(deflateSync(raw));
-      offsets.push(out.length);
-      counts.push(data.length);
-      out.bytes(data);
     }
   }
   return { offsets, counts, bw, bh, tiled };
@@ -85,7 +92,11 @@ function writeBlocks(out, img, le) {
 function encodeSamples(s, bits, le) {
   const bytes = new Uint8Array(s.length * (bits / 8));
   const dv = new DataView(bytes.buffer);
-  s.forEach((v, i) => { if (bits === 8) dv.setUint8(i, v & 0xff); else dv.setUint16(i * 2, v & 0xffff, le); });
+  s.forEach((v, i) => {
+    if (bits === 8) dv.setUint8(i, v & 0xff);
+    else if (bits === 32) dv.setFloat32(i * 4, v, le);
+    else dv.setUint16(i * 2, v & 0xffff, le);
+  });
   return bytes;
 }
 
@@ -97,11 +108,17 @@ function encodeSamples(s, bits, le) {
 function writeIfd(out, img, b, big) {
   const LONG = 4; const SHORT = 3; const DOUBLE = 12; const ASCII = 2; const LONG8 = 16;
   const offType = big ? LONG8 : LONG;
+  const nb = 1 + (img.bands?.length ?? 0);
+  const format = img.bits === 32 ? 3 : img.signed ? 2 : 1;
   /** @type {[number, number, number[]][]} tag, type, values */
   const entries = [
-    [256, LONG, [img.width]], [257, LONG, [img.height]], [258, SHORT, [img.bits]], [259, SHORT, [img.compression ?? 1]],
-    [262, SHORT, [1]], [277, SHORT, [1]], [284, SHORT, [1]], [317, SHORT, [img.predictor ?? 1]], [339, SHORT, [img.signed ? 2 : 1]],
+    [256, LONG, [img.width]], [257, LONG, [img.height]], [258, SHORT, new Array(nb).fill(img.bits)], [259, SHORT, [img.compression ?? 1]],
+    [262, SHORT, [1]], [277, SHORT, [nb]], [284, SHORT, [nb > 1 ? 2 : 1]], [317, SHORT, [img.predictor ?? 1]], [339, SHORT, new Array(nb).fill(format)],
   ];
+  if (img.bandNames) {
+    const xml = `<GDALMetadata>\n${img.bandNames.map((n, k) => `  <Item name="DESCRIPTION" sample="${k}" role="description">${n}</Item>\n`).join('')}</GDALMetadata>\0`;
+    entries.push([42112, ASCII, [...xml].map((c) => c.charCodeAt(0))]);
+  }
   if (b.tiled) entries.push([322, LONG, [b.bw]], [323, LONG, [b.bh]], [324, offType, b.offsets], [325, offType, b.counts]);
   else entries.push([273, offType, b.offsets], [278, LONG, [b.bh]], [279, offType, b.counts]);
   if (img.geo) {

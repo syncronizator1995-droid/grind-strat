@@ -3,6 +3,10 @@
 // 1 km cell) with hill shading from real heights and a little texture, and the sea depths into
 // one small image (one pixel per 2 km cell) that fills the sea. Panning and zooming then only
 // redraw these cached pictures. Written for speed: this runs while the game starts, on a phone.
+//
+// The land changes with the game's date (M3a): each tile keeps its image data, so a cell that
+// changes class is written straight into it (setCells), and the tile's canvas is updated from it
+// later, a few tiles at a time, those on screen first (flush).
 
 /** Terrain classes, as stored in the grid (1 was lakes in M1; lakes are now vector shapes). */
 export const TERRAIN = Object.freeze({ sea: 0, lake: 1, open: 2, conifer: 3, mixed: 4, marsh: 5, heath: 6 });
@@ -17,6 +21,8 @@ const COLOURS = [
   [98, 118, 96], // marsh and bog
   [158, 146, 108], // heath, dunes
 ];
+/** The same colours, for land the map draws as shapes (our own reconstructed islands). */
+export const TERRAIN_COLOURS = COLOURS;
 
 /** Sea colours from shallow to deep, [r, g, b]: the deeper, the darker, but only a little. */
 const SHALLOW = [66, 112, 134];
@@ -105,6 +111,10 @@ function shadeReader(shade, height, ratio, cols) {
  * @property {HTMLCanvasElement} canvas
  * @property {number} col @property {number} row first grid cell in the tile
  * @property {number} w @property {number} h cells
+ * @property {CanvasRenderingContext2D} ctx @property {ImageData} img the tile's pixels, kept
+ * @property {Uint32Array} px the same pixels, one number each
+ * @property {number[] | null} dirty [x0, y0, x1, y1] of pixels written since the canvas was
+ *   updated (end exclusive), or null
  */
 
 const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([0x11223344]).buffer)[0] === 0x44;
@@ -133,38 +143,64 @@ function colourTable() {
 }
 
 /**
- * @param {import('./load.js').Grid} terrain
+ * The colour of one land cell: its class, lit by the hill shading and the texture.
+ * @param {Uint32Array} table @param {number} k class @param {number} light shading x texture
+ * @param {boolean} tree a tree mark falls here
+ */
+function cellColour(table, k, light, tree) {
+  if (tree) {
+    if (k === TERRAIN.conifer || k === TERRAIN.mixed) light *= 0.84;
+    else if (k === TERRAIN.marsh) light *= 1.1;
+  }
+  let q = ((light - LIGHT_MIN) * LIGHT_SCALE) | 0;
+  q = q < 0 ? 0 : q >= LIGHT_STEPS ? LIGHT_STEPS - 1 : q;
+  return table[(k < COLOURS.length ? k : TERRAIN.open) * LIGHT_STEPS + q];
+}
+
+/**
+ * The class a cell is painted in: its own, or for a sea cell beside land the land's, so the
+ * vector coast drawn on top never leaves a gap where a coastal cell's centre fell in the sea.
+ * 0 (sea): left transparent, the vector sea is drawn under it.
+ * @param {ArrayLike<number>} data @param {number} cols @param {number} rows @param {number} c @param {number} r
+ */
+function paintedClass(data, cols, rows, c, r) {
+  const i = r * cols + c;
+  return data[i] || (c > 0 && data[i - 1]) || (c < cols - 1 && data[i + 1]) || (r > 0 && data[i - cols]) || (r < rows - 1 && data[i + cols]) || 0;
+}
+
+/**
+ * @typedef {object} TerrainPicture the terrain as image tiles, kept up to date with its grid
+ * @property {Tile[]} tiles
+ * @property {(cell: number) => void} setCell repaints a cell whose class changed in the grid (and
+ *   the sea cells beside it, which take their colour from the land), into the kept image data
+ * @property {(first: (tile: Tile) => boolean, until: number) => number} flush updates the canvases
+ *   of tiles with changed pixels, those that `first` picks before the rest, until performance.now()
+ *   passes `until` (at least one); returns how many of the `first` tiles it updated
+ * @property {() => number} dirtyTiles how many tiles have pixels waiting
+ */
+
+/**
+ * Paints the terrain grid into tiles, and keeps what it needs to repaint single cells later.
+ * @param {import('./load.js').Grid} terrain its data is read again by setCell, so the caller
+ *   changes it in place
  * @param {import('./load.js').HeightGrid} height
- * @returns {Tile[]}
+ * @returns {TerrainPicture}
  */
 export function paintTerrain(terrain, height) {
   const { cols, rows, data } = terrain;
   const ratio = height.cell / terrain.cell;
   const shade = shading(height);
   const { tex, trees } = makeTexture();
-  // Land colour for each sea cell that touches land, so the vector coast drawn on top never
-  // leaves a gap where a coastal cell's centre happened to fall in the sea.
-  const fill = new Uint8Array(data);
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const i = r * cols + c;
-      if (data[i] !== TERRAIN.sea) continue;
-      const n = (c > 0 && data[i - 1]) || (c < cols - 1 && data[i + 1]) || (r > 0 && data[i - cols]) || (r < rows - 1 && data[i + cols]);
-      if (n) fill[i] = n;
-    }
-  }
   const table = colourTable();
   const readShade = shadeReader(shade, height, ratio, cols);
   const rowShade = new Float32Array(cols);
-  const conifer = TERRAIN.conifer;
-  const mixed = TERRAIN.mixed;
-  const marsh = TERRAIN.marsh;
   /** @type {Tile[]} */
   const tiles = [];
+  const tilesPerRow = Math.ceil(cols / TILE);
   for (let row = 0; row < rows; row += TILE) {
     const th = Math.min(TILE, rows - row);
-    /** @type {{ canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, img: ImageData, px: Uint32Array, col: number, w: number }[]} */
-    const images = [];
+    /** @type {Tile[]} */
+    const band = [];
     for (let col = 0; col < cols; col += TILE) {
       const w = Math.min(TILE, cols - col);
       const canvas = document.createElement('canvas');
@@ -172,37 +208,102 @@ export function paintTerrain(terrain, height) {
       canvas.height = th;
       const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
       const img = ctx.createImageData(w, th);
-      images.push({ canvas, ctx, img, px: new Uint32Array(img.data.buffer), col, w });
+      band.push({ canvas, ctx, img, px: new Uint32Array(img.data.buffer), col, row, w, h: th, dirty: null });
     }
     for (let y = 0; y < th; y++) {
       const r = row + y;
       readShade(r, rowShade);
       const texRow = (r % TEX) * TEX;
-      const gridRow = r * cols;
-      for (let t = 0; t < images.length; t++) {
-        const { px, col, w } = images[t];
+      for (const { px, col, w } of band) {
         let o = y * w;
         for (let c = col, end = col + w; c < end; c++, o++) {
-          const k = fill[gridRow + c];
-          if (k === 0) continue; // sea stays transparent: the vector sea is drawn under it
+          const k = paintedClass(data, cols, rows, c, r);
+          if (k === 0) continue;
           const tk = texRow + (c & (TEX - 1));
-          let light = rowShade[c] * tex[tk];
-          if (trees[tk] === 1) {
-            if (k === conifer || k === mixed) light *= 0.84;
-            else if (k === marsh) light *= 1.1;
-          }
-          let q = ((light - LIGHT_MIN) * LIGHT_SCALE) | 0;
-          q = q < 0 ? 0 : q >= LIGHT_STEPS ? LIGHT_STEPS - 1 : q;
-          px[o] = table[(k < COLOURS.length ? k : TERRAIN.open) * LIGHT_STEPS + q];
+          px[o] = cellColour(table, k, rowShade[c] * tex[tk], trees[tk] === 1);
         }
       }
     }
-    for (const t of images) {
+    for (const t of band) {
       t.ctx.putImageData(t.img, 0, 0);
-      tiles.push({ canvas: t.canvas, col: t.col, row, w: t.w, h: th });
+      tiles.push(t);
     }
   }
-  return tiles;
+
+  let dirtyCount = 0;
+  const one = new Float32Array(1);
+  /** Repaints the pixel of cell (c, r) from the grid as it is now. @param {number} c @param {number} r */
+  function repaint(c, r) {
+    const t = tiles[Math.floor(r / TILE) * tilesPerRow + Math.floor(c / TILE)];
+    const x = c - t.col;
+    const y = r - t.row;
+    const k = paintedClass(data, cols, rows, c, r);
+    if (k === 0) {
+      t.px[y * t.w + x] = 0;
+    } else {
+      // The same shading as the full paint: one row's bilinear shade, kept as a float32.
+      shadeAt(c, r, one);
+      const tk = (r % TEX) * TEX + (c & (TEX - 1));
+      t.px[y * t.w + x] = cellColour(table, k, one[0] * tex[tk], trees[tk] === 1);
+    }
+    const d = t.dirty;
+    if (!d) {
+      t.dirty = [x, y, x + 1, y + 1];
+      dirtyCount++;
+    } else {
+      if (x < d[0]) d[0] = x;
+      if (y < d[1]) d[1] = y;
+      if (x + 1 > d[2]) d[2] = x + 1;
+      if (y + 1 > d[3]) d[3] = y + 1;
+    }
+  }
+  /** The shading of one cell, as readShade gives it for the cell's row. @param {number} c @param {number} r @param {Float32Array} out */
+  function shadeAt(c, r, out) {
+    const fx = Math.max(0, Math.min(height.cols - 1, (c + 0.5) / ratio - 0.5));
+    const x0 = Math.floor(fx);
+    const x1 = Math.min(height.cols - 1, x0 + 1);
+    const tx = fx - x0;
+    const fy = Math.max(0, Math.min(height.rows - 1, (r + 0.5) / ratio - 0.5));
+    const y0 = Math.floor(fy);
+    const ty = fy - y0;
+    const a = y0 * height.cols;
+    const b = Math.min(height.rows - 1, y0 + 1) * height.cols;
+    const top = shade[a + x0] + (shade[a + x1] - shade[a + x0]) * Math.fround(tx);
+    const bottom = shade[b + x0] + (shade[b + x1] - shade[b + x0]) * Math.fround(tx);
+    out[0] = top + (bottom - top) * ty;
+  }
+
+  return {
+    tiles,
+    setCell(cell) {
+      const c = cell % cols;
+      const r = (cell - c) / cols;
+      repaint(c, r);
+      // Sea cells beside it take their colour from the land.
+      if (c > 0 && !data[cell - 1]) repaint(c - 1, r);
+      if (c < cols - 1 && !data[cell + 1]) repaint(c + 1, r);
+      if (r > 0 && !data[cell - cols]) repaint(c, r - 1);
+      if (r < rows - 1 && !data[cell + cols]) repaint(c, r + 1);
+    },
+    flush(first, until) {
+      let done = 0;
+      let any = false;
+      for (const pass of [true, false]) {
+        for (const t of tiles) {
+          if (!t.dirty || first(t) !== pass) continue;
+          if (any && performance.now() > until) return done;
+          const [x0, y0, x1, y1] = t.dirty;
+          t.ctx.putImageData(t.img, 0, 0, x0, y0, x1 - x0, y1 - y0);
+          t.dirty = null;
+          dirtyCount--;
+          any = true;
+          if (pass) done++;
+        }
+      }
+      return done;
+    },
+    dirtyTiles: () => dirtyCount,
+  };
 }
 
 /**

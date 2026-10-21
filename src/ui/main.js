@@ -9,7 +9,10 @@ import { shouldAutosave } from './autosave.js';
 import { daysForFrame, FASTEST_BUDGET_MS, MAX_DAYS_PER_FRAME } from './clock.js';
 import { setUpInstall } from './install.js';
 import { showCredits } from './credits.js';
-import { loadMap, loadWater } from './map/load.js';
+import { FIRST_MAP_YEAR } from '../sim/map-date.js';
+import { mapYearOfDay, parseTestLink, yearFromHash } from './map/dated.js';
+import { loadDated, loadMap, loadWater, noTimes } from './map/load.js';
+/** @typedef {import('./map/load.js').DatedData} DatedData */
 import { formatResults, runSpeedTest } from './map/speedtest.js';
 import { createMapView } from './map/view.js';
 import { askToKeepStorage, AUTOSAVE_KEY, readText, SAVE_KEY, UNREADABLE_KEY, writeText } from './storage.js';
@@ -137,6 +140,8 @@ function showDate() {
   if (state.day === shownDay) return;
   shownDay = state.day;
   dateEl.textContent = formatDate(state.day);
+  // The map follows the game's date (Ignas, 11 October 2026).
+  mapView?.setDay(state.day);
 }
 
 // --- saves --------------------------------------------------------------------------------
@@ -212,7 +217,7 @@ let mapView = null;
 /** @type {import('./map/speedtest.js').StartupTimes} */
 const startup = {
   mapOnScreenMs: NaN, scriptStartMs: performance.now(), base64Ms: NaN, inflateMs: NaN, decodeMs: NaN, paintMs: NaN, pathMs: NaN,
-  waterMs: NaN, waterOnScreenMs: NaN, waterUnpackMs: NaN, waterLabelMs: NaN,
+  waterMs: NaN, waterOnScreenMs: NaN, waterUnpackMs: NaN, waterLabelMs: NaN, datedMs: NaN, datedOnScreenMs: NaN,
 };
 const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -243,20 +248,50 @@ function drawLoading() {
 }
 
 /**
+ * The blocks of the map over time: the land, the northern coast, and our dated facts and shapes.
+ * They come after the code in the page (tools/build.mjs), so the page may still be reading them.
+ */
+async function datedBlocks() {
+  if (document.readyState === 'loading') await new Promise((done) => document.addEventListener('DOMContentLoaded', done, { once: true }));
+  return { terrainTime: readBlock('terrain-time'), coast: readBlock('coast'), changes: readBlock('changes') };
+}
+
+/**
  * The land first, then the rivers and lakes just after the first picture is on screen: the
- * player sees the map sooner, and the water and its names follow a moment later.
+ * player sees the map sooner, and the water and its names follow a moment later. Then the map
+ * over time, for a new game in 1219; a save from a later year needs it before its first picture,
+ * so the map never shows 1219 first.
  */
 async function showMap() {
   const { map: data, times } = await loadMap(readBlock('base'), readBlock('terrain'));
   Object.assign(startup, times);
+  const testYear = yearFromHash(location.hash);
+  const year = testYear ?? mapYearOfDay(state.day);
+  let dated = /** @type {DatedData | null} */ (null);
+  if (year > FIRST_MAP_YEAR) {
+    const t = performance.now();
+    dated = await loadDated(await datedBlocks(), data.terrain.data, times);
+    data.terrain.data.set(dated.timeline.classesAt(year));
+    startup.datedMs = performance.now() - t;
+  }
   mapView = createMapView(canvas, data);
+  mapView.setDay(state.day);
+  if (testYear !== null) showTestYear(testYear);
+  if (dated) mapView.setDated(dated, year);
   mapView.setDark(darkMode.matches);
   keepNamesClear();
   startup.paintMs = mapView.timings.paintMs;
   mapView.resize();
+  const testView = parseTestLink(location.hash)?.view;
+  if (testView) {
+    Object.assign(mapView.camera, testView);
+    mapView.clampCamera();
+  }
   mapView.prepare();
   startup.pathMs = mapView.timings.pathMs;
   mapView.render(true);
+  // For test/shots.mjs: the year of the very first picture (a late save's own, never 1219 first).
+  document.documentElement.dataset.mapYearAtFirstPaint = String(mapView.mapYear().year);
   // performance.now() counts from the moment the page started opening.
   startup.mapOnScreenMs = performance.now();
   document.documentElement.dataset.mapOnScreenMs = startup.mapOnScreenMs.toFixed(1);
@@ -270,8 +305,27 @@ async function showMap() {
   startup.waterLabelMs = mapView.labelMs();
   startup.waterOnScreenMs = performance.now();
   document.documentElement.dataset.waterOnScreenMs = startup.waterOnScreenMs.toFixed(1);
+  if (!dated) {
+    await new Promise((done) => requestAnimationFrame(() => setTimeout(done, 0)));
+    const t = performance.now();
+    mapView.setDated(await loadDated(await datedBlocks(), data.terrain.data, noTimes()));
+    mapView.render(true);
+    startup.datedMs = performance.now() - t;
+  }
+  startup.datedOnScreenMs = performance.now();
+  document.documentElement.dataset.datedOnScreenMs = startup.datedOnScreenMs.toFixed(1);
   // For test/startup.mjs: where the start-up time goes.
   document.documentElement.dataset.startup = JSON.stringify(startup, (_, v) => (typeof v === 'number' ? Math.round(v) : v));
+}
+
+/**
+ * The hidden test link (#date=1550): the map shows that year, for checking only; the game's own
+ * date stays as it is.
+ * @param {number | null} year
+ */
+function showTestYear(year) {
+  mapView?.setMapYear(year);
+  if (year !== null) tell(`Test link: the map shows ${Math.max(FIRST_MAP_YEAR, year)}. The game's date is not changed.`);
 }
 
 async function speedTest() {
@@ -279,7 +333,7 @@ async function speedTest() {
   speedButton.disabled = true;
   speedSheet.hidden = true;
   creditsSheet.hidden = true;
-  tell('Speed test running: keep your fingers off the screen for about 12 seconds.');
+  tell('Speed test running: keep your fingers off the screen for about 3 minutes (the last part runs the map from 1219 to today).');
   try {
     const result = await runSpeedTest(mapView);
     speedResults.textContent = formatResults(result, startup, mapView.size());
@@ -345,6 +399,7 @@ for (const el of document.querySelectorAll('[data-act="credits"]')) {
 }
 $('[data-act="close-credits"]', HTMLButtonElement).addEventListener('click', () => { creditsSheet.hidden = true; });
 darkMode.addEventListener('change', () => mapView?.setDark(darkMode.matches));
+window.addEventListener('hashchange', () => showTestYear(yearFromHash(location.hash)));
 $('[data-act="rerun-speed"]', HTMLButtonElement).addEventListener('click', speedTest);
 $('[data-act="close-speed"]', HTMLButtonElement).addEventListener('click', () => { speedSheet.hidden = true; });
 $('[data-act="copy-speed"]', HTMLButtonElement).addEventListener('click', copyResults);

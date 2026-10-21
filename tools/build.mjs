@@ -14,7 +14,10 @@
 //
 // The map data blocks (tools/map/block.mjs) go into the page as JSON, each in its own
 // <script type="application/json" id="gs-<kind>">, not into the code: the browser never parses
-// them as code, so the game starts faster. The licence guard stops the build if a block names a
+// them as code, so the game starts faster. The map over time (M3a: the land over time, the
+// northern coast, our dated facts) is needed only after the first picture, so its blocks come
+// after the code: the page starts running sooner, and the game waits for them only when it needs
+// them. The licence guard stops the build if a block names a
 // source whose licence was not read on its owner's own host, if a block is an interim stand-in,
 // or if a block mixes licences that must stay apart.
 
@@ -162,6 +165,18 @@ export function licenceProblems(blocks, sources, { allowInterim = false } = {}) 
     if (used.some((/** @type {SourceRecord} */ s) => /BY-SA/i.test(s.credit.licenceName)) && block.licence !== 'CC-BY-SA-4.0') {
       problems.push(`${name} holds share-alike data but is not under CC BY-SA 4.0`);
     }
+    // A CC BY block holds only CC BY or public-domain data: nothing share-alike, ODbL or unknown.
+    const ccByOrFree = (/** @type {SourceRecord} */ s) => /^public domain/i.test(s.credit.licenceName) || /^CC BY 4\.0$/i.test(s.credit.licenceName.trim());
+    if (block.licence === 'CC-BY-4.0' && !used.every(ccByOrFree)) {
+      problems.push(`${name} is under CC BY 4.0 but holds data under another licence`);
+    }
+    // An ODbL block holds only OpenStreetMap data, and our own block only our own work.
+    if (block.licence === 'ODbL-1.0' && used.some((/** @type {SourceRecord} */ s) => s.collection !== 'osm')) {
+      problems.push(`${name} is under the ODbL but holds data that is not OpenStreetMap's`);
+    }
+    if (block.licence === 'grind-strat-own' && used.some((/** @type {SourceRecord} */ s) => s.collection !== 'own')) {
+      problems.push(`${name} is our own work but holds data from others`);
+    }
   }
   return problems;
 }
@@ -189,6 +204,9 @@ export function findAddressesInData(blocks) {
 export function dataElements(blocks) {
   return blocks.map(({ kind, text }) => `<script type="application/json" id="gs-${kind}">${text.trim().replace(/</g, '\\u003c')}</script>`).join('\n');
 }
+
+/** The blocks that go after the code: needed only after the first picture of a new game. */
+export const LATE_KINDS = Object.freeze(['terrain-time', 'coast', 'changes']);
 
 /**
  * The blocks the game ships, read from disk, in build order.
@@ -244,11 +262,13 @@ export async function build({ dev = false, out = join(ROOT, 'dist'), entry = joi
   let html = await readFile(join(UI, 'index.html'), 'utf8');
   html = fill(html, 'ICON', `data:image/png;base64,${icon}`);
   html = fill(html, 'CSS', css);
-  const elements = dataElements(data);
+  const elements = dataElements(data.filter((b) => !LATE_KINDS.includes(b.kind)));
+  const late = dataElements(data.filter((b) => LATE_KINDS.includes(b.kind)));
   html = fill(html, 'DATA', elements);
   html = fill(html, 'SCRIPT', js);
+  html = fill(html, 'LATE_DATA', late);
 
-  const problems = [...findScriptBreakers(js), ...findNetworkUses(html.replace(elements, ''), js), ...findAddressesInData(data)];
+  const problems = [...findScriptBreakers(js), ...findNetworkUses(html.replace(elements, '').replace(late, ''), js), ...findAddressesInData(data)];
   if (problems.length) throw new Error(`build stopped:\n- ${problems.join('\n- ')}`);
 
   // The build id names the offline cache, so it must change whenever ANY published file changes:

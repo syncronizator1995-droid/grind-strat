@@ -347,13 +347,17 @@ polished, error-free Lithuanian playthrough that holds together however the play
 - Holdings: every holding is a point on the map, at its real, sourced site only. A holding with no
   sourced site is listed in its province's panel until research finds the site.
 - The look: terrain is drawn (forests, marshes, rivers, lakes), with realm colours tinted over it.
-- Names: names of the time. Moving the time slider changes them: 1219 shows the forms used in
-  sources of that age, today shows today's local names. Where no name of the time is sourced,
-  today's name stands in, marked so. Tap a place for all its names and sources.
+- Names: names of the time. The map follows the game's date (no slider), so the names change as
+  the years pass. Lithuania keeps today's Lithuanian names all game; elsewhere a river or lake
+  shows the form in the records of that date (Henry of Livonia's Latin in 1219, Dusburg in
+  Prussia, the chronicles for Rus' lands). Where no name of the time is sourced, today's name
+  stands in, marked so. Tap a place for all its names and sources (the tap panel is M3a part 2).
 - Terrain: one 1 km terrain map covers every province. Battle maps (step 6) and town maps (step 7)
   are made finer from it later.
-- Time slices: today, 1219 and 1 AD in full from step 2a. The five ice-age slices get a rough
-  preview and sourced notes in 2a, and are built properly in step 8, with the hunters.
+- Time slices: the map data for every age is prepared now, so nothing is redone later. M3a (1219
+  to today) is shown while playing. M3b (AD 1 and the five ice-age slices) is built as data, ready
+  for step 8, and checked with the hidden test link (#10000BC and so on). The ice-age slices are
+  played properly in step 8, with the hunters.
 - Credits: a Credits screen lists every data owner, the licence and what we changed. It opens
   from a Credits button and from a small credit line in a corner of the map. It starts with
   "About this map", which says plainly what is estimated and what is today's.
@@ -361,6 +365,25 @@ polished, error-free Lithuanian playthrough that holds together however the play
   per 1° cell comes from pollen records; the exact edges are placed by a rule; marsh comes from
   peat-soil and wetland maps. Heights and sea depths are today's. Under modern reservoirs the land
   shows flat, at today's water level, because no height data from before the dams exists.
+- The map follows the date (M3a, from 11 October 2026). There is no slider: the map shows the
+  land, water and names of the game's own date. A hidden test link (`#date=1550`, later
+  `#10000BC`) shows any year, for checking only.
+  - Forest: the 1219 grid is held to 1250. Anchors follow at 1425, 1725, 1900 and 2021. Between
+    two anchors each 1 km square has its own clearing year, so the forest thins bit by bit.
+    Clearings spread out from open land.
+  - North coast (Stockholm, Turku, Åland, west Estonia): the shore creeps seaward as the land
+    rises. This is an estimate from land-rise data fitted to local studies, and is marked
+    "estimate". Lake Mälaren starts as a sea bay and becomes a lake. The south coast has no sea
+    shift to show.
+  - Water works by date: the 12 big reservoirs fill in researched years, each with a source.
+    The small ones appear in the year OpenStreetMap gives, marked "year from OpenStreetMap";
+    ones with no year stay hidden. Other dated changes (Vistula Lagoon outlets, Żuławy diking,
+    the Vistula cut of 1895, the Lielupe mouth) have a source or are marked TO CHECK. Shapes we
+    draw ourselves are marked "reconstructed".
+  - Names: Lithuania keeps today's Lithuanian names all game. Elsewhere a river or lake shows
+    the form in the records of the date (part 2 of M3a).
+  - M3a comes as two pull requests: "the land changes", then "the names change". M3b (AD 1 and
+    the ice-age data) follows, planned with Ignas.
 
 The Baltic basin changed shape after the ice:
 
@@ -420,9 +443,9 @@ in 3a, and its code and test files weren't uploaded).
 
 1. Agree this design.
 2. The map, with sources for every stage, in two parts, each ending playable on Ignas's phone:
-   - 2a: the map itself: coasts, rivers, lakes, painted terrain, a time slider (today, 1219 and
-     1 AD in full; a rough ice-age preview), names that change with the time, a Credits screen and
-     a speed test on his phone.
+   - 2a: the map itself: coasts, rivers, lakes, painted terrain, a map that follows the game's
+     date (no slider; M3a 1219 to today, M3b AD 1 and the ice age), names that change with the
+     time, a Credits screen and a speed test on his phone.
    - 2b: the 1219 provinces and holdings, region by region, starting with a pilot he checks.
 3. Middle Ages, dynasty and realm: from about 1200, as the crusades begin, with real rulers, families,
    marriages, succession, diplomacy and events. Split into three parts, each ending playable on
@@ -510,7 +533,7 @@ Step 2 split down are his step 2 answers, later the same day.
 | Blocked data | Ignas allows sites, but only when a milestone needs one: Claude stops and asks for that one site |
 | Ignas's phone | Android |
 | Terrain grid | A 1 km terrain map for every province; battle and town maps made finer later (replaces the small 32 by 32 grid per province) |
-| Names on the map | Names of the time, changing with the time slider; today's name stands in, marked, where none is sourced |
+| Names on the map | Names of the time, changing with the game's date; today's name stands in, marked, where none is sourced (Lithuania: see the M3 rows below) |
 | Unsure borders | Guessed borders look softer than sourced ones |
 | Marsh in 1219 | "Bogs stand out": today's peat-soil and wetland maps (GLWD v2) plus today's open bogs (ESA WorldCover); the thin peat background is dropped so real bog cores read as mostly marsh |
 | Forest in 1219 | Pollen shares for AD 750 to 1250, unblended; forest edges placed by a rule from today's land cover, terrain and rivers, and the game says so |
@@ -519,6 +542,19 @@ Step 2 split down are his step 2 answers, later the same day.
 | M2 rivers and lakes | Natural Earth's simpler set now; the full OpenStreetMap rivers come next, from Overture's official copy on Amazon, because OpenStreetMap's query server refused the cloud session |
 | Letters on the map | Latin letters everywhere: today's local names, with Cyrillic ones romanised by the BGN/PCGN systems (Russian, Belarusian, Ukrainian), soft and hard signs left out. Original spellings stay in the data for the info panel (Ignas, 11 October 2026) |
 | Lake names on the map | Just the name, without the word for "lake": Ilmen, Narach, Plateliai. Where the plain form can't be found reliably, the full name stays, spelled out (Ignas, 11 October 2026) |
+| Time slider | None: the map follows the game's date. Land, water and names are those of the game's own date (Ignas, 11 October 2026: "Yes, the map follows the game") |
+| Hidden test link | `#date=1550` (later `#10000BC`) shows the map of any year, for checking only; the game's own date doesn't change |
+| Build order | Keep the plan: the 1219 dynasties first, the ice-age hunters in step 8; map data for every age is still prepared now (Ignas, 11 October 2026: "Keep the plan (Recommended)") |
+| M3 parts | Two parts. M3a: 1219 to today, seen while playing, in two pull requests ("the land changes", then "the names change"). M3b: AD 1 and the ice-age data, ready for step 8, planned with Ignas after M3a (Ignas, 12 October 2026: "Two parts (Recommended)") |
+| Forest over time | Changes gradually: the 1219 grid is held to 1250, then anchors at 1425, 1725, 1900 and 2021, and each 1 km square gets its own clearing year between anchors (Ignas, 12 October 2026: "Gradually (Recommended)") |
+| Lithuania's names | Today's Lithuanian names all game; the old written forms show when you tap. Elsewhere the forms in the records of the date (Ignas, 12 October 2026: "Lithuanian names (Recommended)") |
+| North coast | Estimated from land rise and fitted to local studies, and marked "estimate" (Ignas, 12 October 2026: "Estimate it (Recommended)"). Needs resource.sgu.se for Sweden and Mälaren |
+| Our own map data | Same terms as the game; Ignas chooses them later (Ignas, 12 October 2026: "Same as the game (Recommended)") |
+| Reservoirs | The 12 big ones get researched, sourced filling years. The small ones too: each appears in the year OpenStreetMap gives, marked "year from OpenStreetMap"; ones with no year stay hidden (Ignas, 12 October 2026: "Small ones too") |
+| Lake names (M3) | Keep as is: just the name (Ignas, 11 October 2026: "Keep as is") |
+| Helper agents (working method) | Opus at high effort for hard code and for the sceptics, Sonnet at medium for routine jobs, at most two at once (Ignas, 20 October 2026) |
+| First map speed (M3a) | 6 to 10% slower than M2b in a slowed-down test is accepted; Ignas's phone decides (Ignas, 21 October 2026: "Accept it (Recommended)") |
+| Speed test (M3a) | One button: the usual test plus a time run from 1219 to today at speed 5, about 3 minutes (Ignas, 21 October 2026: "Keep it in one") |
 
 ## Treating real history with care
 

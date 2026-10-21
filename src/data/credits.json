@@ -1,12 +1,13 @@
 {
   "about": [
-    "The map shows the land as it was around AD 1219, as far as it can be worked out today.",
-    "Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today's land cover, terrain and rivers; they are not from a historical map.",
+    "The map shows the land of the game's year, from AD 1219 to today, as far as it can be worked out.",
+    "Forest share: estimated from pollen records (about AD 750 to 1250 for the land of 1219, then about 1250 to 1600, 1600 to 1850 and 1850 to 1950) and, for 2021, from satellite land cover. The exact forest edges, and which places were cleared or grew back in which year, are placed by a rule from today's land cover, terrain and rivers; they are not from a historical map.",
     "Marsh: from today's peat-soil and wetland maps plus today's open bogs. Where those maps show more bog than the pollen allows, bog wins and there is less forest than the pollen share (parts of north-west Russia, south-east Finland and east Estonia).",
-    "Under modern reservoirs the land shows flat, at today's water level.",
-    "Rivers and lakes are today's, from OpenStreetMap, with today's local names: a river's name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river's own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, are left out; the rivers through those reservoirs follow today's mapped line.",
+    "Under modern reservoirs the land shows flat, at today's water level. A reservoir appears in the year it was filled: the big ones in years from published sources, the smaller ones in the year OpenStreetMap gives (marked \"year from OpenStreetMap\"); one with no known year is not shown.",
+    "Rivers and lakes are today's, from OpenStreetMap, with today's local names: a river's name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river's own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, appear only from their year, where one is known; the rivers through those reservoirs follow today's mapped line.",
     "All names are written in Latin letters. Russian, Belarusian and Ukrainian names are romanised by the BGN/PCGN systems (Russian 1947, Belarusian 1979, Ukrainian 2019), with the soft and hard signs and the apostrophe left out to keep them easy to read. Where OpenStreetMap gives a name in two languages, the map shows one. A lake shows just its name, without the word for lake (Ilmen, not ozero Ilmen; Plateliai, not Platelių ežeras); where the name only works with that word (Kozhanovskoye ozero, Jezioro Mikołajskie, or Juglas ezers where no plain form is known), the full name is kept.",
-    "The coast, heights and sea depths are today's."
+    "Heights and sea depths are today's, and so is the coast outside the north, apart from a few drawn changes marked \"reconstructed\" (the Vistula Lagoon's old outlets, Ruden).",
+    "The northern coast (Sweden, Åland, Finland, Estonia) follows the game's year: since 1219 the land there has risen out of the sea. Where the sea stood is an estimate from today's land uplift, fitted to dated shores from local studies; Lake Mälaren is a bay of the sea until about 1300."
   ],
   "interim": [],
   "mapLine": "© OpenStreetMap contributors · Natural Earth · GEBCO · ESA WorldCover · more",
@@ -17,7 +18,9 @@
       "version": "5.1.2",
       "uses": [
         "land, coast, heights and sea depths",
-        "the land around 1219: forest, open land, marsh and heath"
+        "the land around 1219: forest, open land, marsh and heath",
+        "how the land changes from 1250 to today: forest cleared and grown back",
+        "the northern coast over time (where the sea stood higher in the game's year)"
       ],
       "line": "Made with Natural Earth.",
       "citation": "Natural Earth. Free vector and raster map data @ naturalearthdata.com. Version 5.1.2.",
@@ -25,7 +28,9 @@
         "Land and coast: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 150 m; islets under about 0.4 km² dropped.",
         "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how).",
         "Rivers: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 200 m. Names repaired where Natural Earth lost letters (Göta älv, Klarälven, Motala ström, Glåma, Kokemäenjoki) or mistyped one (Dnepre, shown as Dnipro like the rest of the river). The Neman shown as Nemunas, the local name Natural Earth also gives. The pieces Natural Earth calls Vorma that are really the lower Glomma and the Gudbrandsdalslågen shown under those names.",
-        "Lakes: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 150 m. Every lake on the map reviewed by hand for 1219, whatever Natural Earth's own class says: modern reservoirs left out (not there in 1219), natural lakes kept even where a dam regulates them today. The two halves of the Vistula Lagoon joined under that name; Lake Il'Men' shown as Lake Ilmen; one lake whose names disagree shown unnamed."
+        "Lakes: clipped to the map, moved onto the game's flat map (an equal-area projection) and simplified to about 150 m. Every lake on the map reviewed by hand for 1219, whatever Natural Earth's own class says: modern reservoirs left out (not there in 1219), natural lakes kept even where a dam regulates them today. The two halves of the Vistula Lagoon joined under that name; Lake Il'Men' shown as Lake Ilmen; one lake whose names disagree shown unnamed.",
+        "Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (the notes that come with the terrain data in the game's source code say how).",
+        "Coast over time: combined with the other coast sources into one code per 500 m cell, the year the sea left it, by a rule fitted to dated shores (the notes that come with the coast data in the game's source code say how). An estimate."
       ],
       "licenceName": "Public domain",
       "licenceUri": "www.naturalearthdata.com/about/terms-of-use/",
@@ -38,13 +43,17 @@
       "version": "GEBCO_2026 Grid, ice-surface elevation, 15 arc-seconds",
       "uses": [
         "land, coast, heights and sea depths",
-        "the land around 1219: forest, open land, marsh and heath"
+        "the land around 1219: forest, open land, marsh and heath",
+        "how the land changes from 1250 to today: forest cleared and grown back",
+        "the northern coast over time (where the sea stood higher in the game's year)"
       ],
       "line": "GEBCO Compilation Group (2026) GEBCO 2026 Grid (doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa)",
       "citation": "GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals. NERC EDS British Oceanographic Data Centre NOC. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
       "changes": [
         "Clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and averaged over 2 km cells, rounded to whole metres.",
-        "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how)."
+        "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how).",
+        "Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (the notes that come with the terrain data in the game's source code say how).",
+        "Coast over time: combined with the other coast sources into one code per 500 m cell, the year the sea left it, by a rule fitted to dated shores (the notes that come with the coast data in the game's source code say how). An estimate."
       ],
       "licenceName": "Public domain (GEBCO Grid terms of use)",
       "licenceUri": "dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/GEBCO_Grid_terms_of_use.pdf",
@@ -58,15 +67,20 @@
     {
       "title": "SpatioCompo",
       "owner": "Behnaz Pirzamanbein",
-      "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 4 (about AD 750-1250)",
+      "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time windows 4, 3, 2 and 1 (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950)",
       "uses": [
-        "the land around 1219: forest, open land, marsh and heath"
+        "the land around 1219: forest, open land, marsh and heath",
+        "how the land changes from 1250 to today: forest cleared and grown back"
       ],
-      "line": "Forest around 1219: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+      "line": "Forest around 1219 and how it changes after 1250: pollen-based land-cover maps of four time windows (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950) by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
       "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
       "changes": [
         "Time window 4 (about AD 750-1250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are.",
-        "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how)."
+        "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how).",
+        "Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (the notes that come with the terrain data in the game's source code say how).",
+        "Time window 3 (about AD 1250-1600) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of one forest anchor; which 1 km cells change, and in which year, is a rule (see the terrain-time block).",
+        "Time window 2 (about AD 1600-1850) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of one forest anchor; which 1 km cells change, and in which year, is a rule (see the terrain-time block).",
+        "Time window 1 (about AD 1850-1950) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of one forest anchor; which 1 km cells change, and in which year, is a rule (see the terrain-time block)."
       ],
       "licenceName": "CC BY-SA 4.0",
       "licenceUri": "creativecommons.org/licenses/by-sa/4.0/",
@@ -78,13 +92,15 @@
       "owner": "European Space Agency (ESA) and the ESA WorldCover consortium",
       "version": "v200 (2021)",
       "uses": [
-        "the land around 1219: forest, open land, marsh and heath"
+        "the land around 1219: forest, open land, marsh and heath",
+        "how the land changes from 1250 to today: forest cleared and grown back"
       ],
       "line": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
       "citation": "Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann, C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M., Herold, M., Tsendbazar, N.E., Xu, P., Ramoino, F., Arino, O., 2022. ESA WorldCover 10 m 2021 v200. doi:10.5281/zenodo.7254221",
       "changes": [
         "Read from the tiles' 74 m overviews, clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and turned into the share of each class in 1 km cells; snow merged into bare ground and mangrove into wetland. For the marsh around 1219, the herbaceous wetland share (class 90; moss and lichen, class 100, left out as mountain tundra) is combined with GLWD v2 marsh: each cell keeps the larger of the two, after GLWD shares at or below 15% are dropped and shares from 15% to 55% stretched to 0-100%.",
-        "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how)."
+        "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how).",
+        "Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (the notes that come with the terrain data in the game's source code say how)."
       ],
       "licenceName": "CC BY 4.0",
       "licenceUri": "creativecommons.org/licenses/by/4.0/",
@@ -96,13 +112,15 @@
       "owner": "Bernhard Lehner and co-authors (2025), published by HydroSHEDS",
       "version": "2.0",
       "uses": [
-        "the land around 1219: forest, open land, marsh and heath"
+        "the land around 1219: forest, open land, marsh and heath",
+        "how the land changes from 1250 to today: forest cleared and grown back"
       ],
       "line": "Marsh and bog: Global Lakes and Wetlands Database v2 (Lehner et al. 2025), hydrosheds.org/products/glwd",
       "citation": "Lehner, B., Anand, M., Fluet-Chouinard, E., Tan, F., Aires, F., Allen, G.H., Bousquet, P., Canadell, J.G., Davidson, N., Ding, M., Finlayson, C.M., Gumbricht, T., Hilarides, L., Hugelius, G., Jackson, R.B., Korver, M.C., Liu, L., McIntyre, P.B., Matthews, E., Nagy, S., Olefeldt, D., Pavelsky, T.M., Pekel, J.-F., Poulter, B., Prigent, C., Wang, J., Worthington, T.A., Yamazaki, D., Zhang, X., Thieme, M. (2025). Mapping the world's inland surface waters: an upgrade to the Global Lakes and Wetlands Database (GLWD v2). Earth System Science Data. Data doi:10.6084/m9.figshare.28519994",
       "changes": [
         "Wetland classes 8-19, 22-25 and 29-31 added up (capped at 100%), clipped to the Baltic map, moved onto the game's flat map (an equal-area projection) and averaged over 1 km cells. Shares at or below 15% dropped as background; shares from 15% to 55% stretched in a straight line to 0-100% marsh, and 55% or more read as full marsh. Combined with today's herbaceous wetland (class 90) from ESA WorldCover 2021: each cell keeps the larger of the two.",
-        "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how)."
+        "Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (the notes that come with the terrain data in the game's source code say how).",
+        "Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (the notes that come with the terrain data in the game's source code say how)."
       ],
       "licenceName": "CC BY 4.0",
       "licenceUri": "creativecommons.org/licenses/by/4.0/",
@@ -119,10 +137,45 @@
       "line": "Rivers, lakes and their names: © OpenStreetMap contributors, Overture Maps Foundation. Open Database License: openstreetmap.org/copyright",
       "citation": "OpenStreetMap contributors. OpenStreetMap data as published by the Overture Maps Foundation, overturemaps.org (release 2026-09-23.1, accessed 7 October 2026). openstreetmap.org",
       "changes": [
-        "Rivers and lakes: filtered to named rivers (at least 50 km on the map, or 15 km with a Wikidata id) and named natural lakes (at least 1 km², or 0.5 km² with a Wikidata id); river ways joined into rivers by OpenStreetMap's river relations; modern reservoirs and lakes made after 1219 left out by their OpenStreetMap tags and a reviewed list; lakes mapped twice inside a bigger lake left out; moved onto the game's flat map (an equal-area projection), rounded to 100 m and simplified for three zoom levels. Names shown on the map: Russian, Belarusian and Ukrainian names written in Latin letters (BGN/PCGN, with the soft and hard signs and the apostrophe left out); one name shown where OpenStreetMap gives a name in two languages; abbreviations such as \"ež.\" left out; each river named by its name at its lower end. OpenStreetMap's own names are kept in the data."
+        "Rivers and lakes: filtered to named rivers (at least 50 km on the map, or 15 km with a Wikidata id) and named natural lakes (at least 1 km², or 0.5 km² with a Wikidata id); river ways joined into rivers by OpenStreetMap's river relations; modern reservoirs and lakes made after 1219 found by their OpenStreetMap tags and a reviewed list, and shipped only where they have a year (from our own dated list, or from OpenStreetMap's start_date), tagged so the map shows them from that year; a few dated river stretches (the Vistula's 1895 cut, the Lielupe's mouth of 1755) split out and tagged the same way, and two short rivers kept for the old courses; lakes mapped twice inside a bigger lake left out; moved onto the game's flat map (an equal-area projection), rounded to 100 m and simplified for three zoom levels. Names shown on the map: Russian, Belarusian and Ukrainian names written in Latin letters (BGN/PCGN, with the soft and hard signs and the apostrophe left out); one name shown where OpenStreetMap gives a name in two languages; abbreviations such as \"ež.\" left out; each river named by its name at its lower end. OpenStreetMap's own names are kept in the data."
       ],
       "licenceName": "Open Database License (ODbL) 1.0",
       "licenceUri": "opendatacommons.org/licenses/odbl/1-0/",
+      "notes": [],
+      "unofficialCopy": null
+    },
+    {
+      "title": "NKG",
+      "owner": "Nordic Geodetic Commission (NKG)",
+      "version": "NKG_RF17vel (file of 2020-11-04)",
+      "uses": [
+        "the northern coast over time (where the sea stood higher in the game's year)"
+      ],
+      "line": "NKG_RF17vel land-uplift model © Nordic Geodetic Commission (NKG).",
+      "citation": "Nordic Geodetic Commission (2020). NKG_RF17vel velocity model (eur_nkg_nkgrf17vel.tif), used in the NKG2020 transformation: An Updated Transformation between Dynamic and Static Reference Frames in the Nordic and Baltic Countries, Journal of Geodetic Science, doi:10.1515/jogs-2022-0155.",
+      "changes": [
+        "Only the up (vertical) velocity is used, read with bilinear interpolation onto 500 m cells of the game's flat map, to estimate how fast the sea has fallen against the land since 1219.",
+        "Coast over time: combined with the other coast sources into one code per 500 m cell, the year the sea left it, by a rule fitted to dated shores (the notes that come with the coast data in the game's source code say how). An estimate."
+      ],
+      "licenceName": "CC BY 4.0",
+      "licenceUri": "creativecommons.org/licenses/by/4.0/",
+      "notes": [],
+      "unofficialCopy": "Fetched from PROJ-data (OSGeo's package of grids for the PROJ software, release 1.25.0), which is byte-identical to the file on the NKG's own site."
+    },
+    {
+      "title": "Grind Strat",
+      "owner": "Grind Strat",
+      "version": "M3a (October 2026)",
+      "uses": [
+        "the dated facts and drawn shapes of the map over time: reservoirs, cuts and outlets, and the Vistula delta"
+      ],
+      "line": "Dated facts and drawn shapes (marked reconstructed): Grind Strat's own work, from the sources named with each fact.",
+      "citation": "Grind Strat, the dated list of water works and other changes, and its drawn shapes (M3a, October 2026). Sources of each fact in data/sources.md.",
+      "changes": [
+        "Our own work: years and facts read from the sources named with each, and shapes drawn by us on public-domain heights and land (GEBCO_2026 heights and sea depths, and Natural Earth's land); the Vistula delta's (Żuławy) marsh before diking is the low ground outlined on GEBCO_2026's heights, and its 1 km cells those 5 m or lower in the base block's heights (from GEBCO); years still to check are marked TO CHECK."
+      ],
+      "licenceName": "Grind Strat's own terms (not yet chosen)",
+      "licenceUri": "github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md",
       "notes": [],
       "unofficialCopy": null
     }

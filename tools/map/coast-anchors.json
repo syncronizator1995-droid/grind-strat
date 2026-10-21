@@ -1,0 +1,220 @@
+{
+  "about": "Control points for the northern coast over time (tools/map/coast.mjs, npm run map:coast). Each says how high the sea stood above today's sea at a place and a year, from a cited study. 'value' points fit the factor k of the rule 'relative sea fall = k x (land uplift - 0.5) mm a year'; points of one 'group' (one place) share one k. 'check' points are not fitted, only compared, so their misfit shows. 'below' and 'above' are limiting points from the HOLSEA database (the sea was at or below, or at or above, that height): brackets, never values. Ages in cal BP are years before 1950. Heights are metres above today's mean sea level in each study's national datum (RH70, RH2000, EH2000, ...), which differ by up to a few decimetres: small against the errors below. Positions marked approximate are a town's centre, picked by hand (TO CHECK); others are the study's own. Everything built from these is an estimate, and is marked so in the game.",
+  "points": [
+    {
+      "id": "eckarfjarden",
+      "group": "uppland-north",
+      "use": "value",
+      "place": "Lake Eckarfjärden, near Forsmark, north Uppland",
+      "lon": 18.2,
+      "lat": 60.3667,
+      "position": "60°22'N 18°12'E, from the study's Table 4-1",
+      "year": 1100,
+      "age": "isolated from the sea 850 cal BP (about AD 1100)",
+      "rslM": 5.5,
+      "toleranceM": 0.5,
+      "source": "Hedenström, A. and Risberg, J. (2003), Shore displacement in northern Uppland during the last 6500 calender years, SKB Technical Report TR-03-17, Table 4-1 and the summary",
+      "url": "https://skb.com/publication/20970/TR-03-17.pdf",
+      "seen": "read",
+      "quote": "Lake Landholmssjön (16.0 m a s l) 2200 cal yrs BP, Lake Södra Åssjön (10.8 m a s l) 1400 cal yrs BP and Lake Eckarfjärden (5.5 m a s l) 850 cal yrs BP.",
+      "toCheck": []
+    },
+    {
+      "id": "stockholm-1300",
+      "group": "stockholm",
+      "use": "value",
+      "place": "Stockholm, Stadsholmen (Gamla stan) and Slussen",
+      "lon": 18.071,
+      "lat": 59.325,
+      "position": "approximate: the centre of Stadsholmen (TO CHECK)",
+      "year": 1300,
+      "age": "'at the turn of the 13th/early 14th century'",
+      "rslM": 2.0,
+      "toleranceM": 0.5,
+      "source": "Söderlund, K. (2016), Slussen through the ages, Stockholmia förlag, p. 5",
+      "url": "https://skonhetsradet.stockholm/wp-content/uploads/sites/45/2023/08/slussen-eng.pdf",
+      "seen": "read",
+      "quote": "In c.1000 the water line was roughly four metres higher than it is today, and at the turn of the 13th/early 14th century it was two metres higher.",
+      "toCheck": [
+        "Whether 'two metres higher' is measured against today's sea or against Lake Mälaren (about 0.3 to 0.7 m above the sea).",
+        "Other sources put Stockholm's sea in 1219 between about 2.5 and 4.3 m above today's (research notes, 11 October 2026)."
+      ]
+    },
+    {
+      "id": "stockholm-1000",
+      "group": "stockholm",
+      "use": "check",
+      "place": "Stockholm, Stadsholmen (Gamla stan) and Slussen",
+      "lon": 18.071,
+      "lat": 59.325,
+      "position": "approximate: the centre of Stadsholmen (TO CHECK)",
+      "year": 1000,
+      "age": "'c.1000'",
+      "rslM": 4.0,
+      "toleranceM": 1.5,
+      "source": "Söderlund, K. (2016), Slussen through the ages, Stockholmia förlag, p. 5",
+      "url": "https://skonhetsradet.stockholm/wp-content/uploads/sites/45/2023/08/slussen-eng.pdf",
+      "seen": "read",
+      "quote": "In c.1000 the water line was roughly four metres higher than it is today",
+      "toCheck": [
+        "With the 1300 figure it implies 6.7 mm a year of fall, faster than Stockholm's land rises today: one of the two is rounded or on another datum. Only the 1300 figure is fitted, as it is the nearer to the game's years."
+      ]
+    },
+    {
+      "id": "harku",
+      "group": "tallinn",
+      "use": "value",
+      "place": "Harku, west of Tallinn",
+      "lon": 24.62,
+      "lat": 59.42,
+      "position": "the database's own",
+      "year": 910,
+      "age": "1040 cal BP (2 sigma +70/-70 years)",
+      "rslM": 2.73,
+      "toleranceM": 0.6,
+      "source": "Rosentau, A. et al. (2020), A Holocene relative sea-level database for the Baltic Sea, GFZ Data Services, doi:10.5880/GFZ.1.3.2020.003 (sample Harku-4, from Grudzinska et al. 2014 as in Muru et al. 2017: an index point, not rejected; Harku-1 to Harku-3 are rejected in the database and not used)",
+      "url": "https://datapub.gfz-potsdam.de/download/10.5880.GFZ.1.3.2020.003vEGWF/2020-003_Rosentau-et-al_HOLSEA_baltic_isol_21-06-18.xlsx",
+      "seen": "read",
+      "quote": "Harku-4 | Estonia; Tallinn; Harku | 59.42 24.62 | age 1040 cal a BP | Type 0 | RSL 2.73 m (2 sigma +0.54/-0.54) | Reject 0",
+      "toCheck": []
+    },
+    {
+      "id": "tallinn-1219",
+      "group": "tallinn",
+      "use": "value",
+      "place": "Tallinn",
+      "lon": 24.745,
+      "lat": 59.437,
+      "position": "approximate: the centre of Tallinn (TO CHECK)",
+      "year": 1219,
+      "age": "AD 1219 = 731 cal BP",
+      "rslM": 2.0,
+      "toleranceM": 0.6,
+      "source": "Saarse, L. and Vassiljev, J. (2010), Holocene shore displacement in the surroundings of Tallinn, North Estonia, Estonian Journal of Earth Sciences 59(3), 207-215, doi:10.3176/earth.2010.3.03",
+      "url": "https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2010/issue_3/earth-2010-3-207-215.pdf",
+      "seen": "read",
+      "quote": "During the Limnea Sea stage (4400 cal yr BP up to the present, the highest coastline at ca 12 m a.s.l.) [...] presumably every time slice from the transgression maximum onwards could be modelled considering that the Litorina Sea water level lowered linearly.",
+      "derived": "Our own arithmetic on the paper's stated assumption of a linear fall: 12 m x 731 / 4400 = 2.0 m in 1219. Not a figure printed in the paper.",
+      "toCheck": [
+        "Read the 2.0 m off the paper's map for 1000 cal BP (Fig. 9) instead of the linear rule."
+      ]
+    },
+    {
+      "id": "salme-1219",
+      "group": "saaremaa",
+      "use": "value",
+      "place": "Salme, Saaremaa",
+      "lon": 22.26,
+      "lat": 58.16,
+      "position": "approximate: Salme village (TO CHECK)",
+      "year": 1219,
+      "age": "AD 1219",
+      "rslM": 1.0,
+      "toleranceM": 0.5,
+      "source": "Nirgi, T., Grudzinska, I., Kalińska, E., Konsa, M., Jõeleht, A., Alexanderson, H., Hang, T. and Rosentau, A. (2022), Late-Holocene relative sea-level changes and palaeoenvironment of the Pre-Viking Age ship burials in Salme, Saaremaa Island, eastern Baltic Sea, The Holocene 32(4), doi:10.1177/09596836211066596",
+      "url": "https://doi.org/10.1177/09596836211066596",
+      "seen": "abstract read in full (Crossref metadata, api.crossref.org/works/10.1177/09596836211066596); the paper itself not read (closed access): TO CHECK",
+      "quote": "The curve shows an almost linear RSL fall from 5.5 to 0.8 m a.s.l. between 1000 BC and 1300 AD with an average rate of 2 mm/year. A slowdown in regression may be attributed to accelerated sea-level rise after the Little Ice Age and during the industrial period (abstract)",
+      "derived": "Interpolated along that line: about 1.0 m in 1219.",
+      "toCheck": [
+        "Read the paper itself: the figures here are from its abstract only."
+      ]
+    },
+    {
+      "id": "salme-1300",
+      "group": "saaremaa",
+      "use": "check",
+      "place": "Salme, Saaremaa",
+      "lon": 22.26,
+      "lat": 58.16,
+      "position": "approximate: Salme village (TO CHECK)",
+      "year": 1300,
+      "age": "AD 1300",
+      "rslM": 0.8,
+      "toleranceM": 0.5,
+      "source": "Nirgi, T. et al. (2022), The Holocene 32(4), doi:10.1177/09596836211066596",
+      "url": "https://doi.org/10.1177/09596836211066596",
+      "seen": "abstract read in full (Crossref metadata, api.crossref.org/works/10.1177/09596836211066596); the paper itself not read (closed access): TO CHECK",
+      "quote": "an almost linear RSL fall from 5.5 to 0.8 m a.s.l. between 1000 BC and 1300 AD (abstract)",
+      "toCheck": [
+        "Read the paper itself."
+      ]
+    },
+    {
+      "id": "prassi-1",
+      "group": "hiiumaa",
+      "use": "below",
+      "place": "Prassi, Hiiumaa",
+      "lon": 22.6172,
+      "lat": 58.7289,
+      "position": "the database's own",
+      "year": 1010,
+      "age": "940 cal BP (2 sigma +100/-135 years)",
+      "rslM": 6.63,
+      "toleranceM": 0.3,
+      "source": "Rosentau, A. et al. (2020), HOLSEA Baltic database, GFZ Data Services, doi:10.5880/GFZ.1.3.2020.003 (sample Prassi 1, from Vassiljev et al. 2015: a terrestrial limiting point, Type 1, not rejected)",
+      "url": "https://datapub.gfz-potsdam.de/download/10.5880.GFZ.1.3.2020.003vEGWF/2020-003_Rosentau-et-al_HOLSEA_baltic_isol_21-06-18.xlsx",
+      "seen": "read",
+      "quote": "Prassi 1 | Estonia; Hiiumaa; Prassi | 58.7289 22.6172 | age 940 cal a BP | Type 1 | RSL 6.63 m | Reject 0",
+      "toCheck": []
+    }
+  ],
+  "older": "Not fitted: points older than AD 800, because today's uplift rate does not hold that far back (the land rose faster then, so a straight line from today overshoots or undershoots). From the same sources: Södra Åsjön 10.8 m at 1400 cal BP and Landholmssjön 16.0 m at 2200 cal BP (north Uppland), Käsmu 4.73 m at 1840 cal BP and Lohja 6.23 m at 2240 cal BP (north Estonia), and Prassi on Hiiumaa, where the sea stood at about 6.3 to 6.6 m around 1365 to 1460 cal BP (limiting points). They matter for AD 1 (M3b).",
+  "regions": [
+    {
+      "name": "Stockholm and Lake Mälaren",
+      "error": "Fitted to Söderlund's 2 m about 1300, so about 2.2 m in 1219; other sources allow up to about 4.3 m. The shore could lie further inland than drawn. When Mälaren became a lake is dated only 'about 1200' to 'about 1300' (TO CHECK); at 500 m the Stockholm straits are narrower than a cell, so the build reports when Mälaren is cut off."
+    },
+    {
+      "name": "North Uppland (Forsmark)",
+      "error": "Fitted to Eckarfjärden (5.5 m about 1100): within about 0.5 m there."
+    },
+    {
+      "name": "Åland and south-west Finland (Turku)",
+      "error": "No control point of their own: Turku is more than 150 km from every control place, so the rule is used as it is there (k = 1, about 4.3 m in 1219); Mariehamn is just inside the reach of Stockholm and north Uppland and is bent a little (k about 0.96, about 4.6 m). A Turku curve seen only as a snippet (Vuorela et al. 2009, about 3.8 mm a year) suggests about 3 m: the shore may be drawn too far inland. TO CHECK. Turku and Åland also sit on GEBCO's 60°N seam, where the land heights change source."
+    },
+    {
+      "name": "Gulf of Finland, north coast (Helsinki to Vyborg)",
+      "error": "Mostly k = 1, nearer Tallinn bent towards Tallinn's fit. About 2.8 m at Helsinki in 1219, no control point: about ±1 m."
+    },
+    {
+      "name": "North Estonia (Tallinn)",
+      "error": "Fitted to Harku (2.73 m about 910) and Saarse and Vassiljev's linear shore line (2.0 m in 1219): within about 0.6 m."
+    },
+    {
+      "name": "West Estonia and the islands (Haapsalu, Hiiumaa, Saaremaa, Pärnu)",
+      "error": "Fitted to Salme (about 1 m in 1219, from an abstract only). The land is very flat here, so a few decimetres of error move the shore by hundreds of metres; GEBCO's whole-metre heights and tree tops make it worse. Haapsalu and Pärnu lie between Salme and Tallinn and take a blend of the two."
+    },
+    {
+      "name": "Gulf of Riga, Kurzeme and the south coast",
+      "error": "The sea fell less than 0.5 m since 1219 (Riga about 0.3 m), below what whole-metre heights can show, so nothing changes; further south the sea was if anything slightly lower than today (HOLSEA brackets at Puck: between about -1.24 and -0.64 m around 1150-1250), which is left to hand-drawn fixes."
+    }
+  ],
+  "lakes": [
+    {
+      "id": "malaren",
+      "name": "Lake Mälaren",
+      "neName": "Mälaren",
+      "outlet": {
+        "place": "the straits at Stockholm, between Riddarfjärden and Saltsjön, where Norrström and Söderström run today",
+        "lon": 18.06,
+        "lat": 59.325,
+        "position": "approximate, picked by hand at the east end of the lake (TO CHECK); the channel itself is reconstructed: the shortest route on the 500 m cells from there to today's sea, drawn from Natural Earth's coast, not from a map of the straits",
+        "closedYear": 1300,
+        "age": "'by around 1300'",
+        "source": "Söderlund, K. (2016), Slussen through the ages, Stockholmia förlag, p. 5",
+        "url": "https://skonhetsradet.stockholm/wp-content/uploads/sites/45/2023/08/slussen-eng.pdf",
+        "seen": "read",
+        "quote": "By some time in the 11th century, because of land rise, the sole remaining navigable route between the Baltic Sea and Lake Mälaren passed by Stadsholmen [...] By around 1300, land rise had transformed Mälaren from a deep bay of the Baltic Sea to a lake.",
+        "toCheck": [
+          "Other sources date the change to about 1200 (Britannica, seen as a snippet only) or simply to the 13th century: Risberg et al. 2008 or SGU's model could pin it down.",
+          "At 500 m GEBCO cannot see the straits (central Stockholm reads 10 to 40 m, and Mälaren's surface 3.0 m against about 0.3 to 0.7 m above the sea): that is why the outlet is given by hand."
+        ]
+      }
+    }
+  ],
+  "sguDomain": {
+    "about": "Where SGU's shore model, when it can be fetched, overrides the estimate: Sweden's coast within the map. A hand-drawn box in degrees, drawn from today's coast in the game's base map so that it holds the Swedish coast from Skåne to Gävle with Gotland and Öland, and leaves out Åland (west of 19.5°E only from 59.9°N northwards).",
+    "ring": [[11.0, 55.0], [19.6, 55.0], [19.6, 59.6], [19.47, 59.9], [19.47, 61.6], [11.0, 61.6]]
+  }
+}

@@ -334,7 +334,7 @@ and holdings, planned with him after 2a. The approved 2a plan is in docs/HANDOFF
 - A 1 km terrain map replaces "a small terrain grid per province (for example 32 by 32 cells)".
 - No hard size limit replaces "map JSON under about 500 KB"; the test is first map on screen in
   under 3 s on his phone.
-- Names of the time, changing with the time slider (the research had proposed today's names).
+- Names of the time, changing with the game's date (the research had proposed today's names). Later, 11 October 2026: no slider; the map follows the game's date.
 - Share-alike data is allowed ("free forever"), in separate files.
 - The five ice-age slices are built properly in step 8; 2a gives a rough preview.
 
@@ -382,8 +382,8 @@ and holdings, planned with him after 2a. The approved 2a plan is in docs/HANDOFF
   changes the save (section 5).
 - 1219 forest share is estimated from pollen (REVEALS, an AD 750–1250 average) and labelled so.
 
-**Time slices:** today, 1219 and 1 AD in full. The five ice-age slices (10,000, 9,500, 8,500,
-7,500 and 5,000 BC) are a rough preview, labelled rough, each with a sourced note; built properly
+**Time slices:** today and 1219 in full. AD 1 and the five ice-age slices (10,000, 9,500, 8,500,
+7,500 and 5,000 BC) are prepared as data in M3b, each with a sourced note; played properly
 in step 8. One base coast (Natural Earth) is used by every slice, so the coast doesn't jump where
 nothing changed; 1219 and 1 AD add local fixes, each with a source or marked TO CHECK.
 
@@ -397,7 +397,7 @@ names by era. A proposed shape:
   "other": { "lt": "…", "lv": "…", "et": "…", "pl": "…", "de": "…", "ru": "…" } }
 ```
 - `standIn: true` means today's local name is standing in because no name of the time is sourced.
-  The map shows the name for the slider's era. The panel shows every name with its sources.
+  The map shows the name for the game's date. The panel shows every name with its sources.
 - A test checks that every named feature has a name per era, or a marked stand-in, and a source.
 - The values above are an invented example of the shape, not data.
 
@@ -484,6 +484,58 @@ names by era. A proposed shape:
 
 **Sources for every item** (province, border, holding site, river, name), by `collection:id` or
 by ids from data/sources.md.
+
+**As built in M3a, pull request 1 (the map follows the game's date; no slider):**
+- **The date engine** is pure rules in `src/sim/map-date.js` (the map year of a game day, dated
+  features, the land of any year from anchors and change planes, with `prepareStep` to work out
+  switch years ahead in small pieces) and `src/sim/coast-date.js` (the northern coast's field,
+  `seaAt` and `step`). Nothing new is saved: the map for a date is always worked out again from
+  the shipped blocks, so it can't break a save. `src/ui/map/dated.js` puts the two together for
+  the view (what changes when the year moves) and runs in Node for tests.
+- **Data blocks by licence:** `src/data/by-sa/terrain-time.json` (CC BY-SA 4.0, the pollen-based
+  land over time, 691 KB), `src/data/by/coast.json` (CC BY 4.0, the northern coast, 70 KB),
+  `src/data/own/changes.json` (our own work: dated facts, drawn shapes, Żuławy's cells, 15 KB),
+  and the ODbL water block with its date tags (`riverTag`, `lakeTag`, `info.tags`). The build
+  fails if a CC BY block holds anything but CC BY or public-domain data, if an ODbL block holds
+  anything but OpenStreetMap's, or if our own block holds anyone else's. The game file grew from
+  2.0 MB to 2.8 MB.
+- **Loading:** a new game's first picture needs none of this. The three blocks sit after the code
+  in the page and are unpacked just after the rivers and lakes, in pieces with a frame between
+  them (about 0.25 s in headless Chrome, 1.1 s with the processor slowed 4x). A save from a later
+  year unpacks them first and moves the 1219 grid to its year before the first picture, so it
+  never shows 1219 first (`data-map-year-at-first-paint` lets the shots check it). The first map
+  of a new game measured 106% to 110% of M2b's in headless Chrome slowed 4x (about 1.3 s against
+  1.25 s; the runs vary by about 15%): over the 5% target, because the page carries 0.8 MB more.
+- **Drawing while the date runs:** the view does its date work in its own animation frames,
+  about 3 ms of each: it moves the date, writes changed land cells straight into the terrain
+  tiles' kept image data (`paintTerrain` keeps each 512 px tile's pixels, about 8.4 MB), copies
+  changed tiles to their canvases (on-screen tiles first) and, with time left, prepares the
+  land's coming changes. The kept frame is painted again in one go, at most every 250 ms, no more
+  often than 12 times what one paint costs (copy to the screen included), and never while a
+  finger or the mouse is down or a zoom is under way. The names already placed are drawn again
+  as they are; they are placed anew (with up to 32 ms to place them, so none are left for a
+  second paint) only when a dated river or lake comes or goes, or the old sea moves. Painting in
+  strips over several frames was tried and dropped: in headless Chrome each strip cost most of a
+  whole paint, as the big outlines are drawn whole each time, so its time run (slowed 4x) had
+  about 100 frames over 12 ms with strips and about 40 without.
+- **Water by date:** `cutWater` still cuts once per zoom level and leaves dated features out;
+  `cutDated` gives them as small sets per tag, drawn when `tagsOnAt` says the tag is on. Names
+  skip features that are off and places under the old sea. Our drawn shapes (outlets as sea,
+  Ruden as land, the larger Lake Drużno) come from `changes.json`.
+- **The old sea** (an estimate) is drawn from `src/ui/map/shore.js` for a box round the view,
+  rebuilt only when the coast's level changes (every 4 game years) or the view leaves the box.
+  Zoomed out it reads the field coarser (2 km cells, then 1 km; 500 m close up). Its path has no
+  closePath: in Chrome each closePath slows down with every ring already in the path (10,000
+  rings took over half a second).
+- **Measured:** one map run from 1219 to 2021 a year at a time takes about 0.35 ms per map year
+  in Node and changes 667,896 cells (the soak checks it ends on today's anchor). The speed test's
+  time run (1219 to 2021 at speed 5, 9,758 frames) in headless Chrome slowed 4x: 100% of frames
+  on time, 95% under 16.7 ms; date work per frame median 0.0 ms, 95% under 4.3 ms. Its worst
+  frames (about 0.5 s, about 40 of them) are whole repaints of the frame at the overview, which a
+  headless canvas makes slow (M2b's own full redraw of that view takes 0.4 to 0.6 s there too);
+  Ignas's phone paints a full frame in 11 ms.
+- **The hidden test link** `#date=1550` pins the map to a year without changing the game's date;
+  `#date=1550&view=x,y,scale` also places the camera, for the screenshots. Later `#10000BC`.
 
 ## 10. Invariants and soak outputs
 

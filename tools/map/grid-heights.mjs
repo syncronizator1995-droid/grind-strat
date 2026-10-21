@@ -20,7 +20,7 @@ export const gebcoKey = (url) => `gebco-2026/${new URL(url).pathname.split('/').
  * Opens the official GEBCO tile, or the fallback copy if the official one is gone (404). The
  * two were compared cell by cell over the map window (compare-gebco.mjs) and agree.
  */
-async function openGebco() {
+export async function openGebco() {
   const src = await sourceEntry('gebco-2026');
   const official = await openRemoteTiff(gebcoKey(src.url), src.url, { maxChunk: src.maxRangeBytes });
   if (official) return official;

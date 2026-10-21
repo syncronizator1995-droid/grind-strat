@@ -20,8 +20,10 @@
     "startup": "node test/startup.mjs",
     "attribution": "node tools/map/attribution.mjs",
     "map:terrain": "node tools/map/build-terrain-1219.mjs",
+    "map:terrain-time": "node tools/map/build-terrain-time.mjs && node tools/map/pack-terrain-time.mjs",
     "map:pack": "node tools/map/pack.mjs && node tools/map/attribution.mjs",
-    "map:water": "node tools/map/fetch-overture.mjs && node --max-old-space-size=8192 tools/map/build-water.mjs"
+    "map:water": "node tools/map/fetch-overture.mjs && node --max-old-space-size=8192 tools/map/build-water.mjs",
+    "map:coast": "node tools/map/fetch.mjs nkg-rf17vel && node --max-old-space-size=8192 tools/map/build-coast.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

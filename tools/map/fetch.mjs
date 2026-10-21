@@ -20,13 +20,17 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  * @property {string} line @property {string} citation @property {string} changes
  * @property {string} licenceName @property {string} licenceUri without "https://"
  * @property {string[]} [notes]
+ * @property {string} [groupVersion] @property {string} [groupLine] the version and line of the one entry
+ *   that several sources sharing a citation get (SpatioCompo's four time windows); line stays each
+ *   source's own, as the blocks' notices quote it
  *
  * @typedef {object} RawSource
  * @property {string} id @property {string} collection @property {string} url @property {string} file
  * @property {string} what @property {string} licence @property {string} licenceUrl
  * @property {'read' | 'unverified'} licenceStatus
- * @property {'whole' | 'range' | 'overpass' | 'overture'} [access] 'overpass' and 'overture': OpenStreetMap data,
- *   fetched by tools/map/fetch-osm.mjs and tools/map/fetch-overture.mjs
+ * @property {'whole' | 'range' | 'overpass' | 'overture' | 'gpkg' | 'own'} [access] 'overpass' and 'overture': OpenStreetMap data,
+ *   fetched by tools/map/fetch-osm.mjs and tools/map/fetch-overture.mjs; 'gpkg': SGU's shore model, fetched by
+ *   tools/map/build-coast.mjs once its host is allowed; 'own': our own work in the repository, nothing to fetch
  * @property {number} [maxRangeBytes] the largest single range request this host takes well
  * @property {{ url: string, what: string, maxRangeBytes?: number }} [fallback] a second copy of the same
  *   file, used only if the main url is gone; tools/map/compare-gebco.mjs checks they agree
@@ -70,6 +74,7 @@ async function main() {
   const sources = (await rawSources()).filter((s) => !wanted.length || wanted.includes(s.id));
   if (wanted.length && sources.length !== wanted.length) throw new Error(`unknown source id in: ${wanted.join(', ')}`);
   for (const s of sources) {
+    if (s.access === 'own') { console.log(`skip  ${s.id}: our own work, in the repository`); continue; }
     // Sources with their own reader (OpenStreetMap water) are fetched by that tool, not here.
     if (s.access && s.access !== 'whole' && s.access !== 'range') { console.log(`skip  ${s.id}: fetched by its own tool`); continue; }
     if (s.access !== 'range') await fetchWhole(s.id, s.url, s.file);

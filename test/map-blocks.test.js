@@ -11,6 +11,8 @@ import { attributionInputs, creditsText, makeAttribution } from '../tools/map/at
 import { BLOCK_FILES, FINGERPRINTS, presentBlockFiles, ROOT, sha256, shippedBlockFiles } from '../tools/map/block.mjs';
 import { loadMap, loadWater, noTimes } from '../src/ui/map/load.js';
 import { SPECKLE_LIMITS, speckleTest } from '../tools/map/terrain-checks.mjs';
+import { tagsOnAt } from '../src/ui/map/water-tiles.js';
+import { blockLayers, decodeWater } from '../tools/map/water-hashes.mjs';
 
 /** @param {string} path */
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
@@ -61,7 +63,13 @@ describe('the data blocks', () => {
         assert.equal(osm.length, 0, `${path} contains OpenStreetMap data outside src/data/odbl/`);
       }
       if (path.startsWith('src/data/by-sa/')) assert.equal(b.licence, 'CC-BY-SA-4.0');
+      if (path.startsWith('src/data/by/')) assert.equal(b.licence, 'CC-BY-4.0');
       if (path.startsWith('src/data/map/')) assert.equal(b.licence, 'public-domain');
+      const own = b.sources.filter((/** @type {string} */ id) => sourceOf(id)?.collection === 'own');
+      if (path.startsWith('src/data/own/')) {
+        assert.equal(b.licence, 'grind-strat-own');
+        assert.equal(own.length, b.sources.length, `${path} holds data that is not our own`);
+      }
     }
   });
 
@@ -115,12 +123,21 @@ describe('the data blocks', () => {
       assert.ok(lake.at[0] >= 0 && lake.at[0] <= 15724 && lake.at[1] >= 0 && lake.at[1] <= 13272, lake.name);
       assert.ok(lake.areaKm2 > 0, lake.name);
     }
-    // Lakes around 1219: modern reservoirs out, natural lakes in, whatever Natural Earth's class says.
-    const lakes = water.lakeInfo.map((l) => l.name);
-    for (const gone of ['Kauno marios', 'Kiev Reservoir', 'Kremenchuk Reservoir', 'Київське водосховище', 'Elektrėnų marios', 'Narva veehoidla / Нарвское водохранилище']) {
+    // Lakes around 1219: modern reservoirs out, natural lakes in, whatever Natural Earth's class
+    // says. From M3a the reservoirs ship, tagged with their dates: none is shown at 1219.
+    const tagged = block.sources.includes('osm-water') ? decodeWater(block) : null;
+    const changes = shipped('changes').block;
+    const entries = JSON.parse(new TextDecoder().decode(blockLayers(changes).info)).entries;
+    const on1219 = tagged ? tagsOnAt(tagged.tags, entries, 1219) : null;
+    const lakes = water.lakeInfo.filter((_, k) => !on1219 || on1219[/** @type {any} */ (tagged).lakeTag[k]]).map((l) => l.name);
+    for (const gone of ['Kauno marios', 'Kiev Reservoir', 'Kremenchuk Reservoir', 'Київське водосховище', 'Elektrėnų marios', 'Narva veehoidla / Нарвское водохранилище', 'Kyivske vodoskhovyshche', 'Narva veehoidla']) {
       assert.ok(!lakes.includes(gone), `${gone} is a modern reservoir`);
     }
-    assert.ok(!lakes.some((n) => /reservoir|водосховищ|водохранилищ|вадасховішч|zbiornik|ūdenskrātuv|veehoidla|stausee|talsperre/i.test(n)), 'no reservoir by name');
+    assert.ok(!lakes.some((n) => /reservoir|vodoskhovyshch|vodokhranilishch|vadaskhovishch|водосховищ|водохранилищ|вадасховішч|zbiornik|ūdenskrātuv|veehoidla|stausee|talsperre/i.test(n)), 'no reservoir by name at 1219');
+    if (tagged) {
+      const all = water.lakeInfo.map((l) => l.name);
+      for (const dated of ['Kauno marios', 'Jeziorsko']) assert.ok(all.includes(dated), `${dated} ships, tagged with its year`);
+    }
     if (block.sources.includes('osm-water')) {
       for (const must of ['Lubāns', 'Võrtsjärv', 'Śniardwy', 'Ladoga', 'Ilmen', 'Kuršių marios', 'Zalew Wiślany', 'Drūkšiai', 'Peipsi']) {
         assert.ok(lakes.some((n) => n.includes(must)), `no lake called ${must}`);
@@ -175,8 +192,9 @@ describe('the credits', () => {
     assert.ok(!/https?:|\/\//.test(text), 'credits.json goes into the game code: no "https://" or "//"');
     const used = new Set(shippedBlockFiles().flatMap(({ path }) => JSON.parse(read(path)).sources));
     for (const id of used) {
-      const line = sourceOf(id).credit.line;
-      assert.ok(credits.datasets.some((/** @type {any} */ d) => d.line === line), `${id} is not credited`);
+      // Sources sharing a citation (SpatioCompo's four time windows) share one entry and its line.
+      const { line, citation } = sourceOf(id).credit;
+      assert.ok(credits.datasets.some((/** @type {any} */ d) => d.line === line || d.citation === citation), `${id} is not credited`);
     }
     assert.match(credits.mapLine, /GEBCO/);
     assert.match(credits.mapLine, /more$/);

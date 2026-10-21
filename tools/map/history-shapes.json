@@ -1,0 +1,217 @@
+{
+  "about": "Grind Strat's own drawn shapes for the dated map (M3a): the Vistula Lagoon's old outlets and today's Pillau strait, Ruden and its lost land bridge to Rügen, a larger Lake Drużno, and the Vistula delta's marsh before diking. Each is our own reconstruction ('reconstructed'), drawn in longitude and latitude on public-domain heights and land and on published coordinates, then moved onto the game's map with MAP.toUnits (tools/map/projection.mjs) and rounded to whole game units (100 m). None is traced from OpenStreetMap or from any map still in copyright. tools/map/pack-changes.mjs packs them into src/data/own/changes.json; tools/map/water-changes.json dates them (its 'shape' fields) and holds the sources named here.",
+  "fields": {
+    "id": "the shape id that tools/map/water-changes.json names",
+    "type": "'water' (a channel cut through the base land: drawn as sea or lagoon water), 'land' (land over today's sea), 'lake' (a lake drawn over the land), 'terrain' (land cells with a class of their own for a while: the land engine's overrides)",
+    "class": "terrain only: the class the cells hold ('marsh')",
+    "ring": "the outline, [x, y] in game units (100 m) on the game map, first point not repeated (the packer turns it counter-clockwise)",
+    "drawnFrom": "what it was drawn on and from",
+    "sources": "ids in tools/map/water-changes.json's sources",
+    "marks": "'reconstructed': drawn by us"
+  },
+  "shapes": [
+    {
+      "id": "lochstedt-outlet",
+      "type": "water",
+      "ring": [
+        [5866, 5275],
+        [5883, 5273],
+        [5901, 5271],
+        [5901, 5267],
+        [5883, 5269],
+        [5866, 5271]
+      ],
+      "drawnFrom": "a 400 m channel across the land between the sea and the lagoon's north-east tip, just south-west of Lochstedt castle (54.7070N 19.9513E, German Wikipedia), placed on the GEBCO_2026 heights and sea depths (public domain; the native 15 arc-second grid, read for drawing only); cut through the base land (Natural Earth 1:10m, public domain)",
+      "sources": [
+        "hagen-1883-pillau",
+        "wp-de-lochstedt"
+      ],
+      "marks": [
+        "reconstructed"
+      ]
+    },
+    {
+      "id": "vogler-outlet",
+      "type": "water",
+      "ring": [
+        [5660, 5031],
+        [5678, 5017],
+        [5688, 5009],
+        [5697, 5002],
+        [5695, 4998],
+        [5686, 5005],
+        [5676, 5013],
+        [5658, 5027]
+      ],
+      "drawnFrom": "a 400 m channel across the spit north-west of Frombork (54.35N 19.68E, Wikipedia), across the narrowest dune ridge on the GEBCO_2026 heights and sea depths (public domain; the native 15 arc-second grid, read for drawing only); cut through the base land (Natural Earth 1:10m, public domain)",
+      "sources": [
+        "hagen-1883-pillau"
+      ],
+      "marks": [
+        "reconstructed"
+      ]
+    },
+    {
+      "id": "balga-outlet",
+      "type": "water",
+      "ring": [
+        [5785, 5156],
+        [5800, 5149],
+        [5809, 5145],
+        [5819, 5140],
+        [5817, 5136],
+        [5807, 5141],
+        [5798, 5145],
+        [5783, 5152]
+      ],
+      "drawnFrom": "a 400 m channel across the spit north-west of Balga (54.5525N 19.9694E, Wikipedia), across the dune ridge on the GEBCO_2026 heights and sea depths (public domain; the native 15 arc-second grid, read for drawing only); cut through the base land (Natural Earth 1:10m, public domain)",
+      "sources": [
+        "hagen-1883-pillau"
+      ],
+      "marks": [
+        "reconstructed"
+      ]
+    },
+    {
+      "id": "pillau-strait",
+      "type": "water",
+      "ring": [
+        [5838, 5219],
+        [5847, 5213],
+        [5855, 5208],
+        [5861, 5204],
+        [5866, 5200],
+        [5864, 5196],
+        [5859, 5200],
+        [5853, 5204],
+        [5845, 5209],
+        [5836, 5215]
+      ],
+      "drawnFrom": "a 400 m channel (today's strait is about 400 m wide, Wikipedia) along the deep cells through the spit at the strait's published point (54.6411N 19.8783E, Wikipedia) on the GEBCO_2026 heights and sea depths (public domain; the native 15 arc-second grid, read for drawing only); cut through the base land (Natural Earth 1:10m, public domain), which has no strait",
+      "sources": [
+        "wp-strait-of-baltiysk"
+      ],
+      "marks": [
+        "reconstructed"
+      ]
+    },
+    {
+      "id": "ruden-island",
+      "type": "land",
+      "ring": [
+        [1857, 5063],
+        [1860, 5069],
+        [1861, 5076],
+        [1861, 5083],
+        [1860, 5086],
+        [1857, 5083],
+        [1857, 5076],
+        [1857, 5068]
+      ],
+      "drawnFrom": "an island 2.3 km long and about 400 m wide (German Wikipedia) round the land cells GEBCO shows at 54.20-54.21N 13.77E (the GEBCO_2026 heights and sea depths (public domain; the native 15 arc-second grid, read for drawing only)); not in the base land (Natural Earth 1:10m, public domain)",
+      "sources": [
+        "wp-de-ruden"
+      ],
+      "marks": [
+        "reconstructed"
+      ]
+    },
+    {
+      "id": "ruden-land-bridge",
+      "type": "land",
+      "ring": [
+        [1857, 5083],
+        [1850, 5098],
+        [1841, 5116],
+        [1834, 5135],
+        [1831, 5152],
+        [1832, 5169],
+        [1836, 5169],
+        [1835, 5152],
+        [1838, 5137],
+        [1845, 5118],
+        [1854, 5100],
+        [1861, 5085]
+      ],
+      "drawnFrom": "a 500 m strip from Ruden's north end to the south tip of Mönchgut by Thiessow (54.2769N 13.7122E, German Wikipedia), along the shallowest cells between them on the GEBCO_2026 heights and sea depths (public domain; the native 15 arc-second grid, read for drawing only); its course and width are a guess",
+      "sources": [
+        "wp-de-ruden"
+      ],
+      "marks": [
+        "reconstructed"
+      ]
+    },
+    {
+      "id": "druzno-larger",
+      "type": "lake",
+      "ring": [
+        [5508, 4685],
+        [5520, 4676],
+        [5536, 4653],
+        [5554, 4632],
+        [5566, 4612],
+        [5585, 4595],
+        [5597, 4577],
+        [5600, 4555],
+        [5586, 4539],
+        [5566, 4542],
+        [5551, 4557],
+        [5538, 4577],
+        [5523, 4603],
+        [5508, 4632],
+        [5500, 4660],
+        [5501, 4677]
+      ],
+      "drawnFrom": "the low ground below about 0 m between Elbląg and today's lake, along the foot of the Elbląg upland on the GEBCO_2026 heights and sea depths (public domain; the native 15 arc-second grid, read for drawing only), sized after the lake's 13th-century range in Nitychoruk et al. (2016), Text-fig. 9 (a picture we looked at; not traced, as it is not out of copyright)",
+      "sources": [
+        "nitychoruk-2016",
+        "wp-druzno"
+      ],
+      "marks": [
+        "reconstructed"
+      ]
+    },
+    {
+      "id": "zulawy",
+      "type": "terrain",
+      "class": "marsh",
+      "ring": [
+        [5043, 4948],
+        [5027, 4905],
+        [5049, 4836],
+        [5077, 4757],
+        [5098, 4666],
+        [5107, 4599],
+        [5129, 4530],
+        [5158, 4462],
+        [5181, 4416],
+        [5216, 4447],
+        [5253, 4523],
+        [5281, 4555],
+        [5338, 4518],
+        [5401, 4459],
+        [5467, 4456],
+        [5535, 4508],
+        [5609, 4538],
+        [5637, 4581],
+        [5587, 4628],
+        [5544, 4686],
+        [5501, 4733],
+        [5451, 4791],
+        [5389, 4839],
+        [5325, 4876],
+        [5262, 4907],
+        [5198, 4928],
+        [5134, 4948],
+        [5083, 4957]
+      ],
+      "drawnFrom": "the Vistula delta's low ground, outlined by hand on the GEBCO_2026 heights and sea depths (public domain; the native 15 arc-second grid, read for drawing only): the foot of the uplands round Gdańsk, Tczew, Malbork and Elbląg, the coast and the lagoon's south-west end; the 1 km cells inside it are those on the base land (Natural Earth 1:10m, public domain) whose height (the base block's 2 km heights) is 5 m or less, and the lowest (0 m or less) are the second wave",
+      "sources": [
+        "koperska-2025"
+      ],
+      "marks": [
+        "reconstructed"
+      ]
+    }
+  ]
+}

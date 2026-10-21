@@ -5,7 +5,12 @@
 //
 // The game ships OpenStreetMap's rivers and lakes (read through Overture, built by
 // tools/map/build-water.mjs into data/raw/derived/water-osm.json) as src/data/odbl/water.json,
-// under the ODbL 1.0 and holding nothing from any other source. M2's Natural Earth block
+// under the ODbL 1.0 and holding nothing from any other source.
+// Dated water (M3a): the reservoirs, lakes and river stretches that are not there at every date
+// ship with a tag, one per line (layer riverTag) and one per lake (layer lakeTag), 0 meaning
+// always shown; info.tags names them ('' first). A tag is one of our ids from
+// tools/map/water-changes.json, or "osm-year-<year>" (a year from OpenStreetMap's start_date).
+// Our years and facts are not in this block: they ship in our own block, src/data/own/. M2's Natural Earth block
 // (src/data/map/water-ne.json, the lakes of 1219 by tools/map/ne-water-1219.json) is kept as
 // code only: it is made when the OpenStreetMap extract is missing, and removed when it exists.
 
@@ -48,10 +53,12 @@ export const WATER_TOLERANCES = Object.freeze([20, 5]);
 const LAKE_MIN_KM2 = [10, 3];
 
 /**
- * @typedef {{ name: string, names: Record<string, string>, wikidata: string | null, lengthKm: number, lines: number[][], lineNames?: string[] }} River
- *   lineNames: the local name of each line, where the data has one (OpenStreetMap)
- * @typedef {{ name: string, names: Record<string, string>, otherNames?: Record<string, string>, wikidata: string | null, areaKm2: number, rings: number[][] }} Lake
- *   otherNames: alt_name, short_name and official_name, read by the labels and not shipped
+ * @typedef {{ name: string, names: Record<string, string>, wikidata: string | null, lengthKm: number, lines: number[][], lineNames?: string[], lineTags?: string[] }} River
+ *   lineNames: the local name of each line, where the data has one (OpenStreetMap); lineTags:
+ *   each line's date tag ('' or missing: always shown)
+ * @typedef {{ name: string, names: Record<string, string>, otherNames?: Record<string, string>, wikidata: string | null, areaKm2: number, rings: number[][], tag?: string }} Lake
+ *   otherNames: alt_name, short_name and official_name, read by the labels and not shipped;
+ *   tag: the lake's date tag ('' or missing: always shown)
  * @typedef {import('./water-labels.mjs').WaterLabels} Labels
  */
 
@@ -77,6 +84,11 @@ function waterLayers(rivers, lakes, labels) {
   const lakeOrder = lakes.map((l, k) => ({ l, k, info: shown(labels?.lakes[k], l.name) }));
   riverOrder.sort((a, b) => bySize(a.r.lengthKm, b.r.lengthKm, a.info.name, b.info.name));
   lakeOrder.sort((a, b) => bySize(a.l.areaKm2, b.l.areaKm2, a.info.name, b.info.name));
+  // Date tags: '' (always shown) is 0, the others in a fixed order.
+  const tags = ['', ...[...new Set([...rivers.flatMap((r) => r.lineTags ?? []), ...lakes.map((l) => l.tag ?? '')])].filter(Boolean).sort()];
+  const tagIndex = new Map(tags.map((t, k) => [t, k]));
+  /** @type {number[]} */ const riverTag = [];
+  /** @type {number[]} */ const lakeTag = [];
   /** @type {number[][]} */ const riverLines = [];
   /** @type {Uint8Array[]} */ const riverLevels = [];
   /** @type {number[]} */ const riverOf = [];
@@ -94,6 +106,7 @@ function waterLayers(rivers, lakes, labels) {
       riverLines.push(line);
       riverLevels.push(pointLevels(line, false, { tolerances: WATER_TOLERANCES }));
       riverOf.push(k);
+      riverTag.push(/** @type {number} */ (tagIndex.get(river.lineTags?.[i] ?? '')));
       const own = river.lineNames?.[i] ?? '';
       const label = main?.stretch.get(own);
       const isMain = !own || own === (main ? main.main.local : river.name);
@@ -124,7 +137,9 @@ function waterLayers(rivers, lakes, labels) {
       lakeOf.push(k);
     }
     labelAt.push(kept.length ? labelPoint(kept) : [0, 0]);
+    lakeTag.push(/** @type {number} */ (tagIndex.get(lake.tag ?? '')));
   });
+  const dated = tags.length > 1;
   return {
     layers: {
       rivers: encodeShapes(riverLines),
@@ -134,6 +149,7 @@ function waterLayers(rivers, lakes, labels) {
       lakes: encodeShapes(lakeRings),
       lakeLevels: joinLevels(lakeLevels),
       lakeOf: encodeUints(lakeOf),
+      ...(dated ? { riverTag: encodeUints(riverTag), lakeTag: encodeUints(lakeTag) } : {}),
       // The names and facts too, inside the compressed bundle: as plain JSON in the page they
       // would be most of its size (thousands of lakes, names in up to twelve languages).
       info: new TextEncoder().encode(JSON.stringify({
@@ -141,9 +157,10 @@ function waterLayers(rivers, lakes, labels) {
         riverLineNames: lineNames,
         ...(lineLocal.some(Boolean) ? { riverLineLocal: lineLocal } : {}),
         lakeInfo: lakeOrder.map(({ l, info }, k) => ({ ...info, names: l.names, wikidata: l.wikidata, areaKm2: l.areaKm2, at: labelAt[k] })),
+        ...(dated ? { tags } : {}),
       })),
     },
-    counts: { rivers: rivers.length, lakes: lakes.length },
+    counts: { rivers: rivers.length, lakes: lakes.length, ...(dated ? { datedLines: riverTag.filter(Boolean).length, datedLakes: lakeTag.filter(Boolean).length, tags: tags.length - 1 } : {}) },
   };
 }
 

@@ -3,6 +3,8 @@
 // one compressed bundle of layers (tools/map/block.mjs writes them; the build puts each into the
 // page as <script type="application/json" id="gs-<kind>">).
 
+import { createCoast } from '../../sim/coast-date.js';
+import { timelineFromBlock } from '../../sim/map-date.js';
 import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleBlocks } from './codec.js';
 
 /**
@@ -57,6 +59,11 @@ import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleB
  * @property {string[]} lineLocal for each of lineNames, the name as the data has it ('' when the same)
  * @property {Int32Array[]} lakes rings @property {Uint8Array} lakeLevels
  * @property {Uint32Array} lakeOf which lake each ring belongs to @property {LakeInfo[]} lakeInfo
+ * @property {Uint32Array | null} [lineTag] per line, its date tag (an index into tags; 0: shown at
+ *   every date); null or missing when nothing is dated
+ * @property {Uint32Array | null} [lakeTag] the same per lake (one per lakeInfo entry)
+ * @property {string[]} [tags] the date tags' names ('' first): our dated entries' ids, or
+ *   "osm-year-<year>" for a year from OpenStreetMap (src/ui/map/water-tiles.js tagsOnAt)
  */
 
 /**
@@ -100,15 +107,19 @@ async function unpackBlocks(blocks, times) {
 }
 
 /**
+ * A block's layers by name: the reader throws for a missing layer; reader.has tells first.
  * @param {PackedBlock} block @param {Record<string, Uint8Array>} layers
  */
 function layerReader(block, layers) {
   /** @param {string} name */
-  return (name) => {
+  const read = (name) => {
     const bytes = layers[name];
     if (!bytes) throw new Error(`the ${block.kind} data is missing its ${name} layer`);
     return bytes;
   };
+  read.has = (/** @type {string} */ name) => Boolean(layers[name]);
+  read.layers = layers;
+  return read;
 }
 
 /**
@@ -149,6 +160,7 @@ export async function loadMap(base, terrain) {
  *   block's "info" layer
  * @property {RiverInfo[]} riverInfo @property {LakeInfo[]} lakeInfo @property {string[]} [riverLineNames]
  * @property {string[]} [riverLineLocal]
+ * @property {string[]} [tags] the date tags ('' first), when some rivers or lakes are dated
  */
 
 /**
@@ -177,7 +189,14 @@ export async function loadWater(block, times) {
     lakeLevels: w('lakeLevels'),
     lakeOf: decodeUints(w('lakeOf')),
     lakeInfo: info.lakeInfo,
+    // Dated rivers and lakes (M3a): without their tags a reservoir would show at every date.
+    lineTag: w.has('riverTag') ? decodeUints(w('riverTag')) : null,
+    lakeTag: w.has('lakeTag') ? decodeUints(w('lakeTag')) : null,
+    tags: info.tags ?? [''],
   };
+  const tagCount = /** @type {string[]} */ (water.tags).length;
+  const badTag = (/** @type {Uint32Array | null | undefined} */ t, /** @type {number} */ n) => Boolean(t && (t.length !== n || t.some((k) => k >= tagCount)));
+  if (badTag(water.lineTag, rivers.length) || badTag(water.lakeTag, water.lakeInfo.length)) throw new Error('the water data\'s dates do not add up');
   if (water.riverOf.length !== water.rivers.length || water.lakeOf.length !== water.lakes.length
     || (water.lineName && (water.lineName.length !== rivers.length || water.lineName.some((k) => k >= lineNames.length)))
     || water.lineLocal.length !== lineNames.length) {
@@ -186,3 +205,75 @@ export async function loadWater(block, times) {
   times.decodeMs += performance.now() - t0;
   return water;
 }
+
+/**
+ * @typedef {object} DatedEntry one fact of the map over time (src/data/own/changes.json): what is
+ *   on from which year to which (BC years negative, null: open-ended)
+ * @property {string} id @property {string} kind
+ * @property {[number | null, number | null]} [on] @property {string} [tagPrefix] for a rule such as
+ *   "osm-year-": the year is in the tag itself
+ * @property {string[]} [marks] such as "reconstructed" or "estimate"
+ */
+
+/**
+ * @typedef {object} OwnShape one of our drawn shapes, marked reconstructed
+ * @property {string} id the dated entry it belongs to
+ * @property {'water' | 'land' | 'lake' | 'terrain'} type water: a channel cut through today's land;
+ *   land: land where today's map has sea; lake: a lake larger than today's; terrain: only its cells
+ *   are used (the land engine's overrides), it is not drawn
+ * @property {Int32Array} ring game units @property {Uint8Array} levels one per point, as the water's
+ */
+
+/**
+ * @typedef {object} DatedData the map over time, unpacked: the land, the northern coast, and our
+ *   dated facts and shapes. Rebuilt from the blocks every time; never saved.
+ * @property {import('../../sim/map-date.js').TerrainTimeline} timeline
+ * @property {import('../../sim/coast-date.js').Coast} coast
+ * @property {DatedEntry[]} entries @property {OwnShape[]} shapes
+ */
+
+/**
+ * Unpacks the map over time: the land from 1219 to today (terrain-time), the northern coast
+ * (coast) and our own dated facts and shapes (changes). Not needed for the first picture of a new
+ * game, so it is unpacked just after it; a save from a later year needs it first.
+ * @param {{ terrainTime: PackedBlock, coast: PackedBlock, changes: PackedBlock }} blocks
+ * @param {Uint8Array} base the 1219 terrain grid (copied: the map may change its own afterwards)
+ * @param {LoadTimes} times added to
+ * @returns {Promise<DatedData>}
+ */
+export async function loadDated({ terrainTime, coast, changes }, base, times) {
+  const [t, c, o] = await unpackBlocks([terrainTime, coast, changes], times);
+  // The pieces below take a moment each on a slow phone: let a frame through between them.
+  await breathe();
+  let t0 = performance.now();
+  const info = JSON.parse(new TextDecoder().decode(o('info')));
+  const grid = terrainTime.meta.grid;
+  if (info.grid && (info.grid.cols !== grid.cols || info.grid.rows !== grid.rows)) throw new Error('the dated data and the land over time use different grids');
+  const overrides = (info.overrides ?? []).map((/** @type {any} */ v) => ({
+    cells: decodeUints(o(v.cells)), bands: o(v.bands), cls: v.cls, from: v.from, to: v.to, hold: v.hold,
+  }));
+  const timeline = timelineFromBlock({ meta: /** @type {any} */ (terrainTime.meta), layers: t.layers, base: base.slice(), overrides });
+  times.decodeMs += performance.now() - t0;
+  await breathe();
+  t0 = performance.now();
+  const box = coast.meta.coast;
+  const codes = c('coast');
+  const rings = decodeShapes(o('shapes'));
+  const levels = o('shapeLevels');
+  if (rings.length !== info.shapes.length) throw new Error('the drawn shapes do not add up');
+  let at = 0;
+  /** @type {OwnShape[]} */
+  const shapes = info.shapes.map((/** @type {{ id: string, type: OwnShape['type'] }} */ s, /** @type {number} */ k) => {
+    const n = rings[k].length / 2;
+    const shape = { id: s.id, type: s.type, ring: rings[k], levels: levels.subarray(at, at + n) };
+    at += n;
+    return shape;
+  });
+  if (at !== levels.length) throw new Error('the drawn shapes do not add up');
+  const dated = { timeline, coast: createCoast({ box, codes }), entries: info.entries, shapes };
+  times.decodeMs += performance.now() - t0;
+  return dated;
+}
+
+/** Waits a moment, so the page can draw and answer a tap between pieces of unpacking. */
+const breathe = () => new Promise((done) => setTimeout(done, 0));

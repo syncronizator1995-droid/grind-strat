@@ -25,6 +25,9 @@ const USES = /** @type {Record<string, string>} */ ({
   base: 'land, coast, heights and sea depths',
   terrain: 'the land around 1219: forest, open land, marsh and heath',
   water: 'rivers, lakes and their names',
+  'terrain-time': 'how the land changes from 1250 to today: forest cleared and grown back',
+  coast: 'the northern coast over time (where the sea stood higher in the game\'s year)',
+  changes: 'the dated facts and drawn shapes of the map over time: reservoirs, cuts and outlets, and the Vistula delta',
 });
 
 /** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
@@ -39,23 +42,31 @@ export const usedFor = (uses) => {
  */
 /** In the game, where the terrain rule is written up; ATTRIBUTION.md names the file instead. */
 const TERRAIN_NOTES = 'the notes that come with the terrain data in the game\'s source code';
+/** In the game, where the coast rule is written up; ATTRIBUTION.md names the file instead. */
+const COAST_NOTES = 'the notes that come with the coast data in the game\'s source code';
 const BLOCK_CHANGES = /** @type {Record<string, string>} */ ({
   terrain: `Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (${TERRAIN_NOTES} say how).`,
+  'terrain-time': `Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (${TERRAIN_NOTES} say how).`,
+  coast: `Coast over time: combined with the other coast sources into one code per 500 m cell, the year the sea left it, by a rule fitted to dated shores (${COAST_NOTES} say how). An estimate.`,
 });
 
 /** The honest labels: what the map is, and what it is not. */
 const ABOUT = [
-  'The map shows the land as it was around AD 1219, as far as it can be worked out today.',
-  'Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today\'s land cover, terrain and rivers; they are not from a historical map.',
+  'The map shows the land of the game\'s year, from AD 1219 to today, as far as it can be worked out.',
+  'Forest share: estimated from pollen records (about AD 750 to 1250 for the land of 1219, then about 1250 to 1600, 1600 to 1850 and 1850 to 1950) and, for 2021, from satellite land cover. The exact forest edges, and which places were cleared or grew back in which year, are placed by a rule from today\'s land cover, terrain and rivers; they are not from a historical map.',
   'Marsh: from today\'s peat-soil and wetland maps plus today\'s open bogs. Where those maps show more bog than the pollen allows, bog wins and there is less forest than the pollen share (parts of north-west Russia, south-east Finland and east Estonia).',
-  'Under modern reservoirs the land shows flat, at today\'s water level.',
+  'Under modern reservoirs the land shows flat, at today\'s water level. A reservoir appears in the year it was filled: the big ones in years from published sources, the smaller ones in the year OpenStreetMap gives (marked "year from OpenStreetMap"); one with no known year is not shown.',
+];
+/** What the northern coast is, when the coast block ships. */
+const ABOUT_COAST = [
+  'The northern coast (Sweden, Åland, Finland, Estonia) follows the game\'s year: since 1219 the land there has risen out of the sea. Where the sea stood is an estimate from today\'s land uplift, fitted to dated shores from local studies; Lake Mälaren is a bay of the sea until about 1300.',
 ];
 /** What the rivers and lakes are, by where the shipped water comes from. */
 const ABOUT_WATER = {
   osm: [
-    'Rivers and lakes are today\'s, from OpenStreetMap, with today\'s local names: a river\'s name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river\'s own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, are left out; the rivers through those reservoirs follow today\'s mapped line.',
+    'Rivers and lakes are today\'s, from OpenStreetMap, with today\'s local names: a river\'s name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river\'s own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, appear only from their year, where one is known; the rivers through those reservoirs follow today\'s mapped line.',
     'All names are written in Latin letters. Russian, Belarusian and Ukrainian names are romanised by the BGN/PCGN systems (Russian 1947, Belarusian 1979, Ukrainian 2019), with the soft and hard signs and the apostrophe left out to keep them easy to read. Where OpenStreetMap gives a name in two languages, the map shows one. A lake shows just its name, without the word for lake (Ilmen, not ozero Ilmen; Plateliai, not Platelių ežeras); where the name only works with that word (Kozhanovskoye ozero, Jezioro Mikołajskie, or Juglas ezers where no plain form is known), the full name is kept.',
-    'The coast, heights and sea depths are today\'s.',
+    'Heights and sea depths are today\'s, and so is the coast outside the north, apart from a few drawn changes marked "reconstructed" (the Vistula Lagoon\'s old outlets, Ruden).',
   ],
   ne: [
     'Rivers and lakes: for now Natural Earth\'s simpler set, with its names: local names for most rivers, English names for some big lakes. Fuller rivers and lakes from OpenStreetMap come next; until then the upper Nemunas (above Kaunas) and smaller lakes such as Drūkšiai are missing, and the map shows land where those lakes are.',
@@ -70,8 +81,10 @@ const INTERIM = /** @type {Record<string, string>} */ ({
 /** Which licence covers which folder of the repository (the ODbL folder only once it ships). */
 const ODBL_FOLDER = ['src/data/odbl/', 'Open Database License (ODbL) 1.0: OpenStreetMap rivers and lakes, as the Overture Maps Foundation publishes them (see its LICENSE.md and README.md). Nothing else is mixed into it.'];
 const FOLDERS = [
-  ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid (see its LICENSE.md and README.md).'],
+  ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid and how it changes up to today (see its LICENSE.md and README.md).'],
+  ['src/data/by/', 'Creative Commons Attribution 4.0 (CC BY 4.0): the northern coast over time (see its LICENSE.md and README.md). Nothing share-alike or from OpenStreetMap is mixed into it.'],
   ['src/data/map/', 'Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).'],
+  ['src/data/own/', 'Grind Strat\'s own work under the game\'s own terms (not yet chosen): the dated facts and drawn shapes of the map over time (see its LICENSE.md and README.md).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
   // Raw bytes of Overture's OpenStreetMap water data, kept to test the Parquet reader: ODbL too,
   // whether or not the game ships OpenStreetMap data.
@@ -139,6 +152,9 @@ export function makeAttribution({ sources, blocks, ofl }) {
         have.urls.push(s.url);
         if (s.licenceReadAt) have.readAt.add(s.licenceReadAt);
         if (!have.entry.changes.includes(c.changes)) have.entry.changes.push(c.changes);
+        // Several sources, one entry: a source may say how the whole group is named.
+        if (c.groupVersion) have.entry.version = c.groupVersion;
+        if (c.groupLine) have.entry.line = c.groupLine;
       }
       const extra = BLOCK_CHANGES[kind];
       if (extra && !block.interim && !have.entry.changes.includes(extra)) have.entry.changes.push(extra);
@@ -163,7 +179,7 @@ export function makeAttribution({ sources, blocks, ofl }) {
   const osmWater = Boolean(water?.block.sources.some((/** @type {string} */ id) => sources.find((s) => s.id === id)?.collection === 'osm'));
   /** @type {Credits} */
   const credits = {
-    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : [])],
+    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : []), ...(blocks.some((b) => b.kind === 'coast') ? ABOUT_COAST : [])],
     interim: blocks.filter((b) => b.block.interim).map((b) => INTERIM[b.kind] ?? `Interim: the ${b.kind} data is a stand-in.`),
     mapLine: [...onMap.map(short), 'more'].join(' · '),
     datasets: all.map((d) => d.entry),
@@ -249,7 +265,8 @@ function markdownOf(credits, all, blocks) {
  * @param {string[]} changes
  */
 function changesList(changes) {
-  changes = changes.map((c) => c.replace(`${TERRAIN_NOTES} say how`, '`src/data/by-sa/README.md` says how'));
+  changes = changes.map((c) => c.replace(`${TERRAIN_NOTES} say how`, '`src/data/by-sa/README.md` says how')
+    .replace(`${COAST_NOTES} say how`, '`src/data/by/README.md` says how'));
   return changes.length === 1 ? [`- Changes we made: ${changes[0]}`] : ['- Changes we made:', ...changes.map((c) => `  - ${c}`)];
 }
 

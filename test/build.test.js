@@ -109,10 +109,12 @@ describe('build', () => {
       assert.ok(!html.includes('{{'), 'no placeholder left');
       // The real map makes the file big; past this it would be slow to open on a phone.
       assert.ok(result.bytes < 4 * 1024 * 1024, `game file is ${result.bytes} bytes`);
-      for (const kind of ['base', 'terrain', 'water']) {
+      for (const kind of ['base', 'terrain', 'water', 'terrain-time', 'coast', 'changes']) {
         assert.ok(html.includes(`<script type="application/json" id="gs-${kind}">`), `the ${kind} data is in the page`);
       }
-      assert.ok(html.indexOf('id="gs-water"') < html.lastIndexOf('<script>'), 'the data comes before the code that reads it');
+      assert.ok(html.indexOf('id="gs-water"') < html.lastIndexOf('<script>'), 'the first picture\'s data comes before the code that reads it');
+      // The map over time is needed only after the first picture: after the code, so it starts sooner.
+      for (const kind of ['terrain-time', 'coast', 'changes']) assert.ok(html.indexOf(`id="gs-${kind}"`) > html.lastIndexOf('<script>'), `the ${kind} data comes after the code`);
       assert.equal(await readFile(join(out, 'index.html'), 'utf8'), html);
 
       const manifest = JSON.parse(await readFile(join(out, 'manifest.webmanifest'), 'utf8'));
@@ -140,6 +142,7 @@ describe('licence guard', () => {
     { id: 'bysa', collection: 'bysa', licenceStatus: 'read', credit: { licenceName: 'CC BY-SA 4.0' } },
     { id: 'osm', collection: 'osm', licenceStatus: 'read', credit: { licenceName: 'Open Database License (ODbL) 1.0' } },
     { id: 'unread', collection: 'x', licenceStatus: 'unverified', credit: { licenceName: 'Public domain' } },
+    { id: 'own', collection: 'own', licenceStatus: 'read', credit: { licenceName: 'Grind Strat\'s own terms (not yet chosen)' } },
   ];
   /**
    * @param {string} kind @param {string} licence @param {string[]} ids
@@ -173,6 +176,25 @@ describe('licence guard', () => {
     assert.ok(licenceProblems([block('terrain', 'CC-BY-SA-4.0', ['bysa', 'osm'])], sources).some((p) => /mixes OpenStreetMap/.test(p)));
     assert.ok(licenceProblems([block('terrain', 'CC-BY-4.0', ['bysa'])], sources).some((p) => /share-alike/.test(p)));
     assert.ok(licenceProblems([block('base', 'public-domain', ['by'])], sources).some((p) => /public domain/.test(p)));
+  });
+
+  it('keeps a CC BY block to CC BY and public-domain data only', () => {
+    assert.deepEqual(licenceProblems([block('coast', 'CC-BY-4.0', ['by', 'pd'])], sources), []);
+    assert.ok(licenceProblems([block('coast', 'CC-BY-4.0', ['by', 'bysa'])], sources).some((p) => /under CC BY 4.0 but holds data under another licence/.test(p)));
+    assert.ok(licenceProblems([block('coast', 'CC-BY-4.0', ['by', 'osm'])], sources).some((p) => /under CC BY 4.0 but holds/.test(p)));
+    const odd = [...sources, { id: 'nc', collection: 'nc', licenceStatus: 'read', credit: { licenceName: 'CC BY-NC 4.0' } }];
+    assert.ok(licenceProblems([block('coast', 'CC-BY-4.0', ['nc'])], odd).some((p) => /under CC BY 4.0 but holds/.test(p)));
+    // The other way round is fine: CC BY data may sit in a share-alike block.
+    assert.deepEqual(licenceProblems([block('terrain', 'CC-BY-SA-4.0', ['by'])], sources), []);
+  });
+
+  it('keeps an ODbL block to OpenStreetMap data, and our own block to our own work', () => {
+    assert.deepEqual(licenceProblems([block('changes', 'grind-strat-own', ['own'])], sources), []);
+    assert.ok(licenceProblems([block('water', 'ODbL-1.0', ['pd'])], sources).some((p) => /under the ODbL but holds data that is not OpenStreetMap's/.test(p)));
+    assert.ok(licenceProblems([block('water', 'ODbL-1.0', ['own'])], sources).some((p) => /not OpenStreetMap's/.test(p)));
+    for (const other of ['pd', 'by', 'osm']) {
+      assert.ok(licenceProblems([block('changes', 'grind-strat-own', ['own', other])], sources).some((p) => /our own work but holds data from others/.test(p)), other);
+    }
   });
 
   it('puts each block into the page safely, and finds web addresses in the data', () => {

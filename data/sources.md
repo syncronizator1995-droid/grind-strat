@@ -239,3 +239,233 @@ New TO CHECK items:
 - Rivers through dropped reservoirs follow today's mapped line, an approximation of the river
   before the dam (for example the Dnieper through the Kyiv and Kaniv reservoirs, and the Nemunas
   through Kauno marios).
+
+## Map data used in M3a: date engine and forest over time (20 October 2026)
+
+The map follows the game's date (Ignas, 11 October 2026), so the forest changes from 1250 to
+today. What is evidence and what is a rule:
+
+- Evidence: how much of each 1 degree square is forest, and how much of that forest is conifer,
+  at four anchors: 1425, 1725 and 1900 from the pollen maps below, 2021 from ESA WorldCover 2021
+  (already listed under the M2 map data, `worldcover-2021`, CC BY 4.0).
+- Rule (not a historical map, and labelled so): which 1 km cells are cleared or grow back, and in
+  which year. Clearings spread out from open land; each 32 km block changes at a steady pace
+  (tools/map/terrain-time.mjs, src/sim/map-date.js).
+
+### SpatioCompo pollen land cover, time windows 3, 2 and 1
+
+- What: pollen-based land cover (gap-filled REVEALS), conifer, broadleaf and open shares per
+  1 degree cell, by Behnaz Pirzamanbein, the same dataset as the 1219 grid (`spatiocompo-tw4`).
+- Files (pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of the author's own repository,
+  fetched 12 October 2026 through tools/map/fetch.mjs; fingerprints in data/raw/manifest.json):
+  - `spatiocompo-tw3`, about AD 1250-1600:
+    https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_550.csv
+    (sha256 fb7cb5e379ab9932036db31043da1f5b505a3b868a7001781bdb6a66daddd1a0)
+  - `spatiocompo-tw2`, about AD 1600-1850:
+    https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_225.csv
+    (sha256 d8f34305b6977a3472637584ba3a33f260b74796cdf1477f9156db27d059dae9)
+  - `spatiocompo-tw1`, about AD 1850-1950:
+    https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_50.csv
+    (sha256 a4e1d95f0f40a33657cbf6114d59ea7d86a8ed1aaa6ef4333a774ff2345492fb)
+- Licence: CC BY-SA 4.0, read in the repository's README.md at the same commit
+  (https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md),
+  as for `spatiocompo-tw4`. So the shipped `src/data/by-sa/terrain-time.json` is CC BY-SA 4.0 too.
+- What was read: the README's list of the 25 files and its column names (C_ conifer, B_ broadleaf,
+  U_ open); each CSV's header (`Lon,Lat,C_KK10LonLatElev,B_KK10LonLatElev,U_KK10LonLatElev`);
+  423 one-degree cells of each window touch the map window.
+- The time windows: Githumbi, E., Pirzamanbein, B., et al. (2022), Pollen-Based Maps of Past
+  Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential, Frontiers in
+  Ecology and Evolution 10:795794,
+  https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2022.795794/full
+  (read by the M3 research, 11 October 2026): "present-100, 100-350, 350-700, 700-1200,
+  1200-1700 until 11700 calibrated years BP" (BP = before AD 1950). So 0-100 BP is AD 1850-1950,
+  100-350 BP is AD 1600-1850, 350-700 BP is AD 1250-1600.
+- Our choices (not facts): each anchor sits in the middle of its window (1425, 1725, 1900); the
+  1219 grid holds until 1250, the end of its own window (AD 750-1250); between anchors the change
+  is spread evenly over the years.
+- Today's (2021) conifer share is window 1's (AD 1850-1950), per square: WorldCover has no conifer
+  class, and the satellite conifer maps the research tried would show Lithuania's conifer
+  collapsing (one gave 15% needleleaf among forest pixels).
+
+Computed from the shipped data (a check, not a source): forest share of the land in a box over
+Lithuania (21-27E, 54-56N): 64.3% in 1219, 51.9% in 1425, 44.2% in 1725, 42.0% in 1900, 39.4% in
+2021. Every 1 degree square meets its pollen (or WorldCover) forest and conifer shares within
+3 points at every anchor, except squares where marsh leaves too little open land (the "capped"
+squares of the 1219 grid, listed in data/raw/derived/terrain-time-1km.u8.json).
+
+TO CHECK:
+- Which file is which window: the paper lists the windows and the README lists the 25 file names,
+  but no source states the window of each file. Land_Cover_50, 225 and 550 as 0-100, 100-350 and
+  350-700 BP rests on the count and the names (each a rounded window middle).
+- The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0
+  (the same open question as for window 4; the author is being asked).
+- Today's conifer share from window 1 (1850-1950) rather than measured today. Lithuania's national
+  forest inventory puts conifer stands at about 55% of forest area (2018 inventory slides, Stakėnas,
+  sc2018.thuenen.de/fileadmin/sc2018/26_Stakenas_ICP_Forests_SC2018.pdf; seen only in search
+  snippets by the M3 research). Whether to use national inventories per country instead is
+  Ignas's call.
+- Marsh and heath do not change over time in M3a (no drainage of bogs and fens yet); the Żuławy
+  diking comes from the water part's own dated list.
+
+## Map data used in M3a: the northern coast over time (20 October 2026)
+
+Since 1219 the land of Sweden, Åland, Finland and Estonia has risen out of the sea. The game's
+coast block (`src/data/by/coast.json`, CC BY 4.0) is an **estimate** of where the sea stood in each
+year: relative sea fall = k × (land uplift − 0.5) mm a year, with k fitted to the dated shores
+below and back to 1 within 150 km of them, over GEBCO's heights, flooded from the sea so that a
+basin behind a sill stays sea only while the sill is under water. The rule's "0.5 mm a year" is
+our own fit to dated shores (research notes, 11 October 2026), not a published figure. Rules:
+`tools/map/coast.mjs`; control points with quotes: `tools/map/coast-anchors.json`.
+
+| Collection | What the game uses | Licence, and where it was read | Status |
+| --- | --- | --- | --- |
+| Nordic Geodetic Commission, NKG_RF17vel (`nkg-rf17vel`) | The up_velocity band (mm a year), the land uplift behind the coast estimate | CC BY 4.0. Read in the file's own copyright tag ("The Nordic Geodetic Commission. Creative Commons Attribution 4.0"), in the copy the NKG publishes on its own site: https://www.nordicgeodeticcommission.com/wp-content/uploads/2025/06/eur_nkg_nkgrf17vel.tif, linked from https://www.nordicgeodeticcommission.com/products/ ("NKG_RF17vel: the official 2D+1D velocity model used in the NKG2020 transformation"). Fetched from PROJ-data release 1.25.0, byte-identical (SHA-256 515f68aeb59f659a3f3c340626cd060f58de6f93b4546df67732b906949e0d66): https://raw.githubusercontent.com/OSGeo/PROJ-data/1.25.0/eur_nkg/eur_nkg_nkgrf17vel.tif, README https://raw.githubusercontent.com/OSGeo/PROJ-data/1.25.0/eur_nkg/eur_nkg_README.txt | Read, used |
+| SGU, Strandförskjutningsmodell (`sgu-shore`) | Would replace the estimate in Sweden: sea and lake polygons per century, tables issjohav_<cal BP>, in SWEREF 99 TM. Product description: https://resource.sgu.se/dokument/produkter/oppnadata/strandforskjutningsmodell-oppnadatabeskrivning.pdf; data: https://resource.sgu.se/data/oppnadata/jord/strandforskjutningsmodell/strandforskjutning_1_900.gpkg | CC BY 4.0 ("Creative Commons Erkännande 4.0") per the product description seen during research; not yet read on resource.sgu.se | **Not used**: resource.sgu.se is blocked until Ignas allows it. The reader (`tools/map/gpkg.mjs`) and the hook (`readSguCenturies` in `tools/map/build-coast.mjs`) are built and tested on a made-up GeoPackage; the build says "SGU's shore model is not here" and uses the estimate |
+| GEBCO_2026 (`gebco-2026`) | Heights at 500 m (only GEBCO's land, above 0 m, averaged) | As listed above for M2 | Read, used |
+| Natural Earth land and lakes (`ne-land`, `ne-lakes`) | Today's coast (the game's own), and Lake Mälaren's outline | As listed above for M2 | Read, used |
+
+Control points (only their figures are used; the papers are cited, not shipped):
+
+| Place | Sea above today's | Source | Seen |
+| --- | --- | --- | --- |
+| Lake Eckarfjärden, north Uppland (60°22'N 18°12'E) | 5.5 m, isolated 850 cal BP (about AD 1100) | Hedenström and Risberg (2003), SKB TR-03-17, Table 4-1: https://skb.com/publication/20970/TR-03-17.pdf | Read |
+| Stockholm, Stadsholmen | about 2 m at the turn of the 13th/14th century (fitted); about 4 m around 1000 (check only) | Söderlund (2016), Slussen through the ages, p. 5: https://skonhetsradet.stockholm/wp-content/uploads/sites/45/2023/08/slussen-eng.pdf | Read |
+| Lake Mälaren | a bay of the sea until about 1300, then a lake: the lake's outlet at Stockholm closes in 1300 | Söderlund (2016), as above: "By around 1300, land rise had transformed Mälaren from a deep bay of the Baltic Sea to a lake." | Read |
+| Harku, Tallinn (59.42N 24.62E) | 2.73 m at 1040 cal BP (index point Harku-4) | Rosentau et al. (2020), HOLSEA Baltic database, GFZ Data Services, doi:10.5880/GFZ.1.3.2020.003 (CC BY 4.0, stated in the xlsx): https://datapub.gfz-potsdam.de/download/10.5880.GFZ.1.3.2020.003vEGWF/2020-003_Rosentau-et-al_HOLSEA_baltic_isol_21-06-18.xlsx | Read |
+| Tallinn | 2.0 m in 1219: our arithmetic on the paper's linear fall from about 12 m at 4400 cal BP | Saarse and Vassiljev (2010), Estonian Journal of Earth Sciences 59(3), 207-215: https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2010/issue_3/earth-2010-3-207-215.pdf | Read |
+| Salme, Saaremaa | about 1.0 m in 1219 (fitted), 0.8 m at AD 1300 (check): "an almost linear RSL fall from 5.5 to 0.8 m a.s.l. between 1000 BC and 1300 AD" | Nirgi et al. (2022), The Holocene 32(4), doi:10.1177/09596836211066596: https://doi.org/10.1177/09596836211066596 (abstract read in Crossref's record: https://api.crossref.org/works/10.1177/09596836211066596) | Abstract only; the paper is closed access (TO CHECK) |
+| Prassi, Hiiumaa (58.7289N 22.6172E) | sea at or below 6.63 m at 940 cal BP (a limiting point: a bracket, not a value) | HOLSEA Baltic database, as above (sample Prassi 1) | Read |
+| Transverse Mercator formulas (for SWEREF 99 TM) | Krüger's series and the worked example the tests use | Lantmäteriet (2008), Gauss Conformal Projection (Transverse Mercator), Krüger's Formulas: https://www.lantmateriet.se/globalassets/geodata/gps-och-geodetisk-matning/gauss_conformal_projection.pdf; SWEREF 99 TM's parameters (EPSG:3006, as UTM zone 33N on GRS80): https://spatialreference.org/ref/epsg/3006/proj4.txt | Read |
+
+What the build found (20 October 2026, without SGU): the fitted k is 0.53 at Stockholm, 0.89 in
+north Uppland, 0.91 at Tallinn and 0.60 on Saaremaa. The 1219 sea stood about 2.2 m above
+today's at Stockholm, 4.3 m at Turku, 4.6 m at Mariehamn, 1.9 m at Haapsalu and 1.2 m at Pärnu
+(our estimate). Within 15 km of each, the 1219 shore lies at most 1.5 to 2.2 km inland of today's
+(3 to 4 cells of 500 m), and up to 4.5 km round Mariehamn, where low basins behind sills are
+cut off. About 31,000 cells of today's dry land change, plus Lake Mälaren (7,275 cells), a bay
+until 1303.
+
+TO CHECK:
+- Stockholm's 1219 sea: Söderlund's 2 m about 1300 gives about 2.2 m in 1219; other sources allow
+  2.5 to 4.3 m. Is the 2 m measured against the sea or against Lake Mälaren?
+- When Mälaren became a lake: "about 1200" (Britannica, snippet only) or "by around 1300"
+  (Söderlund, read). The outlet's position at Stockholm is picked by hand (approximate).
+- Turku and Åland have no control point: the rule as it is gives about 4.3 m in 1219; a Turku
+  curve seen only as a snippet (Vuorela et al. 2009, about 3.8 mm a year) suggests about 3 m.
+- The Salme figures are from the abstract of Nirgi et al. (2022) only; the abstract also says the fall slowed after 1300, which the straight-line rule does not follow.
+- Approximate positions picked by hand: Stockholm (Stadsholmen), Tallinn's centre, Salme.
+- GEBCO's heights near Stockholm read high: Lake Mälaren's surface is 3.0 m in GEBCO against
+  about 0.3 to 0.7 m above the sea, so the estimate floods less than the rule would on true
+  heights there. A bare-earth height model (Lantmäteriet, Maanmittauslaitos, Maa-amet) or SGU's
+  model would fix it.
+- Whether NKG_RF17vel's up band is exactly the NKG2016LU_abs land-uplift model (Vestøl et al.
+  2019); neither the file nor the README says.
+- SGU's licence, read on resource.sgu.se, once Ignas allows the host.
+
+## Map data used in M3a: water works and drawn shapes (20 October 2026)
+
+The map follows the game's date. Reservoirs fill in their years, channels appear when they were
+cut, the Vistula Lagoon's outlets open and close, Ruden loses its land bridge, and the Vistula
+delta is diked. The dated list is `tools/map/water-changes.json` (reviewed by hand); our own drawn
+shapes are `tools/map/history-shapes.json`; both are packed into `src/data/own/changes.json`, our
+own work under the game's own terms (not yet chosen). The OpenStreetMap features that are dated
+carry only our ids, as tags, in `src/data/odbl/water.json`.
+
+Sources of the dated facts:
+
+| Id | Source | Link | Status |
+| --- | --- | --- | --- |
+| `wp-kaunas-reservoir` | Wikipedia, 'Kaunas Reservoir' | https://en.wikipedia.org/wiki/Kaunas_Reservoir | Read |
+| `wp-narva-reservoir` | Wikipedia, 'Narva Reservoir' | https://en.wikipedia.org/wiki/Narva_Reservoir | Read |
+| `wp-kyiv-reservoir` | Wikipedia, 'Kyiv Reservoir' | https://en.wikipedia.org/wiki/Kyiv_Reservoir | Read |
+| `wp-kaniv-reservoir` | Wikipedia, 'Kaniv Reservoir' | https://en.wikipedia.org/wiki/Kaniv_Reservoir | Read |
+| `wp-vileyka-reservoir` | Wikipedia, 'Vileyka reservoir' | https://en.wikipedia.org/wiki/Vileyka_reservoir | Read |
+| `wp-zaslawye-reservoir` | Wikipedia, 'Zaslawskaye reservoir' | https://en.wikipedia.org/wiki/Zaslawskaye_reservoir | Read |
+| `wp-elektrenai-reservoir` | Wikipedia, 'Elektrėnai Reservoir' | https://en.wikipedia.org/wiki/Elektr%C4%97nai_Reservoir | Read |
+| `wp-wloclawek-reservoir` | Wikipedia, 'Włocławek Reservoir' | https://en.wikipedia.org/wiki/W%C5%82oc%C5%82awek_Reservoir | Read |
+| `wp-zegrze-reservoir` | Wikipedia, 'Zegrze Reservoir' | https://en.wikipedia.org/wiki/Zegrze_Reservoir | Read |
+| `kaczmarek-2010-jeziorsko` | Kaczmarek, H. (2010), 'Analiza zdjęć lotniczych oraz wyników pomiarów geodezyjnych w badaniach dynamiki strefy brzegowej sztucznych zbiorników wodnych – zbiornik Jeziorsko, rzeka Warta', Landform Analysis 13: 19–26 | https://bibliotekanauki.pl/articles/295062.pdf | Read |
+| `wp-sulejow-reservoir` | Wikipedia, 'Sulejów Reservoir' | https://en.wikipedia.org/wiki/Sulej%C3%B3w_Reservoir | Read |
+| `wp-et-soodla` | Wikipedia (Estonian), 'Soodla veehoidla', citing A. Mäemets, 'Uus kaunis veehoidla Soodla jõel', Eesti Loodus, July 1983, p. 468 | https://et.wikipedia.org/wiki/Soodla_veehoidla | Read |
+| `wp-riga-hes` | Wikipedia, 'Riga Hydroelectric Power Plant' | https://en.wikipedia.org/wiki/Riga_Hydroelectric_Power_Plant | Read |
+| `wp-plavinas-hes` | Wikipedia, 'Pļaviņas Hydroelectric Power Station' | https://en.wikipedia.org/wiki/P%C4%BCavi%C5%86as_Hydroelectric_Power_Station | Read |
+| `wp-kegums-hes` | Wikipedia, 'Ķegums Hydroelectric Power Station' | https://en.wikipedia.org/wiki/%C4%B6egums_Hydroelectric_Power_Station | Read |
+| `wp-przekop` | Wikipedia, 'Przekop Wisły' | https://en.wikipedia.org/wiki/Przekop_Wis%C5%82y | Read |
+| `wp-smiala-wisla` | Wikipedia, 'Śmiała Wisła' | https://en.wikipedia.org/wiki/%C5%9Amia%C5%82a_Wis%C5%82a | Read |
+| `wp-pl-martwa-wisla` | Wikipedia (Polish), 'Martwa Wisła' | https://pl.wikipedia.org/wiki/Martwa_Wis%C5%82a | Read |
+| `wp-bulli` | Wikipedia, 'Buļļi' (the history of the Buļļupe and the Lielupe's mouths) | https://en.wikipedia.org/wiki/Bu%C4%BC%C4%BCi | Read |
+| `wp-lielupe` | Wikipedia, 'Lielupe' (the coordinates of its mouth) | https://en.wikipedia.org/wiki/Lielupe | Read |
+| `hagen-1883-pillau` | L. Hagen, 'Der Hafen zu Pillau', Zeitschrift für Bauwesen 33 (1883), cols. 249–250 (after G. Hagen, Handbuch der Wasserbaukunst); scan in the Lower Silesian Digital Library | https://dbc.wroc.pl/Content/17630/PDF/19634.pdf | Read |
+| `wp-strait-of-baltiysk` | Wikipedia, 'Strait of Baltiysk' | https://en.wikipedia.org/wiki/Strait_of_Baltiysk | Read |
+| `wp-de-lochstedt` | Wikipedia (German), 'Burg Lochstedt' (the castle's coordinates) | https://de.wikipedia.org/wiki/Burg_Lochstedt | Read |
+| `wp-de-ruden` | Wikipedia (German), 'Ruden (Insel)', citing F.-W. Dwars on the 'supposed' land bridge and N. Petzholdt, 'Der Mönchgraben bei Baabe und die Landverbindung zwischen Rügen und dem Ruden', Pommern 1/2014 | https://de.wikipedia.org/wiki/Ruden_(Insel) | Read |
+| `wp-druzno` | Wikipedia, 'Druzno' | https://en.wikipedia.org/wiki/Druzno | Read |
+| `nitychoruk-2016` | Nitychoruk, J., Szymanek, M., Bińka, K., Kasprzycka, M. and Zbucki, Ł. (2016), 'Changes of sedimentation in the Drużno Lake based on geoarchaeological data from the Teutonic fortress in Elbląg', Acta Geologica Polonica 66(1): 85–98, Text-fig. 9 (the lake in the 13th century, after Kasprzycka 1996, 1997, 1999), doi:10.1515/agp-2016-0004 | https://www.czasopisma.pan.pl//Content/81982/PDF/04_nitychoruk.pdf | Read |
+| `koperska-2025` | Koperska-Kośmicka, M. (2025), 'The state of preservation of medieval street-square village in the landscape of northern Poland', Miscellanea Geographica 29(3): 185–193, doi:10.2478/mgrsd-2025-0008 (CC BY 4.0) | https://reference-global.com/download/article/10.2478/mgrsd-2025-0008.pdf | Read |
+| `osm-start-date` | OpenStreetMap's own start_date tag on the lake, read with the rest of the OpenStreetMap water (© OpenStreetMap contributors, ODbL 1.0); not checked by us | https://wiki.openstreetmap.org/wiki/Key:start_date | Read |
+
+The dated entries (years: shown from the first, up to but not including the second):
+
+| Entry | Years | Fact | Source | Status |
+| --- | --- | --- | --- | --- |
+| `kaunas-reservoir` | 1959 to today | Reservoir, made in 1959 by damming the Nemunas near Kaunas. | `wp-kaunas-reservoir` | Read |
+| `narva-reservoir` | 1955 to today | Reservoir, made in 1955-1956 for the Narva hydro station. | `wp-narva-reservoir` | TO CHECK: 1955 or 1956 for the filling: the page gives the years it was made, 1955-1956 |
+| `kyiv-reservoir` | 1964 to today | Reservoir, filled in 1964-1966 behind the dam of the Kyiv hydro station at Vyshhorod. | `wp-kyiv-reservoir` | Read |
+| `kaniv-reservoir` | 1972 to today | Reservoir, held by the dam of the Kaniv hydro station, built in 1972. | `wp-kaniv-reservoir` | TO CHECK: the year it filled; the map uses the dam's year |
+| `vileyka-reservoir` | 1973 to today | Reservoir, begun in 1968; the Viliya (Neris) was dammed in 1973, and its water reached Minsk in 1975. | `wp-vileyka-reservoir` | TO CHECK: the year it filled; the map uses the year the river was dammed (OpenStreetMap's start_date says 1975) |
+| `zaslawye-reservoir` | 1956 to today | Reservoir, made in 1956 by a dam on the Svislach to control floods in Minsk. | `wp-zaslawye-reservoir` | TO CHECK: what OpenStreetMap's second date, 1977, means |
+| `elektrenai-reservoir` | 1961 to today | Reservoir, made in 1961 by damming the Strėva, for the Elektrėnai power station. | `wp-elektrenai-reservoir` | TO CHECK: one page says 1962; the natural lakes it drowned (about 8, a search result only) are not drawn before then |
+| `wloclawek-reservoir` | 1970 to today | Reservoir on the Vistula, there since 1970, when the dam at Włocławek was built. | `wp-wloclawek-reservoir` | Read |
+| `zegrze-reservoir` | 1963 to today | Reservoir on the Narew, formed by a dam built in 1963. | `wp-zegrze-reservoir` | Read |
+| `jeziorsko-reservoir` | 1986 to today | Reservoir on the Warta: filling began in 1986 and it was full in 1992. | `kaczmarek-2010-jeziorsko` | Read |
+| `sulejow-reservoir` | 1973 to today | Reservoir on the Pilica, built in 1969-1974 to supply Łódź with water; in use from May 1973. | `wp-sulejow-reservoir` | Read |
+| `soodla-reservoir` | 1981 to today | Reservoir on the Soodla river, made for Tallinn's water supply; it had formed by the summer of 1981. | `wp-et-soodla` | Read |
+| `riga-reservoir` | 1974 to today | Reservoir of the Rīga hydro station on the Daugava, which started work in 1974; it drowned about half of the island Doles sala. | `wp-riga-hes` | TO CHECK: the filling year: the page says 1974 for the station but also that the dam was 'built in the late 1970s'; not one of the 12 reservoirs Ignas listed, added because OpenStreetMap does have its shape (relation/5462605) |
+| `plavinas-dam` | 1965 to today | The Pļaviņas dam on the Daugava was finished in 1965; its reservoir drowned the Staburags cliff and the valley around it. | `wp-plavinas-hes` | Read |
+| `kegums-dam` | 1939 to today | The Ķegums hydro station, the oldest on the Daugava, was built in 1936-1939. | `wp-kegums-hes` | TO CHECK: 1939 (the plant) or 1940 (the dam finished, by the page's category) for the reservoir |
+| `osm-start-date` | (rule) | A reservoir or man-made lake. The year it appears is the one OpenStreetMap gives for it; we have not checked it. | `osm-start-date` | Read (year from OpenStreetMap) |
+| `vistula-przekop` | 1895 to today | The Przekop, a new mouth for the Vistula, was dug from June 1891 and opened on 31 March 1895. | `wp-przekop` | Read |
+| `martwa-wisla-old-mouth` | always was to today | The Martwa Wisła ('Dead Vistula') is the Vistula's old way to the sea past Gdańsk. Its lower part took the name after 1840, when the river broke a new mouth at Górki, and the rest after the Przekop was cut in 1890-1895. | `wp-pl-martwa-wisla` | Read |
+| `wisla-smiala` | 1840 to today | The Wisła Śmiała ('Daring Vistula') formed in the flood of 1840, when an ice jam sent the river through to the sea at Górki, and became a new mouth of the Vistula. | `wp-smiala-wisla` | TO CHECK: a scholarly source for 1840; the day (1 February 1840) is from a search result only |
+| `lielupe-new-mouth` | 1755 to today | In the spring floods of 1755 (some sources say 1757) the Lielupe broke through the dunes to the sea, making its modern mouth. An earlier mouth, cut by an ice jam in 1697, later silted up. | `wp-bulli` | TO CHECK: 1755 or 1757: sources differ; the same page says the new bed was dammed in 1765-1768 and broke through again in 1771, which the map leaves out |
+| `bullupe-old-lielupe` | always was to today | The Buļļupe is the Lielupe's old lower course, down to its old meeting with the Daugava; before the Lielupe broke its own mouths (1697, 1755), it reached the sea this way. | `wp-bulli` | Read |
+| `lochstedt-outlet` | always was to 1350 | The lagoon once drained to the sea through a channel by Lochstedt; it closed in the 14th century. | `hagen-1883-pillau` | TO CHECK: where exactly the channel ran (drawn just south-west of Lochstedt castle), and the year it closed (the map uses 1350 for 'the 14th century') (reconstructed, estimate) |
+| `vogler-outlet` | always was to 1350 | The lagoon once drained to the sea opposite Frauenburg (Frombork), between the spit villages of Vogler and Schmeergrube; it closed in the 14th century. | `hagen-1883-pillau` | TO CHECK: where exactly the channel ran (drawn across the spit north-west of Frombork), and the year it closed (the map uses 1350 for 'the 14th century') (reconstructed, estimate) |
+| `balga-outlet` | 1350 to 1520 | The Balga channel through the spit formed in the 14th century, opposite Rosenberg. Danzig sank ships in it in 1456 to block it, and in 1520 closed it with a wall of piles. | `hagen-1883-pillau` | TO CHECK: where exactly it ran (Hagen: opposite Rosenberg, about 4 km south of the spit settlement Alt Tief; drawn across the spit north-west of Balga), and the year it opened (the map uses 1350) (reconstructed, estimate) |
+| `pillau-strait` | 1497 to today | A storm surge cut the Pillau channel through the Vistula Spit in 1497, and another in 1510 made it deep enough for ships. It is the lagoon's way to the sea today. | `wp-strait-of-baltiysk` | TO CHECK: Hagen (1883) quotes a church inscription at Alt-Pillau saying a new channel had broken through by 1479 (reconstructed) |
+| `ruden-island` | always was to today | Ruden is a small island, 2.3 km long, between Rügen and Usedom; it is first written of in 1254, as 'portus ruden'. | `wp-de-ruden` | TO CHECK: its size and shape in 1219: the page says the north shore has lost 800-900 m in the last 200 years and the southern hook (1.3 km) built up since, so the island was bigger then and of another shape; it is drawn at about today's size at every date (reconstructed) |
+| `ruden-land-bridge` | always was to 1304 | Ruden may have been joined to Rügen by a strip of land until the All Saints' storm flood of 1304 broke it. Local lore tells of it; one study calls it supposed, a 2014 study finds it possible. | `wp-de-ruden` | TO CHECK: whether the land bridge existed at all, and its course and width (a guess); the storm's year (1304) as given by the page (reconstructed, estimate) |
+| `zulawy-diking-1` | always was to 1400, spread 1308-1400 | Permanent settlement of the Vistula delta began around 1200. Most of its villages were founded in the Teutonic Order's colonisation of the 14th century, which one study dates to 1308-1400. The map has the land diked and drained as it was settled, which is still to check. | `koperska-2025` | TO CHECK: how much of the delta was undiked marsh in 1219, and that the diking went with the settlement (the source dates the villages, not the dikes); the delta's outline is drawn by us from the heights (reconstructed, estimate) |
+| `zulawy-diking-2` | always was to 1650, spread 1550-1650 | Dutch settlers came to the delta in a first wave from the middle of the 16th century into the 17th, founding scattered villages. The map has them drain its lowest ground, which is still to check. | `koperska-2025` | TO CHECK: which ground was drained then (the map takes the cells the heights put below sea level), and when it ended (the map uses 1550-1650) (reconstructed, estimate) |
+| `druzno-larger` | always was to 1860 | Lake Drużno was larger in the 13th century than today, reaching to Elbląg, though much smaller than older maps show; it has been filling in and growing over since. | `nitychoruk-2016` | TO CHECK: its outline (drawn by us from the heights, sized after the 13th-century range in Nitychoruk et al. 2016) and when it shrank to about today's size (the map uses 1860, the year the Elbląg Canal opened through the lake) (reconstructed, estimate) |
+
+Notes:
+- Smaller reservoirs and other man-made lakes (26 that ship) show from the year in their own
+  OpenStreetMap `start_date` tag, marked "year from OpenStreetMap"; we have not checked these
+  years. The 413 others that pass the size rule have no such year and are not shown at any date.
+- The Pļaviņas and Ķegums reservoirs have no shape of their own in OpenStreetMap (the Daugava there
+  is mapped only as river area, which the map does not draw): their dates are facts on the Daugava.
+  The Rīga reservoir does have one (relation/5462605, 12.9 km²) and ships dated.
+- Every drawn shape is marked "reconstructed": drawn by us on GEBCO's heights and sea depths
+  (public domain), Natural Earth's land (public domain) and published coordinates, never traced
+  from OpenStreetMap or a map in copyright. Lake Drużno's 13th-century size follows Text-fig. 9 of
+  Nitychoruk et al. (2016), looked at, not traced.
+- The masks that cut the dated river stretches (the Przekop, the Lielupe's mouth) are coarse
+  boxes round the published coordinates; they are tools only and never ship.
+
+New TO CHECK items:
+- Every outlet's exact place and the years they opened and closed (Hagen gives "the 14th
+  century"; the map uses 1350); the 1479 inscription at Alt-Pillau against the 1497 storm.
+- Whether Ruden was ever joined to Rügen (local lore; one study calls it supposed, a 2014 study
+  allows it), and the strip's course and width.
+- Żuławy: how much of the delta was undiked marsh in 1219; that the diking went with the 14th
+  century settlement; which ground the Dutch settlers drained from about 1550, and when that ended
+  (the map uses 1550-1650); the delta's outline (ours, from the heights).
+- Lake Drużno: its 13th-century outline and when it shrank to about today's size (the map uses
+  1860).
+- The filling years of Narva (1955 or 1956), Kaniv, Vileyka, Elektrėnai (1961 or 1962), Rīga and
+  Ķegums; the Lielupe's mouth (1755 or 1757); a scholarly source for the Wisła Śmiała's 1840.
+- Not yet on the list (from the research, all TO CHECK): canals (Augustów, Ogiński, Dnieper-Bug,
+  Elbląg, Bydgoszcz, Klaipėda, the Masurian Canal), the Daugava's old mouth, lake lowerings
+  (Hjälmaren, Lubāns, Engure, Võrtsjärv, Tåkern, Hornborgasjön, Søborg Sø), the Vuoksi and Lake
+  Suvanto, the Oder's new channel, the Volkhov and Svir dams, and Hel.

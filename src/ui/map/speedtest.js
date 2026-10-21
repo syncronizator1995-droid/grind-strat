@@ -3,6 +3,15 @@
 // how the phone copes. The numbers are shown as plain text with a Copy button, so Ignas can paste
 // them back. Targets from the plan: 95% of frames under 16.7 ms while panning, a full redraw under
 // 50 ms, the first map on screen in under 3 seconds, and river and lake names under 5 ms a redraw.
+// M3a adds the time run: the map from 1219 to 2021 at speed 5's pace while the camera stays put,
+// with the same 95% target for its frames.
+
+import { dayFromDate } from '../../sim/calendar.js';
+import { mapYear } from '../../sim/map-date.js';
+import { MAX_DAYS_PER_FRAME } from '../clock.js';
+
+/** The time run's first and last years. */
+export const TIME_RUN = Object.freeze({ from: 1219, to: 2021 });
 
 /** @param {number[]} values @param {number} q 0..1 */
 export function quantile(values, q) {
@@ -20,6 +29,8 @@ export function quantile(values, q) {
  * @property {number} waterMs unpacking the rivers and lakes and drawing them, just after the first map
  * @property {number} waterUnpackMs of which unpacking @property {number} waterLabelMs of which placing the names
  * @property {number} waterOnScreenMs since the page started opening
+ * @property {number} datedMs unpacking the map over time (and, for a later save, moving it to the save's year)
+ * @property {number} datedOnScreenMs since the page started opening: the map shows the game's date
  */
 
 /**
@@ -28,6 +39,9 @@ export function quantile(values, q) {
  * @property {number[]} frameMs time between frames while moving
  * @property {number[]} renderMs time spent drawing each moving frame
  * @property {number[]} labelMs placing and drawing the names, per full redraw, at three zooms
+ * @property {number[]} timeFrameMs the time run: time between frames while the years pass
+ * @property {number[]} timeDateMs the time run: the map's date work in each of its frames
+ * @property {number} timeRunMs how long the time run took (NaN when the map over time was not in)
  */
 
 /**
@@ -107,7 +121,42 @@ export async function runSpeedTest(view) {
     });
   }
   view.requestRender();
-  return { redrawMs, frameMs, renderMs, labelMs };
+  return { redrawMs, frameMs, renderMs, labelMs, ...(await timeRun(view)) };
+}
+
+/**
+ * The time run: the map from 1219 to 2021 at speed 5's pace (as many game days a frame as speed
+ * 5 runs at most), the camera still on the starting view. The game's own date is not touched: the
+ * map is pinned to each year, then follows the game again.
+ * @param {import('./view.js').MapView} view
+ */
+async function timeRun(view) {
+  /** @type {number[]} */
+  const timeFrameMs = [];
+  if (!view.mapYear().dated) return { timeFrameMs, timeDateMs: [], timeRunMs: NaN };
+  const before = view.mapYear().pinned;
+  view.setMapYear(TIME_RUN.from);
+  await new Promise((done) => setTimeout(done, 300));
+  view.takeDateMs();
+  const t0 = performance.now();
+  await new Promise((done) => {
+    let day = dayFromDate(TIME_RUN.from, 1, 1);
+    let last = 0;
+    const step = (/** @type {number} */ now) => {
+      if (last) timeFrameMs.push(now - last);
+      last = now;
+      day += MAX_DAYS_PER_FRAME;
+      const year = Math.min(TIME_RUN.to, mapYear(day));
+      view.setMapYear(year);
+      if (year < TIME_RUN.to || view.mapYear().year < TIME_RUN.to) requestAnimationFrame(step);
+      else done(undefined);
+    };
+    requestAnimationFrame(step);
+  });
+  const timeRunMs = performance.now() - t0;
+  const timeDateMs = view.takeDateMs();
+  view.setMapYear(before);
+  return { timeFrameMs, timeDateMs, timeRunMs };
 }
 
 /**
@@ -124,7 +173,7 @@ export function formatResults(r, startup, size) {
   const nav = /** @type {any} */ (navigator);
   const verdict = (/** @type {boolean} */ ok) => (ok ? 'OK' : 'TOO SLOW');
   return [
-    'Grind Strat speed test (step 2a, M2)',
+    'Grind Strat speed test (step 2a, M3a)',
     `Phone: ${navigator.userAgent}`,
     `Screen: ${size.cssW}x${size.cssH} at ${size.dpr}x (${(size.pixels / 1e6).toFixed(2)} MP drawn), cores ${nav.hardwareConcurrency ?? '?'}, memory ${nav.deviceMemory ?? '?'} GB`,
     '',
@@ -136,5 +185,21 @@ export function formatResults(r, startup, size) {
     `  frame time median ${fmt(quantile(r.frameMs, 0.5))} ms, 95% under ${fmt(p95frame)} ms (target 16.7): ${verdict(p95frame <= 17.7)}`,
     `  drawing per frame median ${fmt(quantile(r.renderMs, 0.5))} ms, 95% under ${fmt(quantile(r.renderMs, 0.95))} ms`,
     `Names (rivers and lakes): median ${fmt(quantile(r.labelMs, 0.5))} ms, worst ${fmt(r.labelMs.length ? Math.max(...r.labelMs) : NaN)} ms per redraw (target under 5): ${verdict(quantile(r.labelMs, 0.5) < 5)}`,
+    ...timeRunLines(r, fmt, verdict),
   ].join('\n');
+}
+
+/**
+ * The time run's lines of the results.
+ * @param {SpeedResult} r @param {(v: number) => string} fmt @param {(ok: boolean) => string} verdict
+ */
+function timeRunLines(r, fmt, verdict) {
+  if (!r.timeFrameMs.length) return [`Time run ${TIME_RUN.from} to ${TIME_RUN.to}: n/a (the map over time was not unpacked yet)`];
+  const p95 = quantile(r.timeFrameMs, 0.95);
+  const onTime = r.timeFrameMs.filter((v) => v <= 16.7 + 1).length / r.timeFrameMs.length;
+  return [
+    `Time run ${TIME_RUN.from} to ${TIME_RUN.to} at speed 5: ${r.timeFrameMs.length} frames in ${fmt(r.timeRunMs / 1000)} s, ${Math.round(onTime * 100)}% on time`,
+    `  frame time median ${fmt(quantile(r.timeFrameMs, 0.5))} ms, 95% under ${fmt(p95)} ms (target 16.7): ${verdict(p95 <= 17.7)}`,
+    `  date work per frame median ${fmt(quantile(r.timeDateMs, 0.5))} ms, 95% under ${fmt(quantile(r.timeDateMs, 0.95))} ms, worst ${fmt(r.timeDateMs.length ? Math.max(...r.timeDateMs) : NaN)} ms`,
+  ];
 }
