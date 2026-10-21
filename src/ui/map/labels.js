@@ -70,6 +70,8 @@ export const labelFont = (size) => `italic ${Math.max(MIN_FONT_PX, size)}px Geor
  * @property {number} x @property {number} y centre, CSS px in the frame
  * @property {number} angle radians, clockwise on screen, kept between -90 and 90 degrees
  * @property {number} [river] for a river's name, the river's index
+ * @property {number} [line] for a river's name, the line it was placed along
+ * @property {number} [lake] for a lake's name, the lake's index
  * @property {number} [mx] @property {number} [my] for a river's name, the point on the river it
  *   names, in game units: remembered so the next frame can put the name back there
  */
@@ -166,8 +168,9 @@ export function labelDiscs(x, y, angle, width, size) {
 }
 
 /**
- * @typedef {{ x0: number, y0: number, x1: number, y1: number, d: number, text?: string, width?: number, lift?: number }} Stretch
- *   text and width: the name a river's stretch carries there, and its width in CSS px; lift: how
+ * @typedef {{ x0: number, y0: number, x1: number, y1: number, d: number, text?: string, width?: number, lift?: number, line?: number }} Stretch
+ *   text and width: the name a river's stretch carries there, and its width in CSS px; line: the
+ *   river line it lies along; lift: how
  *   far the line bulges towards the name's side of the chord, CSS px (only for a lifted name)
  */
 
@@ -343,9 +346,14 @@ export function indexWater(water) {
  * @param {Map<number, number[]>} [p.previous] per river, where its names were last time
  *   ([mx, my, ...] in game units, from Label.mx and my): tried first, so names stay put
  * @param {{ complete: boolean }} [p.result] filled in: false when the budget stopped placing early
+ * @param {Uint8Array | null} [p.tagOn] per date tag of the water, 1 where it is shown at the map's
+ *   date: a dated river stretch or lake whose tag is off gets no name. Without it every dated
+ *   feature counts as off (the map does not draw them before it knows the date).
+ * @param {(x: number, y: number) => boolean} [p.under] is this point (game units) under the old
+ *   sea at the map's date? No name is placed there.
  * @returns {Label[]}
  */
-export function placeWaterLabels({ water, index, level, scale, ox, oy, width, height, measure, keepOut = [], screen, budgetMs = Infinity, now = () => 0, previous, result }) {
+export function placeWaterLabels({ water, index, level, scale, ox, oy, width, height, measure, keepOut = [], screen, budgetMs = Infinity, now = () => 0, previous, result, tagOn = null, under }) {
   const deadline = now() + budgetMs;
   const occupied = new Occupancy(width, height);
   occupied.screen = screen ?? null;
@@ -355,6 +363,11 @@ export function placeWaterLabels({ water, index, level, scale, ox, oy, width, he
   const frame = { ...middle, width, height };
   const lakes = water.lakeInfo;
   const rivers = water.riverInfo;
+  /** Is a feature with this date tag shown? @param {number | undefined} tag */
+  const shownTag = (tag) => !tag || Boolean(tagOn?.[tag]);
+  const lakeShown = (/** @type {number} */ k) => shownTag(water.lakeTag?.[k]);
+  /** @type {Filter} */
+  const filter = { lineShown: (i) => shownTag(water.lineTag?.[i]), under };
   // Both lists come biggest first (tools/map/pack-water.mjs sorts them), so the two are merged
   // as they go, and each stops at the first one too small to show: everything after it is smaller.
   const lakePriority = (/** @type {number} */ k) => Math.sqrt(lakes[k].areaKm2) * 25;
@@ -376,15 +389,16 @@ export function placeWaterLabels({ water, index, level, scale, ox, oy, width, he
     const riverLeft = ri < rivers.length && bandShown(riverBand(rivers[ri].lengthKm), scale);
     if (!lakeLeft && !riverLeft) break;
     if (lakeLeft && (!riverLeft || lakePriority(li) >= rivers[ri].lengthKm)) {
-      const label = placeLake(lakes[li], index.lakeLevel[li] <= level, scale, ox, oy, frame, measure, occupied);
-      if (label) keep(label);
+      const lake = lakes[li];
+      const label = lakeShown(li) && !under?.(lake.at[0], lake.at[1]) ? placeLake(lake, index.lakeLevel[li] <= level, scale, ox, oy, frame, measure, occupied) : null;
+      if (label) keep({ ...label, lake: li });
       li++;
     } else {
       const rb = index.riverBox.subarray(ri * 4, ri * 4 + 4);
       // Off the frame altogether: nothing to place (thousands of rivers, most of them elsewhere).
       const inFrame = rb[2] * scale + ox >= 0 && rb[0] * scale + ox <= width && oy - rb[1] * scale >= 0 && oy - rb[3] * scale <= height;
       if (rivers[ri].name && inFrame) {
-        for (const label of placeRiver(water, index, ri, nameLevel(level), scale, ox, oy, frame, measure, occupied, previous?.get(ri))) keep(label);
+        for (const label of placeRiver(water, index, ri, nameLevel(level), scale, ox, oy, frame, measure, occupied, previous?.get(ri), filter)) keep(label);
       }
       ri++;
     }
@@ -413,6 +427,12 @@ function placeLake(lake, drawn, scale, ox, oy, frame, measure, occupied) {
 }
 
 /**
+ * @typedef {object} Filter which river stretches may carry a name at the map's date
+ * @property {(line: number) => boolean} lineShown the line is drawn at this date
+ * @property {((x: number, y: number) => boolean) | undefined} under the point lies under the old sea
+ */
+
+/**
  * Names for one river: the best straight-ish stretches that are free, a few apart.
  * @param {import('./load.js').WaterData} water @param {WaterIndex} index @param {number} k
  * @param {number} level @param {number} scale @param {number} ox @param {number} oy
@@ -420,9 +440,10 @@ function placeLake(lake, drawn, scale, ox, oy, frame, measure, occupied) {
  * @param {(text: string, size: number) => number} measure
  * @param {Occupancy} occupied
  * @param {number[]} [previous] where this river's names were last time, [mx, my, ...] game units
+ * @param {Filter} [filter] stretches to leave out at the map's date
  * @returns {Label[]}
  */
-function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occupied, previous) {
+function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occupied, previous, filter) {
   const river = water.riverInfo[k];
   const size = riverFont(river.lengthKm);
   /** @type {Map<string, number>} */
@@ -450,6 +471,7 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
       // Belarus (Нёман, written in Latin letters when the block was packed).
       const b = index.lineBox.subarray(i * 4, i * 4 + 4);
       if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
+      if (filter && !filter.lineShown(i)) continue;
       const text = (water.lineName && water.lineNames[water.lineName[i]]) || river.name;
       if (skip?.has(text)) continue;
       const textWidth = widthOf(text);
@@ -464,7 +486,7 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
       // at chunks of the line near it.
       let count = 0;
       const flush = () => {
-        if (count >= 2) for (const st of straightStretches(buffer, length, maxDev, frame, count, [], lift)) stretches.push({ ...st, text, width: textWidth });
+        if (count >= 2) for (const st of straightStretches(buffer, length, maxDev, frame, count, [], lift)) stretches.push({ ...st, text, width: textWidth, line: i });
         count = 0;
       };
       for (let c = 0; c * 4 < chunks.length; c++) {
@@ -524,13 +546,16 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
       const x = (s.x0 + s.x1) / 2 + Math.sin(angle) * away;
       const y = (s.y0 + s.y1) / 2 - Math.cos(angle) * away;
       const text = s.text ?? river.name;
+      const sx = (s.x0 + s.x1) / 2;
+      const sy = (s.y0 + s.y1) / 2;
+      const mx = (sx - ox) / scale;
+      const my = (oy - sy) / scale;
+      if (filter?.under?.(mx, my)) continue;
       if (once ? out.some((l) => l.text === text) : out.some((l) => Math.hypot(l.x - x, l.y - y) < REPEAT_PX)) continue;
       const discs = labelDiscs(x, y, angle, s.width ?? widthOf(text), size);
       if (!occupied.fits(discs)) continue;
       occupied.add(discs);
-      const sx = (s.x0 + s.x1) / 2;
-      const sy = (s.y0 + s.y1) / 2;
-      out.push({ text, size, x, y, angle, river: k, mx: (sx - ox) / scale, my: (oy - sy) / scale });
+      out.push({ text, size, x, y, angle, river: k, line: s.line, mx, my });
     }
   }
 }
