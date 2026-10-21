@@ -15,10 +15,10 @@
 // The map follows the game's date (M3a): the land, the dated rivers and lakes, our drawn shapes
 // and the northern coast change as the years pass (src/ui/map/dated.js says what changes). That
 // work runs in the view's own animation frames, about 3 ms of each: changed land cells go
-// straight into the terrain tiles' kept pixels, and the kept frame is painted again at most every
-// 250 ms, in strips over several frames when one paint would take too long. The names already
-// placed are drawn again as they were; they are placed anew only when a dated river or lake comes
-// or goes, or the old sea moves.
+// straight into the terrain tiles' kept pixels, and the kept frame is painted again in one go at
+// most every 250 ms (less often where painting is slow, and never under a finger). The names
+// already placed are drawn again as they were; they are placed anew only when a dated river or
+// lake comes or goes, or the old sea moves.
 
 import { eraOf, FIRST_MAP_YEAR } from '../../sim/map-date.js';
 import { createDateLayer, mapYearOfDay } from './dated.js';
@@ -61,6 +61,11 @@ const LABEL_BUDGET_MS = 8;
 const EDGE_SLACK = 0.1;
 /** Name colours: dark blue with a light halo; on a dark phone, light blue with a dark halo. */
 const LABEL_INK = { light: { fill: '#173f56', halo: 'rgba(238, 241, 232, 0.88)' }, dark: { fill: '#d3e6f0', halo: 'rgba(14, 26, 34, 0.86)' } };
+/**
+ * Placing the names anew while the date runs may take this long, ms: longer than the first map's
+ * budget, as names left unplaced would cost a second paint (under the old names) a moment later.
+ */
+const RELABEL_BUDGET_MS = 32;
 /** The date's work (land, water, coast) takes about this much of a frame, ms. */
 const DATE_BUDGET_MS = 3;
 /** While the date runs, the kept frame is painted again at most this often, ms... */
@@ -71,10 +76,6 @@ const REFRESH_MS = 250;
  * shows its changes a little later.
  */
 const REFRESH_SHARE = 12;
-/** One paint of the kept frame that would take longer than this (ms, with copying it to the screen) is done in strips... */
-const STRIP_MS = 12;
-/** ...but in no more than this many. */
-const MAX_STRIPS = 6;
 /** The coast's outline, and our drawn land's. */
 const COAST_INK = 'rgba(20, 35, 45, 0.85)';
 /** The old shore: softer than today's coast, as it is an estimate. */
@@ -393,8 +394,6 @@ export function createMapView(canvas, map) {
     drawn = [];
     // Land the date changed must be in the tiles first: all of it (a few tiles at most).
     if (picture.dirtyTiles()) picture.flush(() => true, Infinity);
-    refresh = null;
-    refreshSpent = 0;
     frameStale = false;
     relabel = false;
     paintMap();
@@ -404,11 +403,9 @@ export function createMapView(canvas, map) {
 
   /**
    * Paints the map (everything but the names) into the kept frame, for the camera it is kept
-   * for. With a clip set, only that part changes; a strip ([top, bottom], CSS px of the frame)
-   * also leaves out what lies wholly outside it.
-   * @param {number[]} [strip]
+   * for. With a clip set, only that part changes.
    */
-  function paintMap(strip) {
+  function paintMap() {
     const k = /** @type {Camera} */ (kept);
     const s = k.scale;
     const fw = cssW * (1 + 2 * MARGIN);
@@ -424,12 +421,12 @@ export function createMapView(canvas, map) {
     const index = LEVELS.findIndex((l) => s < l.below);
     const L = level(index, s);
     const W = waterLevel(index);
-    // What is drawn, in map units: the frame, or the strip of it being painted.
+    // What is drawn, in map units.
     const halfW = fw / 2 / s;
     const x0 = k.cx - halfW;
     const x1 = k.cx + halfW;
-    const y0 = k.cy + (fh / 2 - (strip ? strip[1] : fh)) / s;
-    const y1 = k.cy + (fh / 2 - (strip ? strip[0] : 0)) / s;
+    const y0 = k.cy - fh / 2 / s;
+    const y1 = k.cy + fh / 2 / s;
 
     c.fillStyle = SEA;
     c.fillRect(0, 0, map.width, map.height);
@@ -490,7 +487,7 @@ export function createMapView(canvas, map) {
     c.stroke(L.coast);
     if (date) {
       drawShapes(c, index, px, ['water']);
-      drawOldSea(c, index, px, k.cx - halfW, k.cy - fh / 2 / s, k.cx + halfW, k.cy + fh / 2 / s);
+      drawOldSea(c, index, px, x0, y0, x1, y1);
     }
     if (fogOn) {
       c.fillStyle = 'rgba(12, 18, 24, 0.42)';
@@ -829,11 +826,6 @@ export function createMapView(canvas, map) {
   let lastRefresh = -Infinity;
   /** What one paint of the whole kept frame cost last time, copy to the screen included, ms. */
   let paintCostMs = 0;
-  /** Time spent so far on the paint under way, ms. */
-  let refreshSpent = 0;
-  /** A paint of the kept frame under way, strip by strip; `names` is its last step, if any. */
-  /** @type {{ next: number, count: number, names: boolean } | null} */
-  let refresh = null;
   let dateRequested = false;
   /** How long each frame's date work took, ms (for the speed test). @type {number[]} */
   let dateMs = [];
@@ -846,8 +838,9 @@ export function createMapView(canvas, map) {
 
   /**
    * One frame of the date's work: move to the wanted year, put changed land into the tiles on
-   * screen, paint the kept frame again when due (one strip a frame), and with any time left of
-   * the frame's budget prepare the land's coming changes.
+   * screen, paint the kept frame again when due, and with any time left of the frame's budget
+   * prepare the land's coming changes. The paint waits while a finger or the mouse is down or a
+   * zoom is under way, so a pan never stutters for it.
    */
   function dateTick() {
     dateRequested = false;
@@ -856,21 +849,17 @@ export function createMapView(canvas, map) {
     const start = performance.now();
     if (layer.year !== wantedYear()) applyYear(wantedYear());
     if (picture.dirtyTiles() && picture.flush(inKept, start + DATE_BUDGET_MS) > 0) frameStale = true;
-    if (kept && (refresh || ((frameStale || relabel) && start - lastRefresh >= Math.max(REFRESH_MS, REFRESH_SHARE * paintCostMs)))) {
+    const busy = pointers.size > 0 || (kept !== null && kept.scale !== cam.scale);
+    if (kept && !busy && (frameStale || relabel) && start - lastRefresh >= Math.max(REFRESH_MS, REFRESH_SHARE * paintCostMs)) {
       const t = performance.now();
-      const finished = refreshStep();
+      refreshFrame();
       blit();
-      refreshSpent += performance.now() - t;
-      if (finished) {
-        paintCostMs = refreshSpent;
-        refreshSpent = 0;
-        lastRefresh = performance.now();
-      }
+      paintCostMs = performance.now() - t;
     }
     const left = layer.prepare(start + DATE_BUDGET_MS);
     dateMs.push(performance.now() - start);
     if (dateMs.length > 4000) dateMs = dateMs.slice(-2000);
-    if (left || layer.year !== wantedYear() || picture.dirtyTiles() || frameStale || relabel || refresh) scheduleDate();
+    if (left || layer.year !== wantedYear() || picture.dirtyTiles() || frameStale || relabel) scheduleDate();
   }
 
   /** Moves the map's date and notes what must be painted again. @param {number} year */
@@ -906,38 +895,25 @@ export function createMapView(canvas, map) {
   }
 
   /**
-   * One step of painting the kept frame again for the map's date: one strip of the map with the
-   * names already placed drawn again over it, or, as a last step of its own, the names placed
-   * anew. Strips keep each frame short where one paint takes longer than STRIP_MS. Returns true
-   * when the paint is finished.
+   * Paints the kept frame again for the map's date, for the camera it is kept for, in one go:
+   * with the names already placed drawn again as they are, or placed anew when a dated feature
+   * came or went or the old sea moved. (Painting in strips over several frames was tried: each
+   * strip still costs most of a whole paint, as the big outlines are drawn whole every time.)
    */
-  function refreshStep() {
-    const fw = cssW * (1 + 2 * MARGIN);
-    const fh = cssH * (1 + 2 * MARGIN);
-    if (!refresh) {
-      refresh = { next: 0, count: Math.min(MAX_STRIPS, Math.max(1, Math.ceil(paintCostMs / STRIP_MS))), names: relabel };
-      frameStale = false;
-      relabel = false;
-    }
-    if (refresh.next < refresh.count) {
-      const top = Math.floor((fh * refresh.next) / refresh.count);
-      const bottom = Math.ceil((fh * (refresh.next + 1)) / refresh.count);
-      fctx.save();
-      fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      fctx.beginPath();
-      fctx.rect(0, top, fw, bottom - top);
-      fctx.clip();
-      paintMap([top, bottom]);
-      paintLabels(fctx, placedLabels);
-      fctx.restore();
-      refresh.next++;
-      if (refresh.next < refresh.count || refresh.names) return false;
-    } else {
-      labelMs = drawNames(LABEL_BUDGET_MS);
+  function refreshFrame() {
+    if (picture.dirtyTiles()) picture.flush(() => true, Infinity);
+    const names = relabel;
+    frameStale = false;
+    relabel = false;
+    paintMap();
+    if (names) {
+      drawn = [];
+      labelMs = drawNames(RELABEL_BUDGET_MS);
       if (named && !named.complete) settleSoon();
+    } else {
+      paintLabels(fctx, placedLabels);
     }
-    refresh = null;
-    return true;
+    lastRefresh = performance.now();
   }
 
   // --- touch and mouse ---------------------------------------------------------------------

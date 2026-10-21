@@ -510,10 +510,14 @@ by ids from data/sources.md.
   about 3 ms of each: it moves the date, writes changed land cells straight into the terrain
   tiles' kept image data (`paintTerrain` keeps each 512 px tile's pixels, about 8.4 MB), copies
   changed tiles to their canvases (on-screen tiles first) and, with time left, prepares the
-  land's coming changes. The kept frame is painted again at most every 250 ms and no more often
-  than 12 times what one paint costs (copy to the screen included), in up to 6 strips of about
-  12 ms when one paint takes longer. The names already placed are drawn again as they are; they
-  are placed anew only when a dated river or lake comes or goes, or the old sea moves.
+  land's coming changes. The kept frame is painted again in one go, at most every 250 ms, no more
+  often than 12 times what one paint costs (copy to the screen included), and never while a
+  finger or the mouse is down or a zoom is under way. The names already placed are drawn again
+  as they are; they are placed anew (with up to 32 ms to place them, so none are left for a
+  second paint) only when a dated river or lake comes or goes, or the old sea moves. Painting in
+  strips over several frames was tried and dropped: in headless Chrome each strip cost most of a
+  whole paint, as the big outlines are drawn whole each time, so the time run had about 140
+  frames over 0.2 s with strips and about 40 without.
 - **Water by date:** `cutWater` still cuts once per zoom level and leaves dated features out;
   `cutDated` gives them as small sets per tag, drawn when `tagsOnAt` says the tag is on. Names
   skip features that are off and places under the old sea. Our drawn shapes (outlets as sea,
