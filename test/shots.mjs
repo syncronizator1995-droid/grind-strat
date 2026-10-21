@@ -6,6 +6,9 @@
 //     Belarus with river names and close over the lakes where Latvia, Lithuania and Belarus meet
 //     with lake names, the Credits sheet, top speed, save and load, new game, reload. Then
 //     once more with the processor slowed 4x: the main rivers are still named on the first map.
+//     The map at its date (M3a): the hidden #date= link at 1219, 1550, 1900 and 2021 over Lithuania,
+//     Stockholm, Turku and the Vistula Lagoon, in light and dark (no reservoir named in 1219), and a
+//     late save that opens at its own year from its very first picture.
 //  2. Served like the website (under /grind-strat/, as GitHub Pages does): the manifest loads, the
 //     service worker takes over, and the game still opens with the server switched off, with a
 //     signal too weak to answer, after another app on the same address wipes the caches, and
@@ -23,6 +26,8 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { build } from '../tools/build.mjs';
+import { dayFromDate } from '../src/sim/calendar.js';
+import { newGame, toSave } from '../src/sim/game.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DIST = join(ROOT, 'dist');
@@ -221,7 +226,8 @@ async function playAsFile(browser, scheme) {
   await page.screenshot({ path: join(SHOTS, `${scheme}-5-map-zoomed.png`) });
   if (scheme === 'dark') {
     await page.tap('[data-act="speedtest"]');
-    await page.locator('#speedSheet').waitFor({ state: 'visible', timeout: 60000 });
+    // The time run (1219 to 2021 at speed 5) makes the speed test take about three minutes.
+    await page.locator('#speedSheet').waitFor({ state: 'visible', timeout: 600000 });
     const results = await page.locator('#speedResults').innerText();
     check(/step 2a, M3a/.test(results) && /Time run 1219 to 2021 at speed 5: \d+ frames/.test(results) && /First map on screen: [\d.]+ ms/.test(results) && /Full redraw: median [\d.]+ ms/.test(results)
       && /frames, \d+% on time/.test(results) && /Names \(rivers and lakes\): median [\d.]+ ms/.test(results),
@@ -343,6 +349,69 @@ async function slowPhoneNames(browser) {
   const shown = String(await page.locator('#map').getAttribute('data-name-list')).split('|');
   for (const must of ['Daugava', 'Neris', 'Nemunas']) check(shown.includes(must), `${label}: "${must}" is not named on the starting map (named: ${shown.join(', ')})`);
   await page.screenshot({ path: join(SHOTS, 'slow-phone-start.png') });
+  await context.close();
+}
+
+/** The hidden test link's views: game units and CSS px per unit (src/ui/map/dated.js parseTestLink). */
+const DATED_VIEWS = [
+  { name: 'lithuania', view: '8434,5899,0.075' },
+  { name: 'stockholm', view: '4800,10500,0.1' },
+  { name: 'turku', view: '7460,11632,0.12' },
+  { name: 'vistula-lagoon', view: '5852,4994,0.2' },
+];
+const DATED_YEARS = [1219, 1550, 1900, 2021];
+/** The reservoirs' names (tagged in the water block): none of them may be named before it is filled. */
+const RESERVOIRS = ['Kyivske vodoskhovyshche', 'Kanivske vodoskhovyshche', 'Narva veehoidla', 'Zalew Włocławski', 'Vilyeyskaye vadaskhovishcha',
+  'Kauno marios', 'Jeziorsko', 'Zaslawskaye vadaskhovishcha', 'Zalew Zegrzyński', 'Zalew Sulejowski', 'Elektrėnų marios', 'Rīgas ūdenskrātuve', 'Soodla veehoidla'];
+
+/**
+ * The map at its date, through the hidden #date= link, and a late save opening at its own year.
+ * @param {import('playwright').Browser} browser @param {'light' | 'dark'} scheme
+ */
+async function datedMaps(browser, scheme) {
+  const label = `dated/${scheme}`;
+  const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: scheme });
+  await blockOutside(context, label, (url) => url.protocol === 'file:' || url.protocol === 'data:');
+  const page = await context.newPage();
+  watch(page, label);
+  const fileUrl = pathToFileURL(join(DIST, 'grind-strat.html')).href;
+  for (const year of DATED_YEARS) {
+    for (const v of DATED_VIEWS) {
+      const at = `${label} ${year} ${v.name}`;
+      await page.goto(`${fileUrl}#date=${year}&view=${v.view}`);
+      await page.evaluate(() => document.fonts.ready);
+      try {
+        await page.waitForFunction(() => document.documentElement.dataset.datedOnScreenMs, undefined, { timeout: 30000 });
+      } catch {
+        failures.push(`${at}: the map over time did not appear`);
+      }
+      await settle(page);
+      check(await page.locator('#map').getAttribute('data-map-year') === String(year), `${at}: the map shows ${await page.locator('#map').getAttribute('data-map-year')}`);
+      check((await dateText(page)) === '1 January 1219', `${at}: the test link changed the game's date`);
+      for (const p of await layoutProblems(page)) failures.push(`${at}: ${p}`);
+      await page.screenshot({ path: join(SHOTS, `${scheme}-date-${year}-${v.name}.png`) });
+      const names = ((await page.locator('#map').getAttribute('data-name-list')) ?? '').split('|').filter(Boolean);
+      if (year === 1219) {
+        const early = names.filter((n) => RESERVOIRS.includes(n));
+        check(!early.length, `${at}: reservoirs named before they were filled: ${early.join(', ')}`);
+        if (v.name === 'stockholm') check(!names.includes('Mälaren'), `${at}: Mälaren is named while it is still a bay of the sea`);
+      }
+      if (year === 2021 && v.name === 'stockholm') check(names.includes('Mälaren'), `${at}: Mälaren is not named in 2021`);
+      await latinNames(page, at);
+      await page.goto('about:blank');
+    }
+  }
+  // A late save: the first picture is already of its year, never 1219 first.
+  const late = { ...newGame(7), day: dayFromDate(1700, 3, 1) };
+  await page.goto(fileUrl);
+  await page.evaluate((text) => localStorage.setItem('grind-strat/autosave', text), toSave(late));
+  await page.reload();
+  await mapShown(page, label);
+  check((await dateText(page)) === '1 March 1700', `${label}: the late save did not open on 1 March 1700 (got ${await dateText(page)})`);
+  const first = await page.evaluate(() => document.documentElement.dataset.mapYearAtFirstPaint);
+  check(first === '1700', `${label}: a save from 1700 first showed the map of ${first}`);
+  await page.screenshot({ path: join(SHOTS, `${scheme}-date-late-save-1700.png`) });
+  await page.evaluate(() => localStorage.clear());
   await context.close();
 }
 
@@ -553,6 +622,8 @@ const browser = await chromium.launch();
 try {
   await playAsFile(browser, 'light');
   await playAsFile(browser, 'dark');
+  await datedMaps(browser, 'light');
+  await datedMaps(browser, 'dark');
   await slowPhoneNames(browser);
   await playAsWebsite(browser);
 } catch (err) {
