@@ -3,6 +3,8 @@
 //   src/data/map/base.json            public domain: land and coast, heights and sea depths
 //   src/data/by-sa/terrain-1219.json  CC BY-SA 4.0: the land around 1219, from the grid that
 //                                     npm run map:terrain builds (refused if it is stale)
+//   src/data/by-sa/terrain-time.json  CC BY-SA 4.0: how the land changes from 1219 to 2021, from
+//                                     the planes npm run map:terrain-time builds
 //   src/data/odbl/water.json          ODbL 1.0: OpenStreetMap rivers and lakes (read through
 //                                     Overture), from data/raw/derived/water-osm.json, which
 //                                     npm run map:water builds; without it (M2's way),
@@ -20,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { ROOT, writeBlock, writeFingerprints } from './block.mjs';
 import { packBase } from './pack-base.mjs';
 import { packTerrain } from './pack-terrain.mjs';
+import { packTerrainTime, TIME_BLOCK } from './pack-terrain-time.mjs';
 import { packWater } from './pack-water.mjs';
 
 /** @param {number} bytes */
@@ -33,6 +36,9 @@ async function main() {
   written.push({ path: water.path, text: await writeBlock(water.path, water.block) });
   // Once the OpenStreetMap water is in, the Natural Earth water must not linger next to it.
   if (water.path !== 'src/data/map/water-ne.json') await rm(join(ROOT, 'src/data/map/water-ne.json'), { force: true });
+  // The land over time: left as it is where its planes were never built (npm run map:terrain-time).
+  const time = await packTerrainTime();
+  if (time) written.push({ path: TIME_BLOCK, text: await writeBlock(TIME_BLOCK, time) });
   await writeFingerprints();
   for (const w of written) {
     const block = JSON.parse(w.text);

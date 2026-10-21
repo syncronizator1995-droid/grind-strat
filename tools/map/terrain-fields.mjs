@@ -3,18 +3,10 @@
 // set of cells, and reading the 2 km height grid at 1 km cell centres. Plain arrays in and out,
 // no files, so the tests can run them on made-up grids.
 
-/**
- * A hash of three integers to a number in [0, 1). Deterministic and the same on every machine:
- * the terrain must come out identical from the same inputs, so Math.random is never used.
- * @param {number} x @param {number} y @param {number} seed
- */
-export function hash01(x, y, seed) {
-  let h = Math.imul(x | 0, 0x27d4eb2d) ^ Math.imul(y | 0, 0x165667b1) ^ Math.imul(seed | 0, 0x9e3779b1);
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
+import { hash01 } from '../../src/sim/grid.js';
+
+// hash01 lives in src/sim/grid.js, so the game rules can use it too; re-exported for the tools.
+export { hash01 };
 
 /**
  * Smooth value noise in [0, 1): hashed values on a lattice `spacing` cells apart, blended with

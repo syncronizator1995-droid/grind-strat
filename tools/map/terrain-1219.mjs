@@ -99,11 +99,26 @@ export const terrainParamsSha256 = () => createHash('sha256').update(JSON.string
  */
 
 /**
+ * The 1219 grid: prepareTerrain (the scores and the fixed classes), then cutTerrain (the quotas).
+ * The later anchors (tools/map/terrain-time.mjs) reuse the same prepared scores, so the two steps
+ * are kept apart; together they do exactly what this function always did, in the same order, so
+ * the 1219 grid is byte for byte the same (test/map-terrain-time.test.js checks it).
  * @param {TerrainInput} input
  * @param {typeof TERRAIN_PARAMS} [p]
  * @param {(what: string, round: number, worst: number) => void} [onRound] for tuning the solver
  */
 export function buildTerrain1219(input, p = TERRAIN_PARAMS, onRound = undefined) {
+  return cutTerrain(prepareTerrain(input, p), input, p, onRound);
+}
+
+/**
+ * Everything the quotas need and nothing they decide: the pollen lattice and fields, the
+ * distances, the classes fixed before any quota (sea, marsh, heath, open; water today left out),
+ * which cells count in a square and which may be forest, and the forest score.
+ * @param {TerrainInput} input
+ * @param {typeof TERRAIN_PARAMS} [p]
+ */
+export function prepareTerrain(input, p = TERRAIN_PARAMS) {
   const { cols, rows, land, cover } = input;
   const n = cols * rows;
   const km = input.cellKm;
@@ -120,13 +135,13 @@ export function buildTerrain1219(input, p = TERRAIN_PARAMS, onRound = undefined)
   const waterDist = scale(distanceTo(or(input.rivers, input.lakes), cols, rows), km);
   const riverDist = scale(distanceTo(input.rivers, cols, rows), km);
 
-  const terrain = new Uint8Array(n); // 0 = sea everywhere to start
+  const fixed = new Uint8Array(n); // 0 = sea everywhere to start
   // Water today (lakes, reservoirs, wide rivers): left out of the quotas, filled at the end.
   const waterToday = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
     if (!land[i]) continue;
     if (cover.water[i] >= p.waterToday) { waterToday[i] = 1; continue; }
-    terrain[i] = firstPass(input, i, seaDist[i], p);
+    fixed[i] = firstPass(input, i, seaDist[i], p);
   }
 
   // Forest. The pollen map's "open" share includes bog and heath, so marsh and heath cells
@@ -141,9 +156,26 @@ export function buildTerrain1219(input, p = TERRAIN_PARAMS, onRound = undefined)
   for (let i = 0; i < n; i++) {
     if (!land[i] || waterToday[i]) continue;
     domain[i] = 1;
-    if (terrain[i] === CLASS.open) eligible[i] = 1;
+    if (fixed[i] === CLASS.open) eligible[i] = 1;
   }
   const forestScore = forestScores(input, eligible, forestField, waterDist, p.forest);
+  return { fixed, waterToday, domain, eligible, lattice, places, forestField, coniferField, seaDist, waterDist, riverDist, forestScore };
+}
+
+/** @typedef {ReturnType<typeof prepareTerrain>} PreparedTerrain */
+
+/**
+ * The 1219 quotas on prepared scores: forest to each square's pollen share, tidied into patches,
+ * then conifer or mixed among that forest, then today's water filled from its shores.
+ * @param {PreparedTerrain} prep @param {TerrainInput} input
+ * @param {typeof TERRAIN_PARAMS} [p]
+ * @param {(what: string, round: number, worst: number) => void} [onRound]
+ */
+export function cutTerrain(prep, input, p = TERRAIN_PARAMS, onRound = undefined) {
+  const { cols, rows } = input;
+  const { waterToday, domain, eligible, lattice, places, forestField, coniferField, seaDist, waterDist, riverDist, forestScore } = prep;
+  const km = input.cellKm;
+  const terrain = prep.fixed.slice();
   const forestCut = solveQuota({ score: forestScore, eligible, domain, places, target: lattice.forest, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('forest', r, w)) });
   const forestIslands = absorbSmallPatches(forestCut.chosen, eligible, cols, rows, p.minPatch);
   const forest = solveQuota({ score: edgeScore(forestCut.chosen, eligible, forestScore, cols, rows), eligible, domain, places, target: lattice.forest, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('forest edges', r, w)) });
@@ -153,7 +185,7 @@ export function buildTerrain1219(input, p = TERRAIN_PARAMS, onRound = undefined)
   const coniferCut = solveQuota({ score: coniferScore, eligible: forest.chosen, domain: forest.chosen, places, target: lattice.coniferShare, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('conifer', r, w)) });
   const coniferIslands = absorbSmallPatches(coniferCut.chosen, forest.chosen, cols, rows, p.minPatch);
   const conifer = solveQuota({ score: edgeScore(coniferCut.chosen, forest.chosen, coniferScore, cols, rows), eligible: forest.chosen, domain: forest.chosen, places, target: lattice.coniferShare, tolerance: p.tolerance, onRound: onRound && ((r, w) => onRound('conifer edges', r, w)) });
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < terrain.length; i++) {
     if (forest.chosen[i]) terrain[i] = conifer.chosen[i] ? CLASS.conifer : CLASS.mixed;
   }
 
@@ -274,7 +306,7 @@ function spread(v, mask) {
  * @param {TerrainInput} input @param {Uint8Array} forest @param {Float32Array} pollenConifer
  * @param {Float32Array} seaKm @param {Float32Array} riverKm @param {typeof TERRAIN_PARAMS.conifer} w
  */
-function coniferScores(input, forest, pollenConifer, seaKm, riverKm, w) {
+export function coniferScores(input, forest, pollenConifer, seaKm, riverKm, w) {
   const { cols, rows } = input;
   const score = new Float32Array(cols * rows);
   for (let r = 0; r < rows; r++) {
@@ -308,7 +340,7 @@ function coniferScores(input, forest, pollenConifer, seaKm, riverKm, w) {
  * @param {Float32Array} riverKm @param {number} cols @param {number} rows @param {number} km
  * @param {typeof TERRAIN_PARAMS} p
  */
-function fillWaterToday(terrain, waterToday, riverKm, cols, rows, km, p) {
+export function fillWaterToday(terrain, waterToday, riverKm, cols, rows, km, p) {
   const dry = new Uint8Array(terrain.length);
   for (let i = 0; i < terrain.length; i++) dry[i] = terrain[i] !== CLASS.sea && !waterToday[i] ? 1 : 0;
   const dist = distanceTo(dry, cols, rows);
@@ -392,7 +424,7 @@ function waterBodies(water, cols) {
 }
 
 /** The lon/lat box of a set of points. @param {Float64Array} lon @param {Float64Array} lat */
-function boxOf(lon, lat) {
+export function boxOf(lon, lat) {
   let west = Infinity; let east = -Infinity; let south = Infinity; let north = -Infinity;
   for (let i = 0; i < lon.length; i++) {
     west = Math.min(west, lon[i]); east = Math.max(east, lon[i]);
