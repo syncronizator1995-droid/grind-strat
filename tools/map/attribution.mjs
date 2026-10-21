@@ -52,8 +52,8 @@ const BLOCK_CHANGES = /** @type {Record<string, string>} */ ({
 
 /** The honest labels: what the map is, and what it is not. */
 const ABOUT = [
-  'The map shows the land as it was around AD 1219, as far as it can be worked out today.',
-  'Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today\'s land cover, terrain and rivers; they are not from a historical map.',
+  'The map shows the land of the game\'s year, from AD 1219 to today, as far as it can be worked out.',
+  'Forest share: estimated from pollen records (about AD 750 to 1250 for the land of 1219, then about 1250 to 1600, 1600 to 1850 and 1850 to 1950) and, for 2021, from satellite land cover. The exact forest edges, and which places were cleared or grew back in which year, are placed by a rule from today\'s land cover, terrain and rivers; they are not from a historical map.',
   'Marsh: from today\'s peat-soil and wetland maps plus today\'s open bogs. Where those maps show more bog than the pollen allows, bog wins and there is less forest than the pollen share (parts of north-west Russia, south-east Finland and east Estonia).',
   'Under modern reservoirs the land shows flat, at today\'s water level. A reservoir appears in the year it was filled: the big ones in years from published sources, the smaller ones in the year OpenStreetMap gives (marked "year from OpenStreetMap"); one with no known year is not shown.',
 ];
@@ -66,7 +66,7 @@ const ABOUT_WATER = {
   osm: [
     'Rivers and lakes are today\'s, from OpenStreetMap, with today\'s local names: a river\'s name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river\'s own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, appear only from their year, where one is known; the rivers through those reservoirs follow today\'s mapped line.',
     'All names are written in Latin letters. Russian, Belarusian and Ukrainian names are romanised by the BGN/PCGN systems (Russian 1947, Belarusian 1979, Ukrainian 2019), with the soft and hard signs and the apostrophe left out to keep them easy to read. Where OpenStreetMap gives a name in two languages, the map shows one. A lake shows just its name, without the word for lake (Ilmen, not ozero Ilmen; Plateliai, not Platelių ežeras); where the name only works with that word (Kozhanovskoye ozero, Jezioro Mikołajskie, or Juglas ezers where no plain form is known), the full name is kept.',
-    'The coast, heights and sea depths are today\'s.',
+    'Heights and sea depths are today\'s, and so is the coast outside the north, apart from a few drawn changes marked "reconstructed" (the Vistula Lagoon\'s old outlets, Ruden).',
   ],
   ne: [
     'Rivers and lakes: for now Natural Earth\'s simpler set, with its names: local names for most rivers, English names for some big lakes. Fuller rivers and lakes from OpenStreetMap come next; until then the upper Nemunas (above Kaunas) and smaller lakes such as Drūkšiai are missing, and the map shows land where those lakes are.',
