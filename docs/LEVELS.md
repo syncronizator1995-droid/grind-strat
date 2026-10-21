@@ -52,7 +52,7 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 | Blocked data | You allow sites, but only when a milestone needs one: I stop and ask for that one site |
 | Your phone | Android |
 | Terrain grid | A 1 km terrain map for every province; battle and town maps made finer later |
-| Names on the map | Names of the time, changing with the time slider; today's name stands in, marked, where none is sourced |
+| Names on the map | Names of the time, changing with the game's date; today's name stands in, marked, where none is sourced |
 | Unsure borders | Guessed borders look softer than sourced ones |
 
 ### What each one means in play
@@ -90,17 +90,18 @@ All **decided**. Where one changes an earlier decision, it says so plainly.
 - **Holdings nobody is building:** they still grow, but very slowly compared with ones you or a computer ruler build.
 - **Looking at other lands:** you can look at your neighbours' lands, but only partly, like fog of war in strategy games. You see inside a holding only through a direct tie: a visit, a hunt together, letters. Far-off realms stay hidden. This matches the rule that computer rulers know only what their character would know.
 - **War exhaustion:** the longer a war drags on, the worse your armies fight. Comes with war in step 5.
-- **Step 2:** two playable versions. 2a is the map itself, with a time slider, a Credits screen and a speed test. 2b adds the 1219 provinces and holdings, starting with a pilot you check (Semigallia plus Upytė or Deltuva). **This changes** the build plan, where step 2 was a single step.
+- **Step 2:** two playable versions. 2a is the map itself, which follows the game's date (no slider), with a Credits screen and a speed test. 2b adds the 1219 provinces and holdings, starting with a pilot you check (Semigallia plus Upytė or Deltuva). **This changes** the build plan, where step 2 was a single step.
 - **Lithuania's provinces:** your heartland is split into the lands and castle districts that 14th-century sources name. Each one's panel shows the year it was first mentioned, so you can see how far after 1219 the name is recorded.
-- **Ice-age maps:** in 2a, sliding to 10,000, 9,500, 8,500, 7,500 or 5,000 BC shows a rough sketch, labelled rough, with a short sourced note on land, water, ice, plants, animals and people. The real ice-age maps come in step 8, where you play on them. **This changes** HANDOFF, which built all eight time slices in step 2.
+- **Ice-age maps:** the map data for AD 1 and the five ice-age dates (10,000, 9,500, 8,500, 7,500 and 5,000 BC) is prepared in M3b, ready for step 8, and checked with a hidden test link only. You play on the real ice-age maps in step 8. **This changes** HANDOFF, which built all eight time slices in step 2.
 - **South edge:** the map runs from 50°N to 61.5°N and from 12°E to 34°E. Volhynia, one half of Galicia–Volhynia (the 1219 treaty partner), is on it; Galicia lies just off the edge.
 - **Licences:** the game stays free, so map data that must be shared alike (like OpenStreetMap) can be used. Those files stay separate, each with its own licence note, and a Credits screen names every data owner.
 - **File size:** no limit. What counts is that the first map is on your screen in under 3 seconds when you open the game from its saved copy. **This changes** HANDOFF's "under about 500 KB of map JSON".
 - **Blocked data:** some data sites are blocked where I work. You allow them, but I ask only when a milestone needs one, one site at a time. Until then, that layer waits (the hills wait for GEBCO, for example).
 - **Your phone:** Android, so the speed test is judged on your phone's Chrome. The game still has to work on computers and other phones. You send me the Speed test numbers with its Copy button.
 - **Terrain grid:** one 1 km terrain map covers the whole map, so every province has its own cells of forest, marsh, water and height. Battles (step 6) and towns (step 7) get finer maps made from it. **This changes** HANDOFF's small terrain grid per province ("for example 32 by 32 cells").
-- **Names on the map:** 1219 shows the names used in sources of that age, often Latin or German forms (such as Düna for the Daugava: TO CHECK). Where no name of the time is sourced, today's local name stands in, and the data says so. Tap a river, lake or sea for all its names and sources.
-- **Names change with the time:** move the time slider and the names change with the age.
+- **Names on the map:** 1219 shows the names used in sources of that age, often Latin or German forms (such as "Duna" for the Daugava: Henry of Livonia's Latin has "per Dune flumen" in Henry I 2, in the Arbusow-Bauer edition of 1955, and the Livonian Rhymed Chronicle has "Dune"). Where no name of the time is sourced, today's local name stands in, and the data says so. Tap a river, lake or sea for all its names and sources.
+- **Names change with the time:** the map follows the game's date, so the names change as the years pass. Lithuania keeps today's Lithuanian names all game; its old written forms show when you tap.
+- **The map through time:** there is no slider. The map shows the land, water and names of the game's own date: the forest thins, dams fill reservoirs, the northern shore creeps out. A hidden test link (`#date=1550`) is for checking only.
 - **Unsure borders:** a border a source gives is drawn firmly. One drawn by a rule, because no source gives it, looks softer, so you can see at a glance what's known and what's guessed.
 
 ### My push-back, for the record

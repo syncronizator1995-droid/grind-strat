@@ -7,7 +7,7 @@ same day with his step 2 answers and the approved step 2a plan.
 This file says what to build first and how to know it is right. It covers:
 
 - Step 1: setting up the project.
-- Step 2: the map, in two parts: 2a (the map itself, with a time slider) and 2b (the 1219
+- Step 2: the map, in two parts: 2a (the map itself, which follows the game's date) and 2b (the 1219
   provinces and holdings).
 - Step 3: the Middle Ages, dynasty and realm, on the real map, in three parts (3a, 3b, 3c).
 
@@ -67,8 +67,8 @@ Build order (Ignas can reorder it at any time):
 
 1. Agree the design (done, but it stays open).
 2. The map, in two parts, each ending playable on Ignas's phone:
-   - 2a: the map itself: coasts, rivers, lakes, painted terrain, a time slider, names that change
-     with the time, a Credits screen and a speed test (planned and approved);
+   - 2a: the map itself: coasts, rivers, lakes, painted terrain, a map that follows the game's date
+     (no slider), names that change with the time, a Credits screen and a speed test (planned and approved);
    - 2b: the 1219 provinces and holdings, region by region, starting with a pilot (planned with
      Ignas after 2a).
 3. Middle Ages: dynasty and realm, in three parts, each ending playable on Ignas's phone:
@@ -184,7 +184,7 @@ Ignas answered three rounds of questions, then approved the step 2a plan:
 | Blocked data | He allows sites, but only when a milestone needs one: Claude stops and asks for that one site |
 | His phone | Android |
 | Terrain grid | A 1 km terrain map for every province now; battle and town maps made finer later |
-| Names on the map | Names of the time, changing with the time slider |
+| Names on the map | Names of the time, changing with the game's date |
 | Unsure borders | Guessed borders look softer than sourced ones |
 
 After the questions he wrote: "The names on the map should chage with the time and ask me to allow
@@ -197,7 +197,7 @@ sites once needed".
 - A 1 km terrain map replaces "a small terrain grid per province, for example 32 by 32".
 - No hard size limit replaces "under about 500 KB of map JSON".
 - The five ice-age slices are done properly in step 8, not in step 2. 2a gives a rough preview.
-- Names of the time, changing with the slider. The research had proposed today's local names.
+- Names of the time, changing with the game's date. The research had proposed today's local names.
 - Share-alike data is allowed. The research had recommended avoiding it.
 
 ### 2a: the map
@@ -261,14 +261,16 @@ M2b brings the OpenStreetMap rivers and lakes:
   and lakes reach the screen about 0.5 to 0.8 s later than in M2. Ignas's phone measures the real
   cost.
 
-Then M3, the time slider.
+Then M3: the map follows the game's date.
 
 **What Ignas sees on his phone at the end of 2a:**
 - **The real map** instead of the empty grid: sea, coasts, rivers, lakes, hill shading, forests
   and marshes, painted. Pinch to zoom, drag to pan; mouse wheel on a computer.
-- **A time slider:** today, 1219 and 1 AD in full detail. The five ice-age slices (10,000, 9,500,
-  8,500, 7,500 and 5,000 BC) show a rough preview, clearly labelled rough, plus a short sourced
-  note on land, water, ice, plants, animals and people.
+- **A map that follows the game's date** (no slider): it shows the land, water and names of the
+  game's own date, from 1219 to today (M3a). AD 1 and the five ice-age slices (10,000, 9,500,
+  8,500, 7,500 and 5,000 BC) come as ready data in M3b, with a short sourced note on land,
+  water, ice, plants, animals and people, checked with a hidden test link (`#date=1550`,
+  later `#10000BC`).
 - **Names that change with the time:** 1219 shows the forms used in sources of that age; today
   shows today's local names. Where no name of the time is sourced, today's local name stands in,
   and the data says so. Tap a river, lake or sea for all its names and sources.
@@ -353,15 +355,18 @@ every id.
 | --- | --- | --- |
 | M1 | Speed test on an invented test map | Tap Speed test, then Copy, and send the numbers |
 | M2 | The real map, 1219 terrain, Credits | Zoom around the real Baltic |
-| M3 | Time slider, names that change | Slide through the ages |
+| M3a | The map follows the game's date, 1219 to today; names that change (two pull requests) | Watch the forest thin, the shore creep and the dams fill as the years run |
+| M3b | AD 1 and the ice-age data, ready for step 8 (planned with Ignas after M3a) | Nothing new to play; checked with the hidden test link |
 
 - **M1:** the real drawing code at full map size, on a test map labelled "invented": real Natural
   Earth coast, lakes and rivers; made-up provinces, 3,000 made-up points, made-up terrain, and the
   fog layer. Uses only Natural Earth's global layers, so the JRC clause doesn't apply.
 - **M2:** coast, named rivers and lakes, hill shading, 1219 terrain, Credits screen. Ask Ignas to
   allow GEBCO and OpenStreetMap here.
-- **M3:** today, 1219 and 1 AD in full; the five ice-age previews with notes; names change with
-  the slider. Ask for PANGAEA if still needed.
+- **M3a (in progress):** the map follows the game's date from 1219 to today, in two pull requests:
+  "the land changes" (forest, northern coast, water works), then "the names change".
+- **M3b:** AD 1 and the ice-age data (five slices with notes), ready for step 8; planned with
+  Ignas after M3a. Ask for PANGAEA if still needed.
 - **Settled at M2:** the forest comes from the finished SpatioCompo maps on GitHub, so neither
   waiting until M3 nor PANGAEA was needed (Ignas, 6 October 2026).
 - If M1 shows his phone is too slow, the drawing gets fixed before M2.
@@ -379,7 +384,7 @@ every id.
 - **Speed:** timed unpacking and drawing in Node and in headless Chrome, with the processor slowed
   down, to catch regressions. His phone's numbers are the real verdict: 95% of frames under
   16.7 ms while panning; a full redraw under 50 ms; first map in under 3 seconds.
-- **Screenshots** at 390 × 844 in light and dark: the overview, zoomed in, the time slider, a name
+- **Screenshots** at 390 × 844 in light and dark: the overview, zoomed in, the map at two dates, a name
   panel and Credits. Checked for cut-off or overlapping text.
 - **Saves:** looking at the map never changes the save.
 

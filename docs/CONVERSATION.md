@@ -260,6 +260,56 @@ Lake names then showed the local word for "lake" in mixed ways ("ozero Ilmen", a
 So: Ilmen, Narach, Plateliai. Where the plain form isn't known for sure, the full name stays,
 spelled out.
 
+## M3: the map follows the game (11 to 20 October 2026)
+
+M3 was first planned as a time slider. Ignas changed that. Claude's reading, in plain words, and
+his answers:
+
+**11 October.** On the era switch he wrote:
+
+> "Id like the game to start at the ice age run through tribal actions and then have it unified n stuff"
+
+Claude read it as: the game itself runs through the ages, so the map should show the game's own
+date, not a slider the player moves. Asked to confirm:
+
+> "Yes, the map follows the game"
+
+So there is no slider. The land, water and names are those of the game's date. A hidden test link
+(`#date=1550`, later `#10000BC`) is for checking only.
+
+Asked about the lake names (just the name, as chosen on 11 October):
+
+> "Keep as is"
+
+Asked about the build order, whether to keep the 1219 dynasties first and the ice-age hunters in
+step 8, or bring the ice age forward:
+
+> "Keep the plan (Recommended)"
+
+The map data for every age is still prepared now, so nothing is redone later.
+
+**12 October.** Six choices on how to build it:
+
+- M3 in parts: "Two parts (Recommended)". M3a is 1219 to today, seen while playing. M3b is AD 1
+  and the ice-age data, ready for step 8, and is checked with the hidden link.
+- How the forest changes: "Gradually (Recommended)". Each 1 km square gets its own clearing year,
+  instead of the whole map jumping at set years.
+- Lithuania's names: "Lithuanian names (Recommended)". Today's Lithuanian names all game; the
+  old written forms show when you tap.
+- The north coast, where land rise moves the shore: "Estimate it (Recommended)". It is worked out
+  from land rise, fitted to local studies, and marked "estimate".
+- Our own map data (the dated changes and names we make ourselves): "Same as the game
+  (Recommended)". Same terms as the game; he chooses them later.
+- Reservoirs: "Small ones too". The 12 big ones get researched years. The small ones appear in
+  the year OpenStreetMap gives, marked as such; ones with no year stay hidden.
+
+**20 October.** On which models the helper agents use:
+
+> "alright keep these sets of models for the agents and il be using opus for hard stuff no fable here"
+
+So the helpers are Opus at high effort for hard code and for the sceptics who check the work,
+Sonnet at medium effort for routine jobs, and at most two at once.
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.

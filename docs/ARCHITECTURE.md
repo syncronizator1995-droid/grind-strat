@@ -334,7 +334,7 @@ and holdings, planned with him after 2a. The approved 2a plan is in docs/HANDOFF
 - A 1 km terrain map replaces "a small terrain grid per province (for example 32 by 32 cells)".
 - No hard size limit replaces "map JSON under about 500 KB"; the test is first map on screen in
   under 3 s on his phone.
-- Names of the time, changing with the time slider (the research had proposed today's names).
+- Names of the time, changing with the game's date (the research had proposed today's names). Later, 11 October 2026: no slider; the map follows the game's date.
 - Share-alike data is allowed ("free forever"), in separate files.
 - The five ice-age slices are built properly in step 8; 2a gives a rough preview.
 
@@ -382,8 +382,8 @@ and holdings, planned with him after 2a. The approved 2a plan is in docs/HANDOFF
   changes the save (section 5).
 - 1219 forest share is estimated from pollen (REVEALS, an AD 750–1250 average) and labelled so.
 
-**Time slices:** today, 1219 and 1 AD in full. The five ice-age slices (10,000, 9,500, 8,500,
-7,500 and 5,000 BC) are a rough preview, labelled rough, each with a sourced note; built properly
+**Time slices:** today and 1219 in full. AD 1 and the five ice-age slices (10,000, 9,500, 8,500,
+7,500 and 5,000 BC) are prepared as data in M3b, each with a sourced note; played properly
 in step 8. One base coast (Natural Earth) is used by every slice, so the coast doesn't jump where
 nothing changed; 1219 and 1 AD add local fixes, each with a source or marked TO CHECK.
 
@@ -397,7 +397,7 @@ names by era. A proposed shape:
   "other": { "lt": "…", "lv": "…", "et": "…", "pl": "…", "de": "…", "ru": "…" } }
 ```
 - `standIn: true` means today's local name is standing in because no name of the time is sourced.
-  The map shows the name for the slider's era. The panel shows every name with its sources.
+  The map shows the name for the game's date. The panel shows every name with its sources.
 - A test checks that every named feature has a name per era, or a marked stand-in, and a source.
 - The values above are an invented example of the shape, not data.
 
@@ -484,6 +484,18 @@ names by era. A proposed shape:
 
 **Sources for every item** (province, border, holding site, river, name), by `collection:id` or
 by ids from data/sources.md.
+
+**Planned in M3a (the map follows the game's date; no slider):**
+- The date engine is pure rules in `src/sim/map-date.js` and `src/sim/coast-date.js`. It works out
+  the map year from `state.day`. Nothing new is saved: the map for a date is always worked out
+  again, so it can't break a save.
+- Data blocks are split by licence: share-alike pollen terrain-time in `src/data/by-sa/`, the
+  northern coast in `src/data/by/`, our own changes and names in `src/data/own/`, and the
+  ODbL water (with its tags) in `src/data/odbl/`. The build fails if a block holds a source of
+  another licence.
+- While the date runs the view redraws at a throttle (about every 250 ms, in strips if over
+  budget), not on every day. The hidden test link `#date=1550` (later `#10000BC`) sets the map
+  year without changing the game's date.
 
 ## 10. Invariants and soak outputs
 
