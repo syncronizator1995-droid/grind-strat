@@ -516,8 +516,8 @@ by ids from data/sources.md.
   as they are; they are placed anew (with up to 32 ms to place them, so none are left for a
   second paint) only when a dated river or lake comes or goes, or the old sea moves. Painting in
   strips over several frames was tried and dropped: in headless Chrome each strip cost most of a
-  whole paint, as the big outlines are drawn whole each time, so the time run had about 140
-  frames over 0.2 s with strips and about 40 without.
+  whole paint, as the big outlines are drawn whole each time, so its time run (slowed 4x) had
+  about 100 frames over 12 ms with strips and about 40 without.
 - **Water by date:** `cutWater` still cuts once per zoom level and leaves dated features out;
   `cutDated` gives them as small sets per tag, drawn when `tagsOnAt` says the tag is on. Names
   skip features that are off and places under the old sea. Our drawn shapes (outlets as sea,
@@ -529,10 +529,10 @@ by ids from data/sources.md.
   rings took over half a second).
 - **Measured:** one map run from 1219 to 2021 a year at a time takes about 0.35 ms per map year
   in Node and changes 667,896 cells (the soak checks it ends on today's anchor). The speed test's
-  time run (1219 to 2021 at speed 5, 9,758 frames) in headless Chrome slowed 4x: 99% of frames on
-  time, 95% under 16.8 ms; date work per frame median 0.0 ms, 95% under 4.2 ms. Its worst frame
-  (about 0.5 s) is most likely a whole repaint of the frame, which a headless software canvas
-  makes slow (M2b's own full redraw there is about 130 ms median, and its panning is 92% on time);
+  time run (1219 to 2021 at speed 5, 9,758 frames) in headless Chrome slowed 4x: 100% of frames
+  on time, 95% under 16.7 ms; date work per frame median 0.0 ms, 95% under 4.3 ms. Its worst
+  frames (about 0.5 s, about 40 of them) are whole repaints of the frame at the overview, which a
+  headless canvas makes slow (M2b's own full redraw of that view takes 0.4 to 0.6 s there too);
   Ignas's phone paints a full frame in 11 ms.
 - **The hidden test link** `#date=1550` pins the map to a year without changing the game's date;
   `#date=1550&view=x,y,scale` also places the camera, for the screenshots. Later `#10000BC`.
