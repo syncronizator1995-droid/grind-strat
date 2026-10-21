@@ -553,6 +553,8 @@ Step 2 split down are his step 2 answers, later the same day.
 | Reservoirs | The 12 big ones get researched, sourced filling years. The small ones too: each appears in the year OpenStreetMap gives, marked "year from OpenStreetMap"; ones with no year stay hidden (Ignas, 12 October 2026: "Small ones too") |
 | Lake names (M3) | Keep as is: just the name (Ignas, 11 October 2026: "Keep as is") |
 | Helper agents (working method) | Opus at high effort for hard code and for the sceptics, Sonnet at medium for routine jobs, at most two at once (Ignas, 20 October 2026) |
+| First map speed (M3a) | 6 to 10% slower than M2b in a slowed-down test is accepted; Ignas's phone decides (Ignas, 21 October 2026: "Accept it (Recommended)") |
+| Speed test (M3a) | One button: the usual test plus a time run from 1219 to today at speed 5, about 3 minutes (Ignas, 21 October 2026: "Keep it in one") |
 
 ## Treating real history with care
 

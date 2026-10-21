@@ -310,6 +310,14 @@ The map data for every age is still prepared now, so nothing is redone later.
 So the helpers are Opus at high effort for hard code and for the sceptics who check the work,
 Sonnet at medium effort for routine jobs, and at most two at once.
 
+**21 October.** After PR 1 was built, two choices:
+
+- The new map data makes the first map a little slower (6 to 10% in a slowed-down test, perhaps
+  20 to 40 ms on his phone; the plan allowed 5%): "Accept it (Recommended)". His phone's numbers
+  decide; if they are bad, it gets fixed then.
+- The speed test now also runs the map from 1219 to today at top speed, about 3 minutes in all:
+  "Keep it in one". One button, all numbers together.
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.

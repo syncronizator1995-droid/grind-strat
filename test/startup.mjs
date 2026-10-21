@@ -122,8 +122,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     show(file, a);
     show(baseline, b);
     const ratio = quantile(a.ms, 0.5) / quantile(b.ms, 0.5);
-    console.log(`  first map against the baseline: ${(ratio * 100).toFixed(1)}% (must be at most 105%)`);
-    if (ratio > 1.05) failed = true;
+    // Ignas accepted 6 to 10% slower for the map over time (21 October 2026); his phone decides.
+    console.log(`  first map against the baseline: ${(ratio * 100).toFixed(1)}% (must be at most 110%)`);
+    if (ratio > 1.1) failed = true;
   } else {
     show(file, await measureStartup(file, { runs, cpu }));
   }
