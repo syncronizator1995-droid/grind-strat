@@ -11,15 +11,29 @@
 // When the view settles after a pan, the names are placed again for what is on screen (clear of
 // the buttons and the screen's edges): the map is painted again only under the old names, then
 // the new names go on top, so the whole map is not redrawn.
+//
+// The map follows the game's date (M3a): the land, the dated rivers and lakes, our drawn shapes
+// and the northern coast change as the years pass (src/ui/map/dated.js says what changes). That
+// work runs in the view's own animation frames, about 3 ms of each: changed land cells go
+// straight into the terrain tiles' kept pixels, and the kept frame is painted again at most every
+// 250 ms, in strips over several frames when one paint would take too long. The names already
+// placed are drawn again as they were; they are placed anew only when a dated river or lake comes
+// or goes, or the old sea moves.
 
+import { eraOf, FIRST_MAP_YEAR } from '../../sim/map-date.js';
+import { createDateLayer, mapYearOfDay } from './dated.js';
 import { simplify } from './geometry.js';
 import { bandShown, BANDS, bandWidth, indexWater, labelFont, placeWaterLabels, riverBand } from './labels.js';
-import { paintSea, paintTerrain } from './terrain.js';
-import { cutWater, tileInView } from './water-tiles.js';
+import { coarseField, shoreAt, shoreSquares } from './shore.js';
+import { paintSea, paintTerrain, TERRAIN, TERRAIN_COLOURS } from './terrain.js';
+import { cutDated, cutWater, tileInView } from './water-tiles.js';
 
 /** @typedef {import('./load.js').WaterData} WaterData */
 /** @typedef {import('./water-tiles.js').WaterTile} WaterTile */
 /** @typedef {import('./water-tiles.js').TilePaths} TilePaths */
+/** @typedef {import('./water-tiles.js').DatedSet} DatedSet */
+/** @typedef {import('./labels.js').Label} Label */
+/** @typedef {import('./load.js').DatedData} DateData */
 
 /** Province tint colours (provinces return in step 2b, realms in step 3). */
 const TINTS = ['#c0392b', '#2e86c1', '#d4ac0d', '#7d3c98', '#17a589', '#ca6f1e', '#5d6d7e', '#a93226', '#1f618d', '#b7950b', '#6c3483', '#148f77'];
@@ -46,6 +60,22 @@ const LABEL_BUDGET_MS = 8;
 const EDGE_SLACK = 0.1;
 /** Name colours: dark blue with a light halo; on a dark phone, light blue with a dark halo. */
 const LABEL_INK = { light: { fill: '#173f56', halo: 'rgba(238, 241, 232, 0.88)' }, dark: { fill: '#d3e6f0', halo: 'rgba(14, 26, 34, 0.86)' } };
+/** The date's work (land, water, coast) takes about this much of a frame, ms. */
+const DATE_BUDGET_MS = 3;
+/** While the date runs, the kept frame is painted again at most this often, ms. */
+const REFRESH_MS = 250;
+/** One paint of the kept frame that would take longer than this (ms) is done in strips... */
+const STRIP_MS = 6;
+/** ...but in no more than this many. */
+const MAX_STRIPS = 6;
+/** The coast's outline, and our drawn land's. */
+const COAST_INK = 'rgba(20, 35, 45, 0.85)';
+/** The old shore: softer than today's coast, as it is an estimate. */
+const OLD_SHORE_INK = 'rgba(20, 35, 45, 0.5)';
+/** Our drawn land (Ruden before the 1304 storm) in the colour of open land. */
+const DRAWN_LAND = `rgb(${TERRAIN_COLOURS[TERRAIN.open].join(', ')})`;
+/** The coast field is read coarser zoomed out: cells this many 500 m cells a side, per level. */
+const COAST_FACTOR = [4, 2, 1];
 
 /**
  * @typedef {object} Camera
@@ -148,7 +178,8 @@ export function createMapView(canvas, map) {
 
   // --- prepared once ------------------------------------------------------------------
   const t0 = performance.now();
-  const tiles = paintTerrain(map.terrain, map.heights);
+  const picture = paintTerrain(map.terrain, map.heights);
+  const tiles = picture.tiles;
   const seaPicture = paintSea(map.heights);
   const seaFill = /** @type {CanvasPattern} */ (fctx.createPattern(seaPicture, 'repeat'));
   // One pattern pixel is one height cell; the pattern is placed in map units when the sea is filled.
@@ -170,6 +201,19 @@ export function createMapView(canvas, map) {
   /** The camera the names in the kept frame were placed for, and whether all of them fit the budget. */
   /** @type {{ cx: number, cy: number, complete: boolean } | null} */
   let named = null;
+  /** The names on the kept frame, to draw again as they are after the frame is painted again. @type {Label[]} */
+  let placedLabels = [];
+
+  // The map's date: the data once unpacked (null before), and what it shows now.
+  /** @type {DateData | null} */
+  let dated = null;
+  /** @type {import('./dated.js').DateLayer | null} */
+  let date = null;
+  /** The game's year, and the year the hidden test link pins the map to (null: the game's). */
+  let gameYear = FIRST_MAP_YEAR;
+  /** @type {number | null} */
+  let pinnedYear = null;
+  const wantedYear = () => pinnedYear ?? gameYear;
 
   /**
    * The outlines at one level of detail, built the first time that level is needed.
@@ -180,6 +224,8 @@ export function createMapView(canvas, map) {
   const levels = LEVELS.map(() => null);
   /** @type {(WaterLevel | null)[]} */
   const waterLevels = LEVELS.map(() => null);
+  /** The dated rivers and lakes at each level, one small set per date tag. @type {(DatedSet[] | null)[]} */
+  const datedLevels = LEVELS.map(() => null);
   /** @param {number} index @param {number} scale */
   function level(index, scale) {
     const ready = levels[index];
@@ -219,6 +265,21 @@ export function createMapView(canvas, map) {
     const band = w.riverInfo.map((r) => riverBand(r.lengthKm));
     const built = cutWater(w, index, (river) => band[river], BANDS, map.width, map.height);
     waterLevels[index] = built;
+    return built;
+  }
+
+  /**
+   * The dated rivers and lakes at one level (reservoirs, cuts), cut once per level; each set is
+   * drawn when its tag is on at the map's date.
+   * @param {number} index
+   */
+  function datedLevel(index) {
+    const w = map.water;
+    if (!w) return [];
+    const ready = datedLevels[index];
+    if (ready) return ready;
+    const built = cutDated(w, index, (river) => riverBand(w.riverInfo[river].lengthKm), BANDS);
+    datedLevels[index] = built;
     return built;
   }
 
@@ -323,15 +384,25 @@ export function createMapView(canvas, map) {
   function drawFrame() {
     kept = { cx: cam.cx, cy: cam.cy, scale: cam.scale };
     drawn = [];
+    // Land the date changed must be in the tiles first: all of it (a few tiles at most).
+    if (picture.dirtyTiles()) picture.flush(() => true, Infinity);
+    refresh = null;
+    frameStale = false;
+    relabel = false;
+    const t = performance.now();
     paintMap();
+    lastPaintMs = performance.now() - t;
+    lastRefresh = performance.now();
     labelMs = drawNames(LABEL_BUDGET_MS);
   }
 
   /**
    * Paints the map (everything but the names) into the kept frame, for the camera it is kept
-   * for. With a clip set, only that part changes.
+   * for. With a clip set, only that part changes; a strip ([top, bottom], CSS px of the frame)
+   * also leaves out what lies wholly outside it.
+   * @param {number[]} [strip]
    */
-  function paintMap() {
+  function paintMap(strip) {
     const k = /** @type {Camera} */ (kept);
     const s = k.scale;
     const fw = cssW * (1 + 2 * MARGIN);
@@ -347,18 +418,22 @@ export function createMapView(canvas, map) {
     const index = LEVELS.findIndex((l) => s < l.below);
     const L = level(index, s);
     const W = waterLevel(index);
+    // What is drawn, in map units: the frame, or the strip of it being painted.
+    const halfW = fw / 2 / s;
+    const x0 = k.cx - halfW;
+    const x1 = k.cx + halfW;
+    const y0 = k.cy + (fh / 2 - (strip ? strip[1] : fh)) / s;
+    const y1 = k.cy + (fh / 2 - (strip ? strip[0] : 0)) / s;
 
     c.fillStyle = SEA;
     c.fillRect(0, 0, map.width, map.height);
     c.imageSmoothingEnabled = s * map.terrain.cell > 1.5;
-    const halfW = fw / 2 / s;
-    const halfH = fh / 2 / s;
     for (const t of tiles) {
       const x = t.col * map.terrain.cell;
       const y = t.row * map.terrain.cell;
       const w = t.w * map.terrain.cell;
       const h = t.h * map.terrain.cell;
-      if (x > k.cx + halfW || x + w < k.cx - halfW || y > k.cy + halfH || y + h < k.cy - halfH) continue;
+      if (x > x1 || x + w < x0 || y > y1 || y + h < y0) continue;
       c.drawImage(t.canvas, x, y, w, h);
     }
     if (map.provinces.length) {
@@ -384,9 +459,12 @@ export function createMapView(canvas, map) {
     c.imageSmoothingEnabled = true;
     c.fillStyle = seaFill;
     c.fill(L.sea, 'evenodd');
+    if (date) drawShapes(c, index, px, ['land', 'lake']);
     if (W) {
       // Only the tiles near the frame: a river wider than a few pixels never reaches past them.
-      const near = waterNear(W, k.cx - halfW - 8 * px, k.cy - halfH - 8 * px, k.cx + halfW + 8 * px, k.cy + halfH + 8 * px);
+      const near = waterNear(W, x0 - 8 * px, y0 - 8 * px, x1 + 8 * px, y1 + 8 * px);
+      const on = date?.tagOn;
+      if (on) near.push(...waterNear(datedLevel(index).filter((d) => on[d.tag]), x0 - 8 * px, y0 - 8 * px, x1 + 8 * px, y1 + 8 * px));
       c.fillStyle = WATER;
       for (const t of near) c.fill(/** @type {TilePaths} */ (t.paths).lakes, 'evenodd');
       c.strokeStyle = WATER;
@@ -401,15 +479,110 @@ export function createMapView(canvas, map) {
       c.lineWidth = 0.6 * px;
       for (const t of near) c.stroke(/** @type {TilePaths} */ (t.paths).lakes);
     }
-    c.strokeStyle = 'rgba(20, 35, 45, 0.85)';
+    c.strokeStyle = COAST_INK;
     c.lineWidth = 1.1 * px;
     c.stroke(L.coast);
+    if (date) {
+      drawShapes(c, index, px, ['water']);
+      drawOldSea(c, index, px, k.cx - halfW, k.cy - fh / 2 / s, k.cx + halfW, k.cy + fh / 2 / s);
+    }
     if (fogOn) {
       c.fillStyle = 'rgba(12, 18, 24, 0.42)';
       c.fill(L.fog, 'evenodd');
     }
     // Holdings: fixed-size marks, only when zoomed in enough to tell them apart.
     if (s > 0.06 && map.points.length) drawPoints(c, ox, oy, s, fw, fh);
+  }
+
+  // --- the map's date: our drawn shapes and the old sea ------------------------------------
+  /** Our drawn shapes' outlines at each level, built when first drawn. @type {(Path2D[] | null)[]} */
+  const shapeLevels = LEVELS.map(() => null);
+  /**
+   * Draws our shapes of the given types that are on at the map's date: a channel through today's
+   * land as sea, land where today's map has sea as open land, a larger lake as a lake.
+   * @param {CanvasRenderingContext2D} c @param {number} index @param {number} px
+   * @param {('water' | 'land' | 'lake')[]} types
+   */
+  function drawShapes(c, index, px, types) {
+    const d = /** @type {DateData} */ (dated);
+    const on = /** @type {import('./dated.js').DateLayer} */ (date).shapeOn;
+    const paths = shapeLevels[index] ?? (shapeLevels[index] = d.shapes.map((sh) => {
+      const p = new Path2D();
+      addLevel(p, [sh.ring], sh.levels, index, true);
+      return p;
+    }));
+    d.shapes.forEach((sh, k) => {
+      if (!on[k] || !types.includes(/** @type {any} */ (sh.type))) return;
+      if (sh.type === 'water') {
+        c.fillStyle = seaFill;
+        c.fill(paths[k]);
+      } else if (sh.type === 'land') {
+        c.fillStyle = DRAWN_LAND;
+        c.fill(paths[k]);
+        c.strokeStyle = COAST_INK;
+        c.lineWidth = 1.1 * px;
+        c.stroke(paths[k]);
+      } else {
+        c.fillStyle = WATER;
+        c.fill(paths[k]);
+        c.strokeStyle = 'rgba(20, 35, 45, 0.45)';
+        c.lineWidth = 0.6 * px;
+        c.stroke(paths[k]);
+      }
+    });
+  }
+
+  /** The coast field at each level's coarseness, made when first needed. @type {(import('./shore.js').ShoreSquares | null)[]} */
+  const shoreFields = LEVELS.map(() => null);
+  /** The old sea's paths for the kept frame: rebuilt when the coast moves or the view leaves them. */
+  /** @type {{ index: number, level: number, box: number[], fill: Path2D, line: Path2D } | null} */
+  let oldSea = null;
+
+  /**
+   * The old sea over today's land and its shore, where the sea stood higher in the map's year
+   * (an estimate). Built for a box round the view, so a pan needs no rebuild.
+   * @param {CanvasRenderingContext2D} c @param {number} index @param {number} px
+   * @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 the frame, map units
+   */
+  function drawOldSea(c, index, px, x0, y0, x1, y1) {
+    const d = /** @type {DateData} */ (dated);
+    const level = /** @type {import('./dated.js').DateLayer} */ (date).coastLevel;
+    const b = d.coast.box;
+    if (x1 < b.col0 * b.cell || x0 > (b.col0 + b.cols) * b.cell || y1 < b.row0 * b.cell || y0 > (b.row0 + b.rows) * b.cell) return;
+    const box = oldSea?.box;
+    if (!oldSea || oldSea.index !== index || oldSea.level !== level || !box || x0 < box[0] || y0 < box[1] || x1 > box[2] || y1 > box[3]) {
+      const w = (x1 - x0) / 2;
+      const h = (y1 - y0) / 2;
+      const within = { x0: x0 - w, y0: y0 - h, x1: x1 + w, y1: y1 + h };
+      const r = shoreAt(shoreField(index), level, { within });
+      const fill = new Path2D();
+      let at = 0;
+      for (const end of r.fill.ends) {
+        fill.moveTo(r.fill.xy[at * 2], r.fill.xy[at * 2 + 1]);
+        for (let i = at + 1; i < end; i++) fill.lineTo(r.fill.xy[i * 2], r.fill.xy[i * 2 + 1]);
+        fill.closePath();
+        at = end;
+      }
+      const line = new Path2D();
+      addLines(line, r.lines, false);
+      oldSea = { index, level, box: [within.x0, within.y0, within.x1, within.y1], fill, line };
+    }
+    c.fillStyle = seaFill;
+    c.fill(oldSea.fill);
+    c.strokeStyle = OLD_SHORE_INK;
+    c.lineWidth = 1 * px;
+    c.stroke(oldSea.line);
+  }
+
+  /** @param {number} index */
+  function shoreField(index) {
+    const ready = shoreFields[index];
+    if (ready) return ready;
+    const d = /** @type {DateData} */ (dated);
+    const f = COAST_FACTOR[index];
+    const built = f === 1 ? d.shore : (() => { const g = coarseField(d.coast.box, d.coast.codes, f); return shoreSquares(g.box, g.codes); })();
+    shoreFields[index] = built;
+    return built;
   }
 
   /**
@@ -477,6 +650,7 @@ export function createMapView(canvas, map) {
     const labels = placeWaterLabels({
       water: map.water, index: waterIndex, level: index, scale: s, ox, oy, width: fw, height: fh, measure, keepOut: covered,
       screen, budgetMs, now: () => performance.now() - measuring, previous: anchors, result,
+      tagOn: date?.tagOn ?? null, under: date ? date.seaAt : undefined,
     });
     named.complete = result.complete;
     anchors = new Map();
@@ -487,6 +661,17 @@ export function createMapView(canvas, map) {
       anchors.set(l.river, list);
     }
     showNamesForChecks(labels, screen, result.complete);
+    for (const l of labels) drawn.push({ x: l.x, y: l.y, angle: l.angle, w: measure(l.text, l.size), h: l.size });
+    placedLabels = labels;
+    paintLabels(c, labels);
+    return performance.now() - start;
+  }
+
+  /**
+   * Draws names already placed (CSS px on the frame).
+   * @param {CanvasRenderingContext2D} c @param {Label[]} labels
+   */
+  function paintLabels(c, labels) {
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.lineJoin = 'round';
@@ -495,14 +680,12 @@ export function createMapView(canvas, map) {
     c.fillStyle = ink.fill;
     let font = '';
     for (const l of labels) {
-      drawn.push({ x: l.x, y: l.y, angle: l.angle, w: measure(l.text, l.size), h: l.size });
       if (labelFont(l.size) !== font) c.font = font = labelFont(l.size);
       c.setTransform(dpr * Math.cos(l.angle), dpr * Math.sin(l.angle), -dpr * Math.sin(l.angle), dpr * Math.cos(l.angle), l.x * dpr, l.y * dpr);
       c.strokeText(l.text, 0, 0);
       c.fillText(l.text, 0, 0);
     }
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    return performance.now() - start;
   }
 
   /**
@@ -625,6 +808,120 @@ export function createMapView(canvas, map) {
     blit();
   }
 
+  // --- the date running --------------------------------------------------------------------
+  /** The kept frame shows an older picture than the map's date (land, water, shapes or coast). */
+  let frameStale = false;
+  /** The names must be placed anew at the next paint (a dated feature came or went, or the old sea moved). */
+  let relabel = false;
+  let lastRefresh = -Infinity;
+  /** How long one paint of the whole kept frame took last time, ms (decides the strips). */
+  let lastPaintMs = 0;
+  /** A paint of the kept frame under way, strip by strip; `names` is its last step, if any. */
+  /** @type {{ next: number, count: number, names: boolean } | null} */
+  let refresh = null;
+  let dateRequested = false;
+  /** How long each frame's date work took, ms (for the speed test). @type {number[]} */
+  let dateMs = [];
+
+  function scheduleDate() {
+    if (dateRequested || !date) return;
+    dateRequested = true;
+    requestAnimationFrame(dateTick);
+  }
+
+  /**
+   * One frame of the date's work: move to the wanted year, put changed land into the tiles on
+   * screen, paint the kept frame again when due (one strip a frame), and with any time left of
+   * the frame's budget prepare the land's coming changes.
+   */
+  function dateTick() {
+    dateRequested = false;
+    const layer = date;
+    if (!layer) return;
+    const start = performance.now();
+    if (layer.year !== wantedYear()) applyYear(wantedYear());
+    if (picture.dirtyTiles() && picture.flush(inKept, start + DATE_BUDGET_MS) > 0) frameStale = true;
+    let painted = false;
+    if (kept && (refresh || ((frameStale || relabel) && start - lastRefresh >= REFRESH_MS))) {
+      refreshStep();
+      painted = true;
+    }
+    const left = layer.prepare(start + DATE_BUDGET_MS);
+    if (painted) blit();
+    dateMs.push(performance.now() - start);
+    if (dateMs.length > 4000) dateMs = dateMs.slice(-2000);
+    if (left || layer.year !== wantedYear() || picture.dirtyTiles() || frameStale || relabel || refresh) scheduleDate();
+  }
+
+  /** Moves the map's date and notes what must be painted again. @param {number} year */
+  function applyYear(year) {
+    const layer = /** @type {import('./dated.js').DateLayer} */ (date);
+    const changes = layer.goTo(year, picture.setCell);
+    canvas.dataset.mapYear = String(layer.year);
+    if (changes.tags || changes.shapes) frameStale = true;
+    if (changes.tags) relabel = true;
+    if (changes.coast) {
+      oldSea = null;
+      if (keptSees(/** @type {DateData} */ (dated).coast.box)) { frameStale = true; relabel = true; }
+    }
+  }
+
+  /** Does the kept frame show any of this box of cells? @param {import('../../sim/coast-date.js').CoastBox} b */
+  function keptSees(b) {
+    if (!kept) return false;
+    const halfW = (cssW * (1 + 2 * MARGIN)) / 2 / kept.scale;
+    const halfH = (cssH * (1 + 2 * MARGIN)) / 2 / kept.scale;
+    return kept.cx + halfW >= b.col0 * b.cell && kept.cx - halfW <= (b.col0 + b.cols) * b.cell
+      && kept.cy + halfH >= b.row0 * b.cell && kept.cy - halfH <= (b.row0 + b.rows) * b.cell;
+  }
+
+  /** Is a terrain tile on the kept frame? @param {import('./terrain.js').Tile} t */
+  function inKept(t) {
+    if (!kept) return false;
+    const cell = map.terrain.cell;
+    const halfW = (cssW * (1 + 2 * MARGIN)) / 2 / kept.scale;
+    const halfH = (cssH * (1 + 2 * MARGIN)) / 2 / kept.scale;
+    return t.col * cell <= kept.cx + halfW && (t.col + t.w) * cell >= kept.cx - halfW
+      && t.row * cell <= kept.cy + halfH && (t.row + t.h) * cell >= kept.cy - halfH;
+  }
+
+  /**
+   * One step of painting the kept frame again for the map's date: one strip of the map with the
+   * names already placed drawn again over it, or, as a last step of its own, the names placed
+   * anew. Strips keep each frame short where one paint takes longer than STRIP_MS.
+   */
+  function refreshStep() {
+    const fw = cssW * (1 + 2 * MARGIN);
+    const fh = cssH * (1 + 2 * MARGIN);
+    if (!refresh) {
+      refresh = { next: 0, count: Math.min(MAX_STRIPS, Math.max(1, Math.ceil(lastPaintMs / STRIP_MS))), names: relabel };
+      frameStale = false;
+      relabel = false;
+    }
+    if (refresh.next < refresh.count) {
+      const top = Math.floor((fh * refresh.next) / refresh.count);
+      const bottom = Math.ceil((fh * (refresh.next + 1)) / refresh.count);
+      const t = performance.now();
+      fctx.save();
+      fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      fctx.beginPath();
+      fctx.rect(0, top, fw, bottom - top);
+      fctx.clip();
+      paintMap([top, bottom]);
+      paintLabels(fctx, placedLabels);
+      fctx.restore();
+      // A strip costs about its share of a whole paint.
+      lastPaintMs = (performance.now() - t) * refresh.count;
+      refresh.next++;
+      if (refresh.next < refresh.count || refresh.names) return;
+    } else {
+      labelMs = drawNames(LABEL_BUDGET_MS);
+      if (named && !named.complete) settleSoon();
+    }
+    refresh = null;
+    lastRefresh = performance.now();
+  }
+
   // --- touch and mouse ---------------------------------------------------------------------
   /** @type {Map<number, { x: number, y: number }>} */
   const pointers = new Map();
@@ -707,9 +1004,52 @@ export function createMapView(canvas, map) {
       map.water = water;
       waterIndex = indexWater(water);
       waterLevels.fill(null);
+      datedLevels.fill(null);
+      if (date && water.tags) date.setTags(water.tags);
       kept = null;
       requestRender();
     },
+    /**
+     * Adds the map over time once it is unpacked (src/ui/map/load.js loadDated), and moves the
+     * map to the wanted year at once.
+     * @param {DateData} data
+     * @param {number} [gridYear] the year the terrain grid already shows (a late save's, worked
+     *   out before the first picture), 1219 otherwise
+     */
+    setDated(data, gridYear = FIRST_MAP_YEAR) {
+      dated = data;
+      date = createDateLayer(data, map.terrain.data, gridYear);
+      if (map.water?.tags) date.setTags(map.water.tags);
+      date.sync(picture.setCell);
+      applyYear(wantedYear());
+      picture.flush(() => true, Infinity);
+      canvas.dataset.mapYear = String(date.year);
+      oldSea = null;
+      kept = null;
+      requestRender();
+      scheduleDate();
+    },
+    /**
+     * The game's day: the map follows its year (unless the test link pins another).
+     * @param {number} day
+     */
+    setDay(day) {
+      gameYear = mapYearOfDay(day);
+      if (date && date.year !== wantedYear()) scheduleDate();
+    },
+    /**
+     * Pins the map to a year (the hidden #date= link and the speed test's time run), or with
+     * null lets it follow the game again. Never changes the game's date.
+     * @param {number | null} year never 0
+     */
+    setMapYear(year) {
+      pinnedYear = year === null ? null : eraOf(year).year;
+      if (date && date.year !== wantedYear()) scheduleDate();
+    },
+    /** The year the map shows now, and whether its date data is in. */
+    mapYear: () => ({ year: date?.year ?? FIRST_MAP_YEAR, dated: Boolean(date), wanted: wantedYear(), pinned: pinnedYear }),
+    /** How long each frame's date work took since the last call, ms. */
+    takeDateMs() { const out = dateMs; dateMs = []; return out; },
     /** @param {boolean} dark the phone is in dark mode */
     setDark(dark) {
       ink = dark ? LABEL_INK.dark : LABEL_INK.light;

@@ -223,7 +223,7 @@ async function playAsFile(browser, scheme) {
     await page.tap('[data-act="speedtest"]');
     await page.locator('#speedSheet').waitFor({ state: 'visible', timeout: 60000 });
     const results = await page.locator('#speedResults').innerText();
-    check(/step 2a, M2/.test(results) && /First map on screen: [\d.]+ ms/.test(results) && /Full redraw: median [\d.]+ ms/.test(results)
+    check(/step 2a, M3a/.test(results) && /Time run 1219 to 2021 at speed 5: \d+ frames/.test(results) && /First map on screen: [\d.]+ ms/.test(results) && /Full redraw: median [\d.]+ ms/.test(results)
       && /frames, \d+% on time/.test(results) && /Names \(rivers and lakes\): median [\d.]+ ms/.test(results),
       `${label}: the speed test results are incomplete:\n${results}`);
     for (const p of await layoutProblems(page)) failures.push(`${label} speed test: ${p}`);
