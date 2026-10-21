@@ -303,3 +303,28 @@ function joinSegments(segEdge, segXY, n) {
   walkAll(false);
   return lines;
 }
+
+/**
+ * The field at a coarser cell (`factor` cells a side become one), for the zoomed-out map, where a
+ * 500 m cell is far below a pixel and the full field's shore would cost a phone tens of
+ * milliseconds a step. A coarse cell takes the highest code among its cells that are not open
+ * sea (254 only when all are), so the old sea along a coast is kept rather than dropped.
+ * @param {import('../../sim/coast-date.js').CoastBox} box @param {Uint8Array} codes @param {number} factor
+ * @returns {{ box: import('../../sim/coast-date.js').CoastBox, codes: Uint8Array }}
+ */
+export function coarseField(box, codes, factor) {
+  const cols = Math.ceil(box.cols / factor);
+  const rows = Math.ceil(box.rows / factor);
+  const out = new Uint8Array(cols * rows).fill(COAST_CODE.sea);
+  const seen = new Uint8Array(cols * rows);
+  for (let r = 0; r < box.rows; r++) {
+    const at = Math.floor(r / factor) * cols;
+    for (let c = 0; c < box.cols; c++) {
+      const v = codes[r * box.cols + c];
+      if (v === COAST_CODE.sea) continue;
+      const k = at + Math.floor(c / factor);
+      if (!seen[k] || v > out[k]) { out[k] = v; seen[k] = 1; }
+    }
+  }
+  return { box: { col0: box.col0 / factor, row0: box.row0 / factor, cols, rows, cell: box.cell * factor }, codes: out };
+}
