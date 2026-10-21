@@ -981,6 +981,8 @@ export function createMapView(canvas, map) {
   };
   canvas.addEventListener('pointerup', lift);
   canvas.addEventListener('pointercancel', lift);
+  // A pointer lost without a pointerup must not count as still down (the date's repaint waits for it).
+  canvas.addEventListener('lostpointercapture', (e) => { if (pointers.has(e.pointerId)) lift(e); });
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const p = local(e);
