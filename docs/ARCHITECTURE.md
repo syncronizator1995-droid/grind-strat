@@ -485,17 +485,53 @@ names by era. A proposed shape:
 **Sources for every item** (province, border, holding site, river, name), by `collection:id` or
 by ids from data/sources.md.
 
-**Planned in M3a (the map follows the game's date; no slider):**
-- The date engine is pure rules in `src/sim/map-date.js` and `src/sim/coast-date.js`. It works out
-  the map year from `state.day`. Nothing new is saved: the map for a date is always worked out
-  again, so it can't break a save.
-- Data blocks are split by licence: share-alike pollen terrain-time in `src/data/by-sa/`, the
-  northern coast in `src/data/by/`, our own changes and names in `src/data/own/`, and the
-  ODbL water (with its tags) in `src/data/odbl/`. The build fails if a block holds a source of
-  another licence.
-- While the date runs the view redraws at a throttle (about every 250 ms, in strips if over
-  budget), not on every day. The hidden test link `#date=1550` (later `#10000BC`) sets the map
-  year without changing the game's date.
+**As built in M3a, pull request 1 (the map follows the game's date; no slider):**
+- **The date engine** is pure rules in `src/sim/map-date.js` (the map year of a game day, dated
+  features, the land of any year from anchors and change planes, with `prepareStep` to work out
+  switch years ahead in small pieces) and `src/sim/coast-date.js` (the northern coast's field,
+  `seaAt` and `step`). Nothing new is saved: the map for a date is always worked out again from
+  the shipped blocks, so it can't break a save. `src/ui/map/dated.js` puts the two together for
+  the view (what changes when the year moves) and runs in Node for tests.
+- **Data blocks by licence:** `src/data/by-sa/terrain-time.json` (CC BY-SA 4.0, the pollen-based
+  land over time, 691 KB), `src/data/by/coast.json` (CC BY 4.0, the northern coast, 70 KB),
+  `src/data/own/changes.json` (our own work: dated facts, drawn shapes, Żuławy's cells, 15 KB),
+  and the ODbL water block with its date tags (`riverTag`, `lakeTag`, `info.tags`). The build
+  fails if a CC BY block holds anything but CC BY or public-domain data, if an ODbL block holds
+  anything but OpenStreetMap's, or if our own block holds anyone else's. The game file grew from
+  2.0 MB to 2.8 MB.
+- **Loading:** a new game's first picture needs none of this. The three blocks sit after the code
+  in the page and are unpacked just after the rivers and lakes, in pieces with a frame between
+  them (about 0.25 s in headless Chrome, 1.1 s with the processor slowed 4x). A save from a later
+  year unpacks them first and moves the 1219 grid to its year before the first picture, so it
+  never shows 1219 first (`data-map-year-at-first-paint` lets the shots check it). The first map
+  of a new game measured 106% to 110% of M2b's in headless Chrome slowed 4x (about 1.3 s against
+  1.25 s; the runs vary by about 15%): over the 5% target, because the page carries 0.8 MB more.
+- **Drawing while the date runs:** the view does its date work in its own animation frames,
+  about 3 ms of each: it moves the date, writes changed land cells straight into the terrain
+  tiles' kept image data (`paintTerrain` keeps each 512 px tile's pixels, about 8.4 MB), copies
+  changed tiles to their canvases (on-screen tiles first) and, with time left, prepares the
+  land's coming changes. The kept frame is painted again at most every 250 ms and no more often
+  than 12 times what one paint costs (copy to the screen included), in up to 6 strips of about
+  12 ms when one paint takes longer. The names already placed are drawn again as they are; they
+  are placed anew only when a dated river or lake comes or goes, or the old sea moves.
+- **Water by date:** `cutWater` still cuts once per zoom level and leaves dated features out;
+  `cutDated` gives them as small sets per tag, drawn when `tagsOnAt` says the tag is on. Names
+  skip features that are off and places under the old sea. Our drawn shapes (outlets as sea,
+  Ruden as land, the larger Lake Drużno) come from `changes.json`.
+- **The old sea** (an estimate) is drawn from `src/ui/map/shore.js` for a box round the view,
+  rebuilt only when the coast's level changes (every 4 game years) or the view leaves the box.
+  Zoomed out it reads the field coarser (2 km cells, then 1 km; 500 m close up). Its path has no
+  closePath: in Chrome each closePath slows down with every ring already in the path (10,000
+  rings took over half a second).
+- **Measured:** one map run from 1219 to 2021 a year at a time takes about 0.35 ms per map year
+  in Node and changes 667,896 cells (the soak checks it ends on today's anchor). The speed test's
+  time run (1219 to 2021 at speed 5, 9,758 frames) in headless Chrome slowed 4x: 99% of frames on
+  time, 95% under 16.8 ms; date work per frame median 0.0 ms, 95% under 4.2 ms. Its worst frame
+  (about 0.5 s) is most likely a whole repaint of the frame, which a headless software canvas
+  makes slow (M2b's own full redraw there is about 130 ms median, and its panning is 92% on time);
+  Ignas's phone paints a full frame in 11 ms.
+- **The hidden test link** `#date=1550` pins the map to a year without changing the game's date;
+  `#date=1550&view=x,y,scale` also places the camera, for the screenshots. Later `#10000BC`.
 
 ## 10. Invariants and soak outputs
 

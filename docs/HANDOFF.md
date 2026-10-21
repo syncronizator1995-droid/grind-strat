@@ -365,6 +365,11 @@ every id.
   allow GEBCO and OpenStreetMap here.
 - **M3a (in progress):** the map follows the game's date from 1219 to today, in two pull requests:
   "the land changes" (forest, northern coast, water works), then "the names change".
+  - **PR 1, "the land changes": built** (21 October 2026, not yet reviewed by Ignas): the forest
+    over time, the northern coast (an estimate), reservoirs, cuts and lagoon outlets by date, our
+    drawn shapes, a late save opening at its own year, the hidden `#date=` link, and the speed
+    test's time run. ARCHITECTURE section 9 has the numbers.
+  - **PR 2, "the names change":** next.
 - **M3b:** AD 1 and the ice-age data (five slices with notes), ready for step 8; planned with
   Ignas after M3a. Ask for PANGAEA if still needed.
 - **Settled at M2:** the forest comes from the finished SpatioCompo maps on GitHub, so neither
