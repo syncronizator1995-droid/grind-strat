@@ -5,6 +5,7 @@
 // date is always worked out again from the shipped data (src/sim/map-date.js, coast-date.js).
 
 import { activeAt, eraOf, FIRST_MAP_YEAR, mapYear } from '../../sim/map-date.js';
+import { COAST_CODE } from '../../sim/coast-date.js';
 import { tagsOnAt } from './water-tiles.js';
 
 /**
@@ -138,10 +139,15 @@ export function createDateLayer(data, grid, year = FIRST_MAP_YEAR) {
       return !prepared;
     },
     /**
-     * Is the old sea here now? (Over today's land, where it stood higher.) Game units.
+     * Is the old sea here now? (Over today's land, where it stood higher.) Game units. Today's
+     * open sea (code 254) is not old sea: a small lake the coast field counts as open sea is
+     * still named once today's map shows it.
      * @param {number} x @param {number} y
      */
-    seaAt: (x, y) => coast.seaAt(x, y, shown),
+    seaAt: (x, y) => {
+      const i = coast.cellAt(x, y);
+      return i >= 0 && coast.codes[i] !== COAST_CODE.sea && coast.seaAtCell(i, shown);
+    },
   };
 }
 

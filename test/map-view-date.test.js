@@ -96,6 +96,12 @@ describe('names at the map\'s date', () => {
     for (const t of tags.filter((x) => /reservoir$/.test(x))) assert.equal(on[tags.indexOf(t)], 0, `${t} is off in 1219`);
   });
 
+  it('has no old sea over any lake in 2021 (today\'s open sea in the coast field is not old sea)', () => {
+    const today = layerAt(2021).layer;
+    const under = water.lakeInfo.filter((l) => l.name && today.seaAt(l.at[0], l.at[1])).map((l) => l.name);
+    assert.deepEqual(under, []);
+  });
+
   it('keeps Lake Mälaren unnamed while it is a bay of the sea, and names it once it is a lake', () => {
     const view = /** @type {typeof VIEWS[number]} */ (VIEWS.find((v) => v.name === 'Stockholm'));
     assert.ok(!namesAt(view, layer).some((l) => l.text === 'Mälaren'), 'named in 1219');
