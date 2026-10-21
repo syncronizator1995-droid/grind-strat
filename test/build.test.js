@@ -109,10 +109,12 @@ describe('build', () => {
       assert.ok(!html.includes('{{'), 'no placeholder left');
       // The real map makes the file big; past this it would be slow to open on a phone.
       assert.ok(result.bytes < 4 * 1024 * 1024, `game file is ${result.bytes} bytes`);
-      for (const kind of ['base', 'terrain', 'water', 'coast', 'changes']) {
+      for (const kind of ['base', 'terrain', 'water', 'terrain-time', 'coast', 'changes']) {
         assert.ok(html.includes(`<script type="application/json" id="gs-${kind}">`), `the ${kind} data is in the page`);
       }
-      assert.ok(html.indexOf('id="gs-water"') < html.lastIndexOf('<script>'), 'the data comes before the code that reads it');
+      assert.ok(html.indexOf('id="gs-water"') < html.lastIndexOf('<script>'), 'the first picture\'s data comes before the code that reads it');
+      // The map over time is needed only after the first picture: after the code, so it starts sooner.
+      for (const kind of ['terrain-time', 'coast', 'changes']) assert.ok(html.indexOf(`id="gs-${kind}"`) > html.lastIndexOf('<script>'), `the ${kind} data comes after the code`);
       assert.equal(await readFile(join(out, 'index.html'), 'utf8'), html);
 
       const manifest = JSON.parse(await readFile(join(out, 'manifest.webmanifest'), 'utf8'));

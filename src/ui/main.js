@@ -247,8 +247,14 @@ function drawLoading() {
   ctx.fillText('Unpacking the map…', canvas.clientWidth / 2, canvas.clientHeight / 2);
 }
 
-/** The blocks of the map over time: the land, the northern coast, and our dated facts and shapes. */
-const datedBlocks = () => ({ terrainTime: readBlock('terrain-time'), coast: readBlock('coast'), changes: readBlock('changes') });
+/**
+ * The blocks of the map over time: the land, the northern coast, and our dated facts and shapes.
+ * They come after the code in the page (tools/build.mjs), so the page may still be reading them.
+ */
+async function datedBlocks() {
+  if (document.readyState === 'loading') await new Promise((done) => document.addEventListener('DOMContentLoaded', done, { once: true }));
+  return { terrainTime: readBlock('terrain-time'), coast: readBlock('coast'), changes: readBlock('changes') };
+}
 
 /**
  * The land first, then the rivers and lakes just after the first picture is on screen: the
@@ -264,7 +270,7 @@ async function showMap() {
   let dated = /** @type {DatedData | null} */ (null);
   if (year > FIRST_MAP_YEAR) {
     const t = performance.now();
-    dated = await loadDated(datedBlocks(), data.terrain.data, times);
+    dated = await loadDated(await datedBlocks(), data.terrain.data, times);
     data.terrain.data.set(dated.timeline.classesAt(year));
     startup.datedMs = performance.now() - t;
   }
@@ -302,7 +308,7 @@ async function showMap() {
   if (!dated) {
     await new Promise((done) => requestAnimationFrame(() => setTimeout(done, 0)));
     const t = performance.now();
-    mapView.setDated(await loadDated(datedBlocks(), data.terrain.data, noTimes()));
+    mapView.setDated(await loadDated(await datedBlocks(), data.terrain.data, noTimes()));
     mapView.render(true);
     startup.datedMs = performance.now() - t;
   }
