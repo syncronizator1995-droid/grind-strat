@@ -105,6 +105,35 @@ describe('dates', () => {
     assert.throws(() => tagsOnAt(water.tags, own.entries, 0), /bad year/);
     assert.equal(tagsOnAt(['', 'no-entry'], own.entries, 2000)[1], 0, 'a tag with no entry never shows');
   });
+
+  it('handle BC years and the step from 1 BC to AD 1 (no year 0)', () => {
+    const entries = [{ id: 'bc', on: /** @type {[number, number]} */ ([-500, 1]) }, { id: 'ad', on: /** @type {[number | null, number | null]} */ ([1, null]) }, { id: 'r', tagPrefix: 'osm-year-' }];
+    const tags = ['', 'bc', 'ad', 'osm-year-0'];
+    const at = (/** @type {number} */ y) => Array.from(tagsOnAt(tags, entries, y));
+    assert.deepEqual(at(-501), [1, 0, 0, 0]);
+    assert.deepEqual(at(-500), [1, 1, 0, 0]);
+    assert.deepEqual(at(-1), [1, 1, 0, 0]);
+    assert.deepEqual(at(1), [1, 0, 1, 0], 'AD 1 follows 1 BC; a year-0 tag never shows');
+    assert.throws(() => tagsOnAt(tags, entries, 1.5), /bad year/);
+  });
+});
+
+describe('the dated river stretches', () => {
+  it('join the rest of their river: each tagged piece shares an end with an untagged line of the same river', () => {
+    const ends = (/** @type {number} */ k) => {
+      const l = water.rivers[k];
+      return [`${l[0]},${l[1]}`, `${l[l.length - 2]},${l[l.length - 1]}`];
+    };
+    for (const e of list.entries.filter((/** @type {any} */ e) => e.feature?.mask)) {
+      const tag = water.tags.indexOf(e.id);
+      const pieces = [...water.lineTag.keys()].filter((k) => water.lineTag[k] === tag);
+      assert.ok(pieces.length > 0, `${e.id} has a stretch`);
+      for (const k of pieces) {
+        const others = new Set([...water.lineTag.keys()].filter((j) => j !== k && water.riverOf[j] === water.riverOf[k] && water.lineTag[j] === 0).flatMap(ends));
+        assert.ok(ends(k).some((p) => others.has(p)), `${e.id}: line ${k} is cut off from its river`);
+      }
+    }
+  });
 });
 
 describe('the 1219 water', () => {
