@@ -11,12 +11,21 @@
 //
 // Output, in whole game units (100 m) projected with MAP.toUnits and clipped to the map:
 //   { source: 'osm', licence: 'ODbL-1.0', osmBase, overture, thresholds,
-//     rivers: [{ id, name, names, wikidata, lengthKm, lines: [[x0, y0, ...], ...], lineNames }],
-//     lakes:  [{ id, name, names, otherNames?, wikidata, areaKm2, rings: [[...], ...] }],
+//     rivers: [{ id, name, names, wikidata, lengthKm, lines: [[x0, y0, ...], ...], lineNames, lineTags? }],
+//     lakes:  [{ id, name, names, otherNames?, wikidata, areaKm2, rings: [[...], ...], tag? }],
 //     dropped: [{ id, name, wikidata, why }], checks: {...} }
 // lineNames[i] is the local name of lines[i] (OSM's name where that stretch lies), '' where the
 // stretch has none of its own. Lake rings: outer rings counter-clockwise and holes clockwise
 // (y grows north), each outer ring before its own holes, the first point not repeated.
+//
+// Dated water (M3a): the map follows the game's date, so features made after 1219 ship with a
+// tag instead of being left out. A tag is one of our own ids from tools/map/water-changes.json
+// (the 12 big reservoirs, the Rīga reservoir, dated channel stretches), or "osm-year-<year>" for a
+// smaller reservoir or man-made lake whose year comes from OpenStreetMap's own start_date tag
+// (one with no such year is still left out). lineTags[i] / tag is '' (always shown) when absent.
+// The years and facts of our own entries are not in this output: they ship in our own block
+// (tools/map/pack-changes.mjs). The build stops if a dated entry finds no feature, or a dated
+// channel's box (a coarse box from published coordinates, never traced from OSM) cuts no points.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -30,10 +39,11 @@ import { DERIVED } from './resample.mjs';
 import { waterLabels } from './water-labels.mjs';
 import {
   classifyLake, dropRepeats, groupRivers, KM2_PER_UNIT2, KM_PER_UNIT, lengthInside, lineLength, localNames, namesOf, orient, otherNamesOf,
-  pointInRings, reviewIndex, riverMainName, ringsArea, stitch, THRESHOLDS,
+  OSM_YEAR_TAG, osmStartYear, pointInRings, reviewIndex, riverMainName, ringsArea, splitAtMask, stitch, THRESHOLDS,
 } from './water-rules.mjs';
 
 const REVIEW_FILE = fileURLToPath(new URL('./osm-water-1219.json', import.meta.url));
+const CHANGES_FILE = fileURLToPath(new URL('./water-changes.json', import.meta.url));
 const OUT = join(DERIVED, 'water-osm.json');
 const DEFAULT_PREVIEWS = join(DERIVED, 'previews');
 
@@ -84,7 +94,8 @@ export function mustHaveRiverTable(rivers, labels, must) {
 }
 
 /**
- * Lakes that must be on the map (natural lakes and lagoons), and modern reservoirs that must not.
+ * Lakes that must be on the map (natural lakes and lagoons), and modern reservoirs that must not
+ * be on the 1219 map (they ship tagged, and show only from their year).
  * @type {[string, string[]][]}
  */
 export const MUST_HAVE_LAKES = [
@@ -159,7 +170,7 @@ function buildRivers(ways, relations) {
     const byLength = [...members].sort((a, b) => b.coords.length - a.coords.length || a.id - b.id);
     for (const w of byLength) if (local.get(w.id) === name) for (const [k, v] of Object.entries(namesOf(w.tags))) if (!(k in names)) names[k] = v;
     const id = g.relation !== null ? `relation/${g.relation}` : `way/${g.ways[0]}`;
-    return { id, name, names, wikidata: g.wikidata, lengthKm, lines, lineNames, by: g.by, wayCount: members.length };
+    return { id, name, names, wikidata: g.wikidata, lengthKm, lines, lineNames, by: g.by, wayCount: members.length, ways: g.ways };
   });
 }
 
@@ -298,6 +309,133 @@ function insidePoints(rings, b) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Dated water (M3a): what ships tagged, to be shown only from (or until) its year.
+
+/**
+ * @typedef {object} ChangeEntry one entry of tools/map/water-changes.json (only what the water
+ *   build reads: the years and facts go to our own block, tools/map/pack-changes.mjs)
+ * @property {string} id @property {string} kind
+ * @property {{ osm?: string[], wikidata?: string, river?: string, mask?: number[][] }} [feature]
+ *   a lake or a whole river (osm ids, wikidata), or the stretch of a river (river: its Wikidata
+ *   id) inside mask (a coarse lon/lat box)
+ */
+
+/**
+ * The reservoirs and other lakes made after 1219 that ship, each with its tag: the lakes our dated
+ * list names (by OSM id, joined with the pieces that share its Wikidata id), then every other
+ * left-out lake that passes the size rule and has a year in OpenStreetMap's start_date tag after
+ * 1219 (tag "osm-year-<year>"). A lake with no such year stays out. Natural lakes are never
+ * touched: these join the lakes after dropNested, so a reservoir never swallows a natural lake
+ * inside it; a reservoir inside a bigger reservoir is left out, as natural lakes are.
+ * @param {ChangeEntry[]} entries
+ * @param {(Lake & { start: string | null })[]} dropped every lake left out of 1219 (0.5 km² or more)
+ * @param {Lake[]} [natural] the natural lakes kept, to say so when an entry names one of them
+ */
+export function datedLakes(entries, dropped, natural = []) {
+  /** @type {{ id: string, why: string }[]} */
+  const notFound = [];
+  const claimed = new Set();
+  /** @type {(Lake & { tag: string })[]} */
+  const ours = [];
+  for (const e of entries) {
+    if (e.kind !== 'reservoir' || !e.feature) continue;
+    const ids = new Set(e.feature.osm ?? []);
+    const wd = e.feature.wikidata ?? null;
+    const pieces = dropped.filter((d) => ids.has(d.id) || (wd !== null && d.wikidata === wd));
+    if (!pieces.length) {
+      const nat = natural.find((l) => l.pieces.some((p) => ids.has(p)) || (wd !== null && l.wikidata === wd));
+      notFound.push({ id: e.id, why: nat ? `${nat.name} (${nat.id}) is kept as a natural lake, not left out as a reservoir` : `no left-out lake ${[...ids, wd].filter(Boolean).join(' / ')}` });
+      continue;
+    }
+    for (const p of pieces) claimed.add(p.id);
+    const [lake] = joinPieces(pieces.map((p) => ({ ...p, wikidata: wd ?? p.wikidata })));
+    ours.push({ ...lake, tag: e.id });
+  }
+  /** @type {Map<string, number>} */
+  const yearOf = new Map();
+  for (const d of dropped) {
+    const y = osmStartYear(d.start);
+    if (y !== null) yearOf.set(d.id, y);
+  }
+  const rest = joinPieces(dropped.filter((d) => !claimed.has(d.id)));
+  /** @type {(Lake & { tag: string })[]} */
+  const byYear = [];
+  let noYear = 0; let tooSmall = 0;
+  /** @type {{ id: string, name: string, year: number }[]} */
+  const tooEarly = [];
+  for (const l of rest) {
+    if (!keepLakeBySize(l)) { tooSmall++; continue; }
+    const years = l.pieces.map((p) => yearOf.get(p)).filter((y) => y !== undefined);
+    if (!years.length) { noYear++; continue; }
+    const year = Math.min(.../** @type {number[]} */ (years));
+    // A year up to 1219 would put the lake on the 1219 map: that needs a review, not a rule.
+    if (year <= 1219) { tooEarly.push({ id: l.id, name: l.name, year }); continue; }
+    byYear.push({ ...l, tag: `${OSM_YEAR_TAG}${year}` });
+  }
+  const all = [...ours, ...byYear].sort((a, b) => b.areaKm2 - a.areaKm2 || (a.id < b.id ? -1 : 1));
+  const { kept, inside } = dropNested(all);
+  for (const i of inside) if (ours.some((o) => o.id === i.id)) notFound.push({ id: /** @type {any} */ (ours.find((o) => o.id === i.id)).tag, why: i.why });
+  return {
+    lakes: /** @type {(Lake & { tag: string })[]} */ (kept),
+    notFound,
+    counts: { ourReservoirs: ours.length, osmYearReservoirs: kept.length - ours.filter((o) => kept.includes(o)).length, osmYearNoYear: noYear, osmYearTooSmall: tooSmall, reservoirsInsideReservoirs: inside.length },
+    tooEarly,
+  };
+}
+
+/**
+ * The rivers the dated list adds or tags: short rivers the reviewed list keeps at every date
+ * (kind 'river', decision 'keep': the Lielupe's old course, the Buļļupe; the Vistula's old mouth,
+ * the Martwa Wisła), whole rivers that are dated (the Wisła Śmiała), and the dated stretches of
+ * kept rivers, split out on game-unit lines before simplifying (the Przekop).
+ * @param {ChangeEntry[]} entries
+ * @param {{ kind?: string, decision: string, name: string, osmIds: string[], wikidata: string | null }[]} review
+ * @param {any[]} kept the rivers kept by the size rule
+ * @param {any[]} all every river group
+ */
+export function datedRivers(entries, review, kept, all) {
+  /** @type {{ id: string, why: string }[]} */
+  const notFound = [];
+  const rivers = [...kept];
+  /** The river groups an OSM id or Wikidata id names. @param {string[]} ids @param {string | null | undefined} wd */
+  const find = (ids, wd) => all.filter((r) => (wd && r.wikidata === wd) || ids.includes(r.id) || r.ways.some((/** @type {number} */ w) => ids.includes(`way/${w}`)));
+  /** @param {any} r */
+  const add = (r) => { if (!rivers.includes(r)) rivers.push(r); };
+  for (const e of review) {
+    if (e.kind !== 'river') continue;
+    const hits = find(e.osmIds, e.wikidata);
+    if (e.decision !== 'keep' || hits.length !== 1) notFound.push({ id: `osm-water-1219: ${e.name}`, why: e.decision !== 'keep' ? 'a river row must keep' : `${hits.length} rivers match` });
+    else add(hits[0]);
+  }
+  /** @type {{ id: string, river: string, points: number }[]} */
+  const channels = [];
+  for (const e of entries) {
+    const f = e.feature;
+    if (e.kind !== 'channel' || !f) continue;
+    if (f.mask) {
+      const hits = rivers.filter((r) => r.wikidata === f.river);
+      if (hits.length !== 1) { notFound.push({ id: e.id, why: `${hits.length} kept rivers have the Wikidata id ${f.river}` }); continue; }
+      const r = hits[0];
+      const mask = f.mask.flatMap(([lon, lat]) => MAP.toUnits(lon, lat));
+      const split = splitAtMask(r.lines, r.lineNames, r.lineTags ?? r.lines.map(() => ''), mask, e.id);
+      if (!split.points) { notFound.push({ id: e.id, why: `its box cuts no points of ${r.name} (${r.id})` }); continue; }
+      const i = rivers.indexOf(r);
+      rivers[i] = { ...r, lines: split.lines, lineNames: split.names, lineTags: split.tags };
+      channels.push({ id: e.id, river: `${r.name} (${r.id})`, points: split.points });
+      continue;
+    }
+    const hits = find(f.osm ?? [], f.wikidata);
+    if (hits.length !== 1) { notFound.push({ id: e.id, why: `${hits.length} rivers match` }); continue; }
+    const r = hits[0];
+    if (rivers.includes(r)) rivers[rivers.indexOf(r)] = { ...r, lineTags: r.lines.map(() => e.id) };
+    else rivers.push({ ...r, lineTags: r.lines.map(() => e.id) });
+    channels.push({ id: e.id, river: `${r.name} (${r.id})`, points: r.lines.reduce((/** @type {number} */ s, /** @type {Flat} */ l) => s + l.length / 2, 0) });
+  }
+  rivers.sort((a, b) => b.lengthKm - a.lengthKm || (a.name < b.name ? -1 : 1));
+  return { rivers, notFound, channels };
+}
+
+// ---------------------------------------------------------------------------------------------
 // Reading the rows.
 
 /**
@@ -309,7 +447,7 @@ async function readWater(path, review) {
   const ways = new Map();
   /** @type {Lake[]} */
   const lakePieces = [];
-  /** @type {{ id: string, name: string, wikidata: string | null, why: string, areaKm2: number, rings: Flat[] }[]} */
+  /** @type {(Lake & { why: string, start: string | null })[]} */
   const droppedLakes = [];
   /** @type {{ id: string, name: string, areaKm2: number, flags: string[] }[]} */
   const flagged = [];
@@ -327,7 +465,10 @@ async function readWater(path, review) {
     const base = { id: c.osmId, name: c.tags.name ?? '', wikidata: c.tags.wikidata ?? null, areaKm2 };
     const verdict = classifyLake(c.osmId, { ...c.tags, ...(c.subtype === 'reservoir' ? { water: 'reservoir' } : {}) }, review);
     if (!verdict.keep) {
-      if (areaKm2 >= THRESHOLDS.MIN_LAKE_WIKIDATA_KM2) droppedLakes.push({ ...base, why: verdict.why, rings });
+      // Kept with their names and rings: the dated ones ship tagged (datedLakes).
+      if (areaKm2 >= THRESHOLDS.MIN_LAKE_WIKIDATA_KM2) {
+        droppedLakes.push({ ...base, why: verdict.why, rings, names: namesOf(c.tags), otherNames: otherNamesOf(c.tags), water: c.tags.water ?? '', pieces: [c.osmId], start: c.tags.start_date ?? null });
+      }
       continue;
     }
     if (!keepLakeBySize(base)) { if (base.name) tooSmall++; else unnamed++; continue; }
@@ -462,20 +603,28 @@ async function main() {
   const previewDir = process.argv[2] ?? DEFAULT_PREVIEWS;
   const run = await overtureRun();
   const review = JSON.parse(await readFile(REVIEW_FILE, 'utf8'));
-  const rIndex = reviewIndex(review.entries);
+  const changes = JSON.parse(await readFile(CHANGES_FILE, 'utf8'));
+  // River rows (kind 'river') are matched to rivers by datedRivers, never to lakes.
+  const lakeReview = review.entries.filter((/** @type {any} */ e) => e.kind !== 'river');
+  const rIndex = reviewIndex(lakeReview);
   const rel = await riverRelations();
   console.log(`Overture ${run.release}; OSM river relations from ${rel.osmBase} (${rel.relations.length})`);
 
   const water = await readWater(run.rows, rIndex);
   const allRivers = buildRivers(water.ways, rel.relations);
-  const rivers = allRivers.filter(keepRiver).sort((a, b) => b.lengthKm - a.lengthKm || (a.name < b.name ? -1 : 1));
+  const sized = allRivers.filter(keepRiver).sort((a, b) => b.lengthKm - a.lengthKm || (a.name < b.name ? -1 : 1));
+  const dr = datedRivers(changes.entries, review.entries, sized, allRivers);
+  const rivers = dr.rivers;
 
   const joined = joinPieces(water.lakePieces).filter((l) => keepLakeBySize(l));
   const { kept: lakes, inside } = dropNested(joined.sort((a, b) => b.areaKm2 - a.areaKm2 || (a.id < b.id ? -1 : 1)));
+  const dl = datedLakes(changes.entries, water.droppedLakes, lakes);
+  const shippedIds = new Set(dl.lakes.flatMap((l) => l.pieces));
   const dropped = [
-    ...water.droppedLakes.map(({ id, name, wikidata, why, areaKm2 }) => ({ id, name, wikidata, why, areaKm2 })),
+    ...water.droppedLakes.filter((d) => !shippedIds.has(d.id)).map(({ id, name, wikidata, why, areaKm2 }) => ({ id, name, wikidata, why, areaKm2 })),
     ...inside,
   ];
+  const datedNotFound = [...dr.notFound, ...dl.notFound];
 
   const reservoirs = water.droppedLakes.filter((d) => d.areaKm2 >= 2);
   const through = riversThrough(rivers, reservoirs);
@@ -487,12 +636,14 @@ async function main() {
     const m = findWanted(label, wanted, lakes, [], (l) => l.areaKm2);
     return { label, found: m.found, id: m.f?.id ?? null, name: m.f?.name ?? null, areaKm2: m.f?.areaKm2 ?? 0 };
   });
+  // Absent at 1219: not among the untagged lakes (a dated one ships, tagged, for its years).
   const absent = MUST_BE_ABSENT.map(([label, re]) => {
     const shown = lakes.find((l) => [l.name, ...Object.values(l.names)].some((n) => re.test(n)));
     const gone = water.droppedLakes.find((d) => re.test(d.name));
-    return { label, absent: !shown, shownAs: shown?.name ?? null, droppedAs: gone ? `${gone.name} (${gone.id}): ${gone.why}` : null };
+    const dated = dl.lakes.find((l) => re.test(l.name));
+    return { label, absent: !shown, shownAs: shown?.name ?? null, droppedAs: gone ? `${gone.name} (${gone.id}): ${gone.why}` : null, datedAs: dated?.tag ?? null };
   });
-  const reviewMissing = review.entries.filter((/** @type {any} */ e) => e.osmIds.some((/** @type {string} */ i) => !water.seen.has(i)))
+  const reviewMissing = lakeReview.filter((/** @type {any} */ e) => e.osmIds.some((/** @type {string} */ i) => !water.seen.has(i)))
     .map((/** @type {any} */ e) => ({ name: e.name, osmIds: e.osmIds.filter((/** @type {string} */ i) => !water.seen.has(i)) }));
 
   const checks = {
@@ -509,6 +660,8 @@ async function main() {
       lakesKeptByWikidataRule: lakes.filter((l) => l.areaKm2 < THRESHOLDS.MIN_LAKE_KM2).length,
       lakesDroppedAsReservoirs: water.droppedLakes.length,
       lakesInsideBiggerLakes: inside.length,
+      ...dl.counts,
+      riversKeptByList: rivers.length - sized.length,
       ...water.counts,
       reviewedEntries: review.entries.length,
     },
@@ -518,7 +671,11 @@ async function main() {
     flaggedForReview: water.flagged.sort((a, b) => b.areaKm2 - a.areaKm2),
     reviewedButNotFound: reviewMissing,
     riversThroughDroppedReservoirs: through,
+    datedNotFound,
+    datedChannels: dr.channels,
+    osmYearUpTo1219: dl.tooEarly,
   };
+  if (datedNotFound.length) throw new Error(`dated water not found (tools/map/water-changes.json, osm-water-1219.json):\n- ${datedNotFound.map((d) => `${d.id}: ${d.why}`).join('\n- ')}`);
   // The snapshot nearly every row carries (Overture's sources[].version); a few rows are newer.
   const osmSnapshot = Object.entries(/** @type {Record<string, number>} */ (run.meta.osmSnapshots ?? {})).sort((x, y) => y[1] - x[1])[0]?.[0] ?? null;
   const out = {
@@ -529,8 +686,11 @@ async function main() {
     overture: { release: run.release, osmSnapshots: run.meta.osmSnapshots, relationsOsmBase: rel.osmBase },
     projection: MAP.meta(),
     thresholds: THRESHOLDS,
-    rivers: rivers.map(({ id, name, names, wikidata, lengthKm, lines, lineNames }) => ({ id, name, names, wikidata, lengthKm, lines, lineNames })),
-    lakes: lakes.map(({ id, name, names, otherNames, wikidata, areaKm2, rings, pieces }) => ({ id, name, names, ...(Object.keys(otherNames).length ? { otherNames } : {}), wikidata, areaKm2, rings, pieces })),
+    rivers: rivers.map(({ id, name, names, wikidata, lengthKm, lines, lineNames, lineTags }) => ({ id, name, names, wikidata, lengthKm, lines, lineNames, ...(lineTags?.some(Boolean) ? { lineTags } : {}) })),
+    lakes: [...lakes, ...dl.lakes].map((l) => ({
+      id: l.id, name: l.name, names: l.names, ...(Object.keys(l.otherNames).length ? { otherNames: l.otherNames } : {}), wikidata: l.wikidata, areaKm2: l.areaKm2, rings: l.rings, pieces: l.pieces,
+      ...('tag' in l && l.tag ? { tag: l.tag } : {}),
+    })),
     dropped,
     checks,
   };
@@ -556,7 +716,9 @@ function report(out, bytes) {
   console.log('\nmust-have lakes:');
   for (const m of c.mustHaveLakes) console.log(`  ${m.found ? 'found  ' : 'MISSING'} ${m.label.padEnd(16)} ${String(m.name ?? '-').padEnd(44)} ${m.areaKm2} km²`);
   console.log('\nmust be absent:');
-  for (const m of c.mustBeAbsent) console.log(`  ${m.absent ? 'absent ' : 'SHOWN  '} ${m.label.padEnd(26)} ${m.shownAs ?? ''}${m.droppedAs ? `dropped: ${m.droppedAs}` : 'not in the data as a lake'}`);
+  for (const m of c.mustBeAbsent) console.log(`  ${m.absent ? 'absent ' : 'SHOWN  '} ${m.label.padEnd(26)} ${m.shownAs ?? ''}${m.datedAs ? `ships tagged ${m.datedAs}; ` : ''}${m.droppedAs ? `from: ${m.droppedAs}` : 'not in the data as a lake'}`);
+  console.log(`dated channels: ${c.datedChannels.map((/** @type {any} */ d) => `${d.id} (${d.river}, ${d.points} points)`).join('; ')}`);
+  console.log(`dated lakes by start_date up to 1219, not shipped: ${JSON.stringify(c.osmYearUpTo1219)}`);
   console.log(`\nflagged for review (kept): ${c.flaggedForReview.length}`);
   for (const f of c.flaggedForReview.slice(0, 40)) console.log(`  ${f.id} ${f.name} ${f.areaKm2} km² [${f.flags.join(', ')}]`);
   console.log(`reviewed but not found: ${JSON.stringify(c.reviewedButNotFound)}`);

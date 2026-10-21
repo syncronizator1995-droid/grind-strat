@@ -381,7 +381,7 @@
       "access": "overture",
       "url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=base/type=water/",
       "file": "overture/",
-      "what": "OpenStreetMap rivers (waterway=river lines) and lakes (natural=water: lakes, oxbows, lagoons, and water with no water=* tag; reservoirs read only to leave them out), with their names in the local language, names in other languages and Wikidata ids, as the Overture Maps Foundation publishes them: its base theme, water type, release 2026-09-23.1, GeoParquet files in the AWS S3 bucket overturemaps-us-west-2 (Overture's own copy). Read by byte range by tools/map/fetch-overture.mjs: only the row groups and columns the map needs. Ways are grouped into rivers with OpenStreetMap's river relations (type=waterway, waterway=river), read earlier through the public Overpass API (overpass-api.de, tools/map/fetch-osm.mjs) and cached. Snapshot dates in src/data/odbl/README.md.",
+      "what": "OpenStreetMap rivers (waterway=river lines) and lakes (natural=water: lakes, oxbows, lagoons, and water with no water=* tag; reservoirs and other lakes made after 1219 ship tagged with a date id and show only from their year: from our own dated list, or from OpenStreetMap's own start_date, else not at all), with their names in the local language, names in other languages and Wikidata ids, as the Overture Maps Foundation publishes them: its base theme, water type, release 2026-09-23.1, GeoParquet files in the AWS S3 bucket overturemaps-us-west-2 (Overture's own copy). Read by byte range by tools/map/fetch-overture.mjs: only the row groups and columns the map needs. Ways are grouped into rivers with OpenStreetMap's river relations (type=waterway, waterway=river), read earlier through the public Overpass API (overpass-api.de, tools/map/fetch-osm.mjs) and cached. Snapshot dates in src/data/odbl/README.md.",
       "licence": "Open Database License (ODbL) 1.0",
       "licenceUrl": "https://www.openstreetmap.org/copyright",
       "licenceStatus": "read",
@@ -402,7 +402,7 @@
         "onMap": true,
         "line": "Rivers, lakes and their names: © OpenStreetMap contributors, Overture Maps Foundation. Open Database License: openstreetmap.org/copyright",
         "citation": "OpenStreetMap contributors. OpenStreetMap data as published by the Overture Maps Foundation, overturemaps.org (release 2026-09-23.1, accessed 7 October 2026). openstreetmap.org",
-        "changes": "Rivers and lakes: filtered to named rivers (at least 50 km on the map, or 15 km with a Wikidata id) and named natural lakes (at least 1 km², or 0.5 km² with a Wikidata id); river ways joined into rivers by OpenStreetMap's river relations; modern reservoirs and lakes made after 1219 left out by their OpenStreetMap tags and a reviewed list; lakes mapped twice inside a bigger lake left out; moved onto the game's flat map (an equal-area projection), rounded to 100 m and simplified for three zoom levels. Names shown on the map: Russian, Belarusian and Ukrainian names written in Latin letters (BGN/PCGN, with the soft and hard signs and the apostrophe left out); one name shown where OpenStreetMap gives a name in two languages; abbreviations such as \"ež.\" left out; each river named by its name at its lower end. OpenStreetMap's own names are kept in the data.",
+        "changes": "Rivers and lakes: filtered to named rivers (at least 50 km on the map, or 15 km with a Wikidata id) and named natural lakes (at least 1 km², or 0.5 km² with a Wikidata id); river ways joined into rivers by OpenStreetMap's river relations; modern reservoirs and lakes made after 1219 found by their OpenStreetMap tags and a reviewed list, and shipped only where they have a year (from our own dated list, or from OpenStreetMap's start_date), tagged so the map shows them from that year; a few dated river stretches (the Vistula's 1895 cut, the Lielupe's mouth of 1755) split out and tagged the same way, and two short rivers kept for the old courses; lakes mapped twice inside a bigger lake left out; moved onto the game's flat map (an equal-area projection), rounded to 100 m and simplified for three zoom levels. Names shown on the map: Russian, Belarusian and Ukrainian names written in Latin letters (BGN/PCGN, with the soft and hard signs and the apostrophe left out); one name shown where OpenStreetMap gives a name in two languages; abbreviations such as \"ež.\" left out; each river named by its name at its lower end. OpenStreetMap's own names are kept in the data.",
         "licenceName": "Open Database License (ODbL) 1.0",
         "licenceUri": "opendatacommons.org/licenses/odbl/1-0/"
       }
@@ -471,6 +471,34 @@
         "changes": "The sea and lake polygons of each century in Sweden, moved onto 500 m cells of the game's flat map; within each century the shore is placed between the two century shores by distance.",
         "licenceName": "CC BY 4.0",
         "licenceUri": "creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "grind-strat-own",
+      "collection": "own",
+      "access": "own",
+      "url": "https://github.com/syncronizator1995-droid/grind-strat/tree/main/src/data/own",
+      "file": "(none: our own work lives in the repository, in tools/map/water-changes.json and tools/map/history-shapes.json)",
+      "what": "Grind Strat's own work for the map over time (M3a): the dated list of water works and other changes (tools/map/water-changes.json: years, facts in plain English, the sources by name, marks) and our own drawn shapes (tools/map/history-shapes.json: the Vistula Lagoon's old outlets and today's Pillau strait, Ruden and its lost land bridge, a larger Lake Drużno, the Vistula delta's marsh before diking, each marked reconstructed and drawn on public-domain heights and land and published coordinates, never on OpenStreetMap). Packed by tools/map/pack-changes.mjs into src/data/own/changes.json. Nothing to fetch.",
+      "licence": "Grind Strat's own terms (not yet chosen by Ignas; until then all rights reserved, as for the rest of the repository)",
+      "licenceUrl": "https://github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "src/data/own/LICENSE.md in this repository: our own work, so its terms are ours to set.",
+      "licenceQuote": "The files in this folder are Grind Strat's own work, under the game's own terms. Ignas has not yet chosen those terms.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "Ignas chooses the game's own terms (the same for the code and for our own data); then update src/data/own/LICENSE.md, this record and package.json's licence field (UNLICENSED today)."
+      ],
+      "credit": {
+        "owner": "Grind Strat",
+        "version": "M3a (October 2026)",
+        "short": "Grind Strat",
+        "onMap": false,
+        "line": "Dated facts and drawn shapes (marked reconstructed): Grind Strat's own work, from the sources named with each fact.",
+        "citation": "Grind Strat, the dated list of water works and other changes, and its drawn shapes (M3a, October 2026). Sources of each fact in data/sources.md.",
+        "changes": "Our own work: years and facts read from the sources named with each, and shapes drawn by us on public-domain heights and land; years still to check are marked TO CHECK.",
+        "licenceName": "Grind Strat's own terms (not yet chosen)",
+        "licenceUri": "github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md"
       }
     }
   ]

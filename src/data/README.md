@@ -14,6 +14,8 @@ The map data comes in blocks split by licence (tools/map/pack.mjs writes them; `
 - `by/`: CC BY 4.0. `coast.json`, the northern coast over time (see its LICENSE.md and README.md).
 - `odbl/`: ODbL 1.0, from the next milestone: `water.json`, OpenStreetMap rivers and lakes (see its
   LICENSE.md and README.md). Not there yet: no OpenStreetMap data ships in M2.
+- `own/`: Grind Strat's own work, under the game's own terms (not yet chosen): `changes.json`, the dated
+  facts and drawn shapes of the map over time (see its LICENSE.md and README.md).
 - `fingerprints.json`: the SHA-256 of every block, so tests notice a block edited by hand.
 - `credits.json`: what the game's Credits sheet shows, written by tools/map/attribution.mjs.
 

@@ -14,6 +14,8 @@
 //                                     layer with another source's.
 //   src/data/by/coast.json            CC BY 4.0: the northern coast over time, from the field
 //                                     that npm run map:coast builds (refused if it is stale)
+//   src/data/own/changes.json         our own work, under the game's own terms: the dated facts and
+//                                     drawn shapes of the map over time (tools/map/pack-changes.mjs)
 // and records their fingerprints in src/data/fingerprints.json.
 //   node tools/map/pack.mjs     (npm run map:pack also rewrites the credits)
 // Needs the derived grids (npm run map:grids) and the Natural Earth files (node tools/map/fetch.mjs).
@@ -24,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { ROOT, writeBlock, writeFingerprints } from './block.mjs';
 import { packBase } from './pack-base.mjs';
 import { COAST_BLOCK, packCoast } from './pack-coast.mjs';
+import { CHANGES_BLOCK, packChanges } from './pack-changes.mjs';
 import { packTerrain } from './pack-terrain.mjs';
 import { packTerrainTime, TIME_BLOCK } from './pack-terrain-time.mjs';
 import { packWater } from './pack-water.mjs';
@@ -43,6 +46,7 @@ async function main() {
   const time = await packTerrainTime();
   if (time) written.push({ path: TIME_BLOCK, text: await writeBlock(TIME_BLOCK, time) });
   written.push({ path: COAST_BLOCK, text: await writeBlock(COAST_BLOCK, await packCoast()) });
+  written.push({ path: CHANGES_BLOCK, text: await writeBlock(CHANGES_BLOCK, await packChanges()) });
   await writeFingerprints();
   for (const w of written) {
     const block = JSON.parse(w.text);

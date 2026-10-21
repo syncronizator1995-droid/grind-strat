@@ -167,6 +167,13 @@ export function licenceProblems(blocks, sources, { allowInterim = false } = {}) 
     if (block.licence === 'CC-BY-4.0' && !used.every(ccByOrFree)) {
       problems.push(`${name} is under CC BY 4.0 but holds data under another licence`);
     }
+    // An ODbL block holds only OpenStreetMap data, and our own block only our own work.
+    if (block.licence === 'ODbL-1.0' && used.some((/** @type {SourceRecord} */ s) => s.collection !== 'osm')) {
+      problems.push(`${name} is under the ODbL but holds data that is not OpenStreetMap's`);
+    }
+    if (block.licence === 'grind-strat-own' && used.some((/** @type {SourceRecord} */ s) => s.collection !== 'own')) {
+      problems.push(`${name} is our own work but holds data from others`);
+    }
   }
   return problems;
 }

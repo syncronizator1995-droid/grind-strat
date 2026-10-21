@@ -27,6 +27,7 @@ const USES = /** @type {Record<string, string>} */ ({
   water: 'rivers, lakes and their names',
   'terrain-time': 'how the land changes from 1250 to today: forest cleared and grown back',
   coast: 'the northern coast over time (where the sea stood higher in the game\'s year)',
+  changes: 'the dated facts and drawn shapes of the map over time: reservoirs, cuts and outlets, and the Vistula delta',
 });
 
 /** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
@@ -54,7 +55,7 @@ const ABOUT = [
   'The map shows the land as it was around AD 1219, as far as it can be worked out today.',
   'Forest share: estimated from pollen records (about AD 750 to 1250). The exact forest edges are placed by a rule from today\'s land cover, terrain and rivers; they are not from a historical map.',
   'Marsh: from today\'s peat-soil and wetland maps plus today\'s open bogs. Where those maps show more bog than the pollen allows, bog wins and there is less forest than the pollen share (parts of north-west Russia, south-east Finland and east Estonia).',
-  'Under modern reservoirs the land shows flat, at today\'s water level.',
+  'Under modern reservoirs the land shows flat, at today\'s water level. A reservoir appears in the year it was filled: the big ones in years from published sources, the smaller ones in the year OpenStreetMap gives (marked "year from OpenStreetMap"); one with no known year is not shown.',
 ];
 /** What the northern coast is, when the coast block ships. */
 const ABOUT_COAST = [
@@ -63,7 +64,7 @@ const ABOUT_COAST = [
 /** What the rivers and lakes are, by where the shipped water comes from. */
 const ABOUT_WATER = {
   osm: [
-    'Rivers and lakes are today\'s, from OpenStreetMap, with today\'s local names: a river\'s name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river\'s own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, are left out; the rivers through those reservoirs follow today\'s mapped line.',
+    'Rivers and lakes are today\'s, from OpenStreetMap, with today\'s local names: a river\'s name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river\'s own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, appear only from their year, where one is known; the rivers through those reservoirs follow today\'s mapped line.',
     'All names are written in Latin letters. Russian, Belarusian and Ukrainian names are romanised by the BGN/PCGN systems (Russian 1947, Belarusian 1979, Ukrainian 2019), with the soft and hard signs and the apostrophe left out to keep them easy to read. Where OpenStreetMap gives a name in two languages, the map shows one. A lake shows just its name, without the word for lake (Ilmen, not ozero Ilmen; Plateliai, not Platelių ežeras); where the name only works with that word (Kozhanovskoye ozero, Jezioro Mikołajskie, or Juglas ezers where no plain form is known), the full name is kept.',
     'The coast, heights and sea depths are today\'s.',
   ],
@@ -83,6 +84,7 @@ const FOLDERS = [
   ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid and how it changes up to today (see its LICENSE.md and README.md).'],
   ['src/data/by/', 'Creative Commons Attribution 4.0 (CC BY 4.0): the northern coast over time (see its LICENSE.md and README.md). Nothing share-alike or from OpenStreetMap is mixed into it.'],
   ['src/data/map/', 'Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).'],
+  ['src/data/own/', 'Grind Strat\'s own work under the game\'s own terms (not yet chosen): the dated facts and drawn shapes of the map over time (see its LICENSE.md and README.md).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
   // Raw bytes of Overture's OpenStreetMap water data, kept to test the Parquet reader: ODbL too,
   // whether or not the game ships OpenStreetMap data.
