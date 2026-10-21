@@ -34,6 +34,7 @@ import { cutDated, cutWater, tileInView } from './water-tiles.js';
 /** @typedef {import('./water-tiles.js').DatedSet} DatedSet */
 /** @typedef {import('./labels.js').Label} Label */
 /** @typedef {import('./load.js').DatedData} DateData */
+/** @typedef {import('./dated.js').DateLayer} DateLayer */
 
 /** Province tint colours (provinces return in step 2b, realms in step 3). */
 const TINTS = ['#c0392b', '#2e86c1', '#d4ac0d', '#7d3c98', '#17a589', '#ca6f1e', '#5d6d7e', '#a93226', '#1f618d', '#b7950b', '#6c3483', '#148f77'];
@@ -62,10 +63,16 @@ const EDGE_SLACK = 0.1;
 const LABEL_INK = { light: { fill: '#173f56', halo: 'rgba(238, 241, 232, 0.88)' }, dark: { fill: '#d3e6f0', halo: 'rgba(14, 26, 34, 0.86)' } };
 /** The date's work (land, water, coast) takes about this much of a frame, ms. */
 const DATE_BUDGET_MS = 3;
-/** While the date runs, the kept frame is painted again at most this often, ms. */
+/** While the date runs, the kept frame is painted again at most this often, ms... */
 const REFRESH_MS = 250;
-/** One paint of the kept frame that would take longer than this (ms) is done in strips... */
-const STRIP_MS = 6;
+/**
+ * ...and, where painting is slow, no more often than this many times what a paint costs: the
+ * date's repaints take at most about a twelfth of the time, and the land, which changes slowly,
+ * shows its changes a little later.
+ */
+const REFRESH_SHARE = 12;
+/** One paint of the kept frame that would take longer than this (ms, with copying it to the screen) is done in strips... */
+const STRIP_MS = 12;
 /** ...but in no more than this many. */
 const MAX_STRIPS = 6;
 /** The coast's outline, and our drawn land's. */
@@ -207,7 +214,7 @@ export function createMapView(canvas, map) {
   // The map's date: the data once unpacked (null before), and what it shows now.
   /** @type {DateData | null} */
   let dated = null;
-  /** @type {import('./dated.js').DateLayer | null} */
+  /** @type {DateLayer | null} */
   let date = null;
   /** The game's year, and the year the hidden test link pins the map to (null: the game's). */
   let gameYear = FIRST_MAP_YEAR;
@@ -387,11 +394,10 @@ export function createMapView(canvas, map) {
     // Land the date changed must be in the tiles first: all of it (a few tiles at most).
     if (picture.dirtyTiles()) picture.flush(() => true, Infinity);
     refresh = null;
+    refreshSpent = 0;
     frameStale = false;
     relabel = false;
-    const t = performance.now();
     paintMap();
-    lastPaintMs = performance.now() - t;
     lastRefresh = performance.now();
     labelMs = drawNames(LABEL_BUDGET_MS);
   }
@@ -505,7 +511,7 @@ export function createMapView(canvas, map) {
    */
   function drawShapes(c, index, px, types) {
     const d = /** @type {DateData} */ (dated);
-    const on = /** @type {import('./dated.js').DateLayer} */ (date).shapeOn;
+    const on = /** @type {DateLayer} */ (date).shapeOn;
     const paths = shapeLevels[index] ?? (shapeLevels[index] = d.shapes.map((sh) => {
       const p = new Path2D();
       addLevel(p, [sh.ring], sh.levels, index, true);
@@ -546,7 +552,7 @@ export function createMapView(canvas, map) {
    */
   function drawOldSea(c, index, px, x0, y0, x1, y1) {
     const d = /** @type {DateData} */ (dated);
-    const level = /** @type {import('./dated.js').DateLayer} */ (date).coastLevel;
+    const level = /** @type {DateLayer} */ (date).coastLevel;
     const b = d.coast.box;
     if (x1 < b.col0 * b.cell || x0 > (b.col0 + b.cols) * b.cell || y1 < b.row0 * b.cell || y0 > (b.row0 + b.rows) * b.cell) return;
     const box = oldSea?.box;
@@ -555,12 +561,14 @@ export function createMapView(canvas, map) {
       const h = (y1 - y0) / 2;
       const within = { x0: x0 - w, y0: y0 - h, x1: x1 + w, y1: y1 + h };
       const r = shoreAt(shoreField(index), level, { within });
+      // No closePath: a fill closes each ring by itself, and Chrome's closePath slows down with
+      // every ring already in the path (10,000 rings took over half a second).
       const fill = new Path2D();
+      const xy = r.fill.xy;
       let at = 0;
       for (const end of r.fill.ends) {
-        fill.moveTo(r.fill.xy[at * 2], r.fill.xy[at * 2 + 1]);
-        for (let i = at + 1; i < end; i++) fill.lineTo(r.fill.xy[i * 2], r.fill.xy[i * 2 + 1]);
-        fill.closePath();
+        fill.moveTo(xy[at * 2], xy[at * 2 + 1]);
+        for (let i = at + 1; i < end; i++) fill.lineTo(xy[i * 2], xy[i * 2 + 1]);
         at = end;
       }
       const line = new Path2D();
@@ -580,7 +588,8 @@ export function createMapView(canvas, map) {
     if (ready) return ready;
     const d = /** @type {DateData} */ (dated);
     const f = COAST_FACTOR[index];
-    const built = f === 1 ? d.shore : (() => { const g = coarseField(d.coast.box, d.coast.codes, f); return shoreSquares(g.box, g.codes); })();
+    const g = f === 1 ? d.coast : coarseField(d.coast.box, d.coast.codes, f);
+    const built = shoreSquares(g.box, g.codes);
     shoreFields[index] = built;
     return built;
   }
@@ -772,8 +781,10 @@ export function createMapView(canvas, map) {
   function render(force = false) {
     const start = performance.now();
     const zooming = kept !== null && kept.scale !== cam.scale;
+    let full = false;
     if (force || !kept || !(keptCovers() || (zooming && Math.abs(Math.log(cam.scale / kept.scale)) < 0.7))) {
       drawFrame();
+      full = true;
       if (named && !named.complete) settleSoon();
     } else if (zooming || (named && (named.cx !== cam.cx || named.cy !== cam.cy))) {
       // Mid-pinch or mid-pan: show the scaled or slid frame now, and the sharp frame or the names
@@ -781,6 +792,8 @@ export function createMapView(canvas, map) {
       settleSoon();
     }
     blit();
+    // A software canvas draws when its picture is first copied: the honest cost includes the copy.
+    if (full) paintCostMs = performance.now() - start;
     return performance.now() - start;
   }
 
@@ -814,8 +827,10 @@ export function createMapView(canvas, map) {
   /** The names must be placed anew at the next paint (a dated feature came or went, or the old sea moved). */
   let relabel = false;
   let lastRefresh = -Infinity;
-  /** How long one paint of the whole kept frame took last time, ms (decides the strips). */
-  let lastPaintMs = 0;
+  /** What one paint of the whole kept frame cost last time, copy to the screen included, ms. */
+  let paintCostMs = 0;
+  /** Time spent so far on the paint under way, ms. */
+  let refreshSpent = 0;
   /** A paint of the kept frame under way, strip by strip; `names` is its last step, if any. */
   /** @type {{ next: number, count: number, names: boolean } | null} */
   let refresh = null;
@@ -841,13 +856,18 @@ export function createMapView(canvas, map) {
     const start = performance.now();
     if (layer.year !== wantedYear()) applyYear(wantedYear());
     if (picture.dirtyTiles() && picture.flush(inKept, start + DATE_BUDGET_MS) > 0) frameStale = true;
-    let painted = false;
-    if (kept && (refresh || ((frameStale || relabel) && start - lastRefresh >= REFRESH_MS))) {
-      refreshStep();
-      painted = true;
+    if (kept && (refresh || ((frameStale || relabel) && start - lastRefresh >= Math.max(REFRESH_MS, REFRESH_SHARE * paintCostMs)))) {
+      const t = performance.now();
+      const finished = refreshStep();
+      blit();
+      refreshSpent += performance.now() - t;
+      if (finished) {
+        paintCostMs = refreshSpent;
+        refreshSpent = 0;
+        lastRefresh = performance.now();
+      }
     }
     const left = layer.prepare(start + DATE_BUDGET_MS);
-    if (painted) blit();
     dateMs.push(performance.now() - start);
     if (dateMs.length > 4000) dateMs = dateMs.slice(-2000);
     if (left || layer.year !== wantedYear() || picture.dirtyTiles() || frameStale || relabel || refresh) scheduleDate();
@@ -855,7 +875,7 @@ export function createMapView(canvas, map) {
 
   /** Moves the map's date and notes what must be painted again. @param {number} year */
   function applyYear(year) {
-    const layer = /** @type {import('./dated.js').DateLayer} */ (date);
+    const layer = /** @type {DateLayer} */ (date);
     const changes = layer.goTo(year, picture.setCell);
     canvas.dataset.mapYear = String(layer.year);
     if (changes.tags || changes.shapes) frameStale = true;
@@ -888,20 +908,20 @@ export function createMapView(canvas, map) {
   /**
    * One step of painting the kept frame again for the map's date: one strip of the map with the
    * names already placed drawn again over it, or, as a last step of its own, the names placed
-   * anew. Strips keep each frame short where one paint takes longer than STRIP_MS.
+   * anew. Strips keep each frame short where one paint takes longer than STRIP_MS. Returns true
+   * when the paint is finished.
    */
   function refreshStep() {
     const fw = cssW * (1 + 2 * MARGIN);
     const fh = cssH * (1 + 2 * MARGIN);
     if (!refresh) {
-      refresh = { next: 0, count: Math.min(MAX_STRIPS, Math.max(1, Math.ceil(lastPaintMs / STRIP_MS))), names: relabel };
+      refresh = { next: 0, count: Math.min(MAX_STRIPS, Math.max(1, Math.ceil(paintCostMs / STRIP_MS))), names: relabel };
       frameStale = false;
       relabel = false;
     }
     if (refresh.next < refresh.count) {
       const top = Math.floor((fh * refresh.next) / refresh.count);
       const bottom = Math.ceil((fh * (refresh.next + 1)) / refresh.count);
-      const t = performance.now();
       fctx.save();
       fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       fctx.beginPath();
@@ -910,16 +930,14 @@ export function createMapView(canvas, map) {
       paintMap([top, bottom]);
       paintLabels(fctx, placedLabels);
       fctx.restore();
-      // A strip costs about its share of a whole paint.
-      lastPaintMs = (performance.now() - t) * refresh.count;
       refresh.next++;
-      if (refresh.next < refresh.count || refresh.names) return;
+      if (refresh.next < refresh.count || refresh.names) return false;
     } else {
       labelMs = drawNames(LABEL_BUDGET_MS);
       if (named && !named.complete) settleSoon();
     }
     refresh = null;
-    lastRefresh = performance.now();
+    return true;
   }
 
   // --- touch and mouse ---------------------------------------------------------------------

@@ -12,6 +12,7 @@ import { showCredits } from './credits.js';
 import { FIRST_MAP_YEAR } from '../sim/map-date.js';
 import { mapYearOfDay, parseTestLink, yearFromHash } from './map/dated.js';
 import { loadDated, loadMap, loadWater, noTimes } from './map/load.js';
+/** @typedef {import('./map/load.js').DatedData} DatedData */
 import { formatResults, runSpeedTest } from './map/speedtest.js';
 import { createMapView } from './map/view.js';
 import { askToKeepStorage, AUTOSAVE_KEY, readText, SAVE_KEY, UNREADABLE_KEY, writeText } from './storage.js';
@@ -260,8 +261,7 @@ async function showMap() {
   Object.assign(startup, times);
   const testYear = yearFromHash(location.hash);
   const year = testYear ?? mapYearOfDay(state.day);
-  /** @type {import('./map/load.js').DatedData | null} */
-  let dated = null;
+  let dated = /** @type {DatedData | null} */ (null);
   if (year > FIRST_MAP_YEAR) {
     const t = performance.now();
     dated = await loadDated(datedBlocks(), data.terrain.data, times);
@@ -284,6 +284,8 @@ async function showMap() {
   mapView.prepare();
   startup.pathMs = mapView.timings.pathMs;
   mapView.render(true);
+  // For test/shots.mjs: the year of the very first picture (a late save's own, never 1219 first).
+  document.documentElement.dataset.mapYearAtFirstPaint = String(mapView.mapYear().year);
   // performance.now() counts from the moment the page started opening.
   startup.mapOnScreenMs = performance.now();
   document.documentElement.dataset.mapOnScreenMs = startup.mapOnScreenMs.toFixed(1);

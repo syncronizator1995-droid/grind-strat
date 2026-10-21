@@ -6,7 +6,6 @@
 import { createCoast } from '../../sim/coast-date.js';
 import { timelineFromBlock } from '../../sim/map-date.js';
 import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleBlocks } from './codec.js';
-import { shoreSquares } from './shore.js';
 
 /**
  * @typedef {object} PackedBlock
@@ -230,7 +229,6 @@ export async function loadWater(block, times) {
  *   dated facts and shapes. Rebuilt from the blocks every time; never saved.
  * @property {import('../../sim/map-date.js').TerrainTimeline} timeline
  * @property {import('../../sim/coast-date.js').Coast} coast
- * @property {import('./shore.js').ShoreSquares} shore
  * @property {DatedEntry[]} entries @property {OwnShape[]} shapes
  */
 
@@ -245,7 +243,9 @@ export async function loadWater(block, times) {
  */
 export async function loadDated({ terrainTime, coast, changes }, base, times) {
   const [t, c, o] = await unpackBlocks([terrainTime, coast, changes], times);
-  const t0 = performance.now();
+  // The pieces below take a moment each on a slow phone: let a frame through between them.
+  await breathe();
+  let t0 = performance.now();
   const info = JSON.parse(new TextDecoder().decode(o('info')));
   const grid = terrainTime.meta.grid;
   if (info.grid && (info.grid.cols !== grid.cols || info.grid.rows !== grid.rows)) throw new Error('the dated data and the land over time use different grids');
@@ -253,6 +253,9 @@ export async function loadDated({ terrainTime, coast, changes }, base, times) {
     cells: decodeUints(o(v.cells)), bands: o(v.bands), cls: v.cls, from: v.from, to: v.to, hold: v.hold,
   }));
   const timeline = timelineFromBlock({ meta: /** @type {any} */ (terrainTime.meta), layers: t.layers, base: base.slice(), overrides });
+  times.decodeMs += performance.now() - t0;
+  await breathe();
+  t0 = performance.now();
   const box = coast.meta.coast;
   const codes = c('coast');
   const rings = decodeShapes(o('shapes'));
@@ -267,7 +270,10 @@ export async function loadDated({ terrainTime, coast, changes }, base, times) {
     return shape;
   });
   if (at !== levels.length) throw new Error('the drawn shapes do not add up');
-  const dated = { timeline, coast: createCoast({ box, codes }), shore: shoreSquares(box, codes), entries: info.entries, shapes };
+  const dated = { timeline, coast: createCoast({ box, codes }), entries: info.entries, shapes };
   times.decodeMs += performance.now() - t0;
   return dated;
 }
+
+/** Waits a moment, so the page can draw and answer a tap between pieces of unpacking. */
+const breathe = () => new Promise((done) => setTimeout(done, 0));
