@@ -16,6 +16,7 @@ import { DAYS_PER_YEAR, dateFromDay, dayFromDate } from '../src/sim/calendar.js'
 import { advanceDay, fromSave, newGame, START_DAY, toSave } from '../src/sim/game.js';
 import { checkInvariants } from '../src/sim/invariants.js';
 import { readFileSync } from 'node:fs';
+import { coastLevel } from '../src/sim/coast-date.js';
 import { timelineFromBlock } from '../src/sim/map-date.js';
 import { unbundleBlocks } from '../src/ui/map/codec.js';
 import { createDateLayer } from '../src/ui/map/dated.js';
@@ -113,7 +114,7 @@ export async function runMapSoak() {
   const today = timelineFromBlock({ meta: timeBlock.meta, layers, base: map.terrain.data, overrides: [] }).classesAt(2021);
   const differ = grid.reduce((n, v, i) => n + (v === today[i] ? 0 : 1), 0);
   if (differ) errors.push(`the run ends ${differ} cells away from today's anchor`);
-  if (layer.coastLevel !== 201) errors.push(`the coast ends at level ${layer.coastLevel}, not today's (201)`);
+  if (layer.coastLevel !== coastLevel(2021)) errors.push(`the coast ends at level ${layer.coastLevel}, not 2021's (${coastLevel(2021)})`);
   const on = /** @type {Uint8Array} */ (layer.tagOn);
   const off = /** @type {string[]} */ (water.tags).filter((t, k) => t && !on[k]);
   if (off.length) errors.push(`dated water still off in 2021: ${off.join(', ')}`);
