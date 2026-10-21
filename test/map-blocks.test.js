@@ -61,6 +61,7 @@ describe('the data blocks', () => {
         assert.equal(osm.length, 0, `${path} contains OpenStreetMap data outside src/data/odbl/`);
       }
       if (path.startsWith('src/data/by-sa/')) assert.equal(b.licence, 'CC-BY-SA-4.0');
+      if (path.startsWith('src/data/by/')) assert.equal(b.licence, 'CC-BY-4.0');
       if (path.startsWith('src/data/map/')) assert.equal(b.licence, 'public-domain');
     }
   });

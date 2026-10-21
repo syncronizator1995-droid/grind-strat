@@ -109,7 +109,7 @@ describe('build', () => {
       assert.ok(!html.includes('{{'), 'no placeholder left');
       // The real map makes the file big; past this it would be slow to open on a phone.
       assert.ok(result.bytes < 4 * 1024 * 1024, `game file is ${result.bytes} bytes`);
-      for (const kind of ['base', 'terrain', 'water']) {
+      for (const kind of ['base', 'terrain', 'water', 'coast']) {
         assert.ok(html.includes(`<script type="application/json" id="gs-${kind}">`), `the ${kind} data is in the page`);
       }
       assert.ok(html.indexOf('id="gs-water"') < html.lastIndexOf('<script>'), 'the data comes before the code that reads it');
@@ -173,6 +173,16 @@ describe('licence guard', () => {
     assert.ok(licenceProblems([block('terrain', 'CC-BY-SA-4.0', ['bysa', 'osm'])], sources).some((p) => /mixes OpenStreetMap/.test(p)));
     assert.ok(licenceProblems([block('terrain', 'CC-BY-4.0', ['bysa'])], sources).some((p) => /share-alike/.test(p)));
     assert.ok(licenceProblems([block('base', 'public-domain', ['by'])], sources).some((p) => /public domain/.test(p)));
+  });
+
+  it('keeps a CC BY block to CC BY and public-domain data only', () => {
+    assert.deepEqual(licenceProblems([block('coast', 'CC-BY-4.0', ['by', 'pd'])], sources), []);
+    assert.ok(licenceProblems([block('coast', 'CC-BY-4.0', ['by', 'bysa'])], sources).some((p) => /under CC BY 4.0 but holds data under another licence/.test(p)));
+    assert.ok(licenceProblems([block('coast', 'CC-BY-4.0', ['by', 'osm'])], sources).some((p) => /under CC BY 4.0 but holds/.test(p)));
+    const odd = [...sources, { id: 'nc', collection: 'nc', licenceStatus: 'read', credit: { licenceName: 'CC BY-NC 4.0' } }];
+    assert.ok(licenceProblems([block('coast', 'CC-BY-4.0', ['nc'])], odd).some((p) => /under CC BY 4.0 but holds/.test(p)));
+    // The other way round is fine: CC BY data may sit in a share-alike block.
+    assert.deepEqual(licenceProblems([block('terrain', 'CC-BY-SA-4.0', ['by'])], sources), []);
   });
 
   it('puts each block into the page safely, and finds web addresses in the data', () => {

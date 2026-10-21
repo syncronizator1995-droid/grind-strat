@@ -12,6 +12,8 @@
 //                                     1219 from tools/map/ne-water-1219.json. Never both: the
 //                                     OSMF asks that OSM's rivers and lakes are not drawn in one
 //                                     layer with another source's.
+//   src/data/by/coast.json            CC BY 4.0: the northern coast over time, from the field
+//                                     that npm run map:coast builds (refused if it is stale)
 // and records their fingerprints in src/data/fingerprints.json.
 //   node tools/map/pack.mjs     (npm run map:pack also rewrites the credits)
 // Needs the derived grids (npm run map:grids) and the Natural Earth files (node tools/map/fetch.mjs).
@@ -21,6 +23,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROOT, writeBlock, writeFingerprints } from './block.mjs';
 import { packBase } from './pack-base.mjs';
+import { COAST_BLOCK, packCoast } from './pack-coast.mjs';
 import { packTerrain } from './pack-terrain.mjs';
 import { packTerrainTime, TIME_BLOCK } from './pack-terrain-time.mjs';
 import { packWater } from './pack-water.mjs';
@@ -39,6 +42,7 @@ async function main() {
   // The land over time: left as it is where its planes were never built (npm run map:terrain-time).
   const time = await packTerrainTime();
   if (time) written.push({ path: TIME_BLOCK, text: await writeBlock(TIME_BLOCK, time) });
+  written.push({ path: COAST_BLOCK, text: await writeBlock(COAST_BLOCK, await packCoast()) });
   await writeFingerprints();
   for (const w of written) {
     const block = JSON.parse(w.text);

@@ -31,6 +31,7 @@ export const BLOCK_FILES = Object.freeze({
   terrain: ['src/data/by-sa/terrain-1219.json'],
   water: ['src/data/odbl/water.json', 'src/data/map/water-ne.json'],
   'terrain-time': ['src/data/by-sa/terrain-time.json'],
+  coast: ['src/data/by/coast.json'],
 });
 
 /**
