@@ -207,12 +207,31 @@ export async function loadWater(block, times) {
 }
 
 /**
+ * Unpacks the names of rivers, lakes and seas over time (src/data/own/names.json).
+ * @param {PackedBlock} block
+ * @param {LoadTimes} times added to
+ * @returns {Promise<import('./names.js').NamesInfo>}
+ */
+export async function loadNames(block, times) {
+  if (block.kind !== 'names') throw new Error(`expected the names data, got ${block.kind}`);
+  const [n] = await unpackBlocks([block], times);
+  const info = JSON.parse(new TextDecoder().decode(n('info')));
+  if (!info || typeof info.sources !== 'object' || !Array.isArray(info.features) || !Array.isArray(info.seas) || !Array.isArray(info.regions)) {
+    throw new Error('the names data does not add up');
+  }
+  return info;
+}
+
+/**
  * @typedef {object} DatedEntry one fact of the map over time (src/data/own/changes.json): what is
  *   on from which year to which (BC years negative, null: open-ended)
  * @property {string} id @property {string} kind
  * @property {[number | null, number | null]} [on] @property {string} [tagPrefix] for a rule such as
  *   "osm-year-": the year is in the tag itself
  * @property {string[]} [marks] such as "reconstructed" or "estimate"
+ * @property {string} [fact] what the tap panel says about it @property {{ wikidata: string }} [about]
+ *   the river or lake it is about @property {string} [toCheck] what is not yet checked
+ * @property {string} [source] the id of its source in DatedData.cites
  */
 
 /**
@@ -230,6 +249,7 @@ export async function loadWater(block, times) {
  * @property {import('../../sim/map-date.js').TerrainTimeline} timeline
  * @property {import('../../sim/coast-date.js').Coast} coast
  * @property {DatedEntry[]} entries @property {OwnShape[]} shapes
+ * @property {Record<string, string>} cites the sources of the entries, by id, as short citations
  */
 
 /**
@@ -270,7 +290,7 @@ export async function loadDated({ terrainTime, coast, changes }, base, times) {
     return shape;
   });
   if (at !== levels.length) throw new Error('the drawn shapes do not add up');
-  const dated = { timeline, coast: createCoast({ box, codes }), entries: info.entries, shapes };
+  const dated = { timeline, coast: createCoast({ box, codes }), entries: info.entries, shapes, cites: info.sources ?? {} };
   times.decodeMs += performance.now() - t0;
   return dated;
 }

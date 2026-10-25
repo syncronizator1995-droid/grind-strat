@@ -24,6 +24,8 @@ import { eraOf, FIRST_MAP_YEAR } from '../../sim/map-date.js';
 import { createDateLayer, mapYearOfDay } from './dated.js';
 import { simplify } from './geometry.js';
 import { bandShown, BANDS, bandWidth, indexWater, labelFont, placeWaterLabels, riverBand } from './labels.js';
+import { createTapTracker, hitWater, pointInRings } from './hit.js';
+import { epochAt, linkNames, NO_NAMES, namesAt } from './names.js';
 import { coarseField, shoreAt, shoreSquares } from './shore.js';
 import { paintSea, paintTerrain, TERRAIN, TERRAIN_COLOURS } from './terrain.js';
 import { cutDated, cutWater, tileInView } from './water-tiles.js';
@@ -212,6 +214,22 @@ export function createMapView(canvas, map) {
   /** The names on the kept frame, to draw again as they are after the frame is painted again. @type {Label[]} */
   let placedLabels = [];
 
+  // The names of the time (src/ui/map/names.js): linked to the water once both are in.
+  /** @type {import('./names.js').NamesInfo | null} */
+  let namesInfo = null;
+  /** @type {import('./names.js').NameLink | null} */
+  let link = null;
+  /** The text the map shows for each line and lake in the current epoch. @type {import('./names.js').NameView | null} */
+  let nameView = null;
+  /** The names changed since they were last placed (only the names, not the land). */
+  let renamed = false;
+  /** @type {((hit: import('./hit.js').WaterHit | null, sx: number, sy: number) => void) | null} */
+  let onTap = null;
+  /** @type {(() => void) | null} */
+  let onNames = null;
+  /** How long each rename took, ms (for the speed test). @type {number[]} */
+  let renameMs = [];
+  
   // The map's date: the data once unpacked (null before), and what it shows now.
   /** @type {DateData | null} */
   let dated = null;
@@ -222,6 +240,24 @@ export function createMapView(canvas, map) {
   /** @type {number | null} */
   let pinnedYear = null;
   const wantedYear = () => pinnedYear ?? gameYear;
+  /** The year the names are for: the map's. */
+  const namesYear = () => date?.year ?? FIRST_MAP_YEAR;
+
+  /** Links the names to the water (if both are in) and works out what the map shows now. */
+  function relink() {
+    if (!map.water) return;
+    link = linkNames(namesInfo ?? NO_NAMES, map.water);
+    nameView = namesAt(link, namesYear());
+    renamed = true;
+    onNames?.();
+  }
+  /** Moves to the names of the map's year when the year crossed a change. */
+  function updateNames() {
+    if (!link || !nameView || epochAt(link, namesYear()) === nameView.epoch) return;
+    nameView = namesAt(link, namesYear());
+    renamed = true;
+    onNames?.();
+  }
 
   /**
    * The outlines at one level of detail, built the first time that level is needed.
@@ -627,6 +663,7 @@ export function createMapView(canvas, map) {
   function drawLabels(c, index, ox, oy, s, fw, fh, budgetMs) {
     const k = /** @type {Camera} */ (kept);
     named = { cx: cam.cx, cy: cam.cy, complete: true };
+    renamed = false;
     if (!map.water || !waterIndex) return NaN;
     const start = performance.now();
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -656,7 +693,7 @@ export function createMapView(canvas, map) {
     const labels = placeWaterLabels({
       water: map.water, index: waterIndex, level: index, scale: s, ox, oy, width: fw, height: fh, measure, keepOut: covered,
       screen, budgetMs, now: () => performance.now() - measuring, previous: anchors, result,
-      tagOn: date?.tagOn ?? null, under: date ? date.seaAt : undefined,
+      tagOn: date?.tagOn ?? null, under: date ? date.seaAt : undefined, names: nameView ?? undefined,
     });
     named.complete = result.complete;
     anchors = new Map();
@@ -667,6 +704,7 @@ export function createMapView(canvas, map) {
       anchors.set(l.river, list);
     }
     showNamesForChecks(labels, screen, result.complete);
+    publishNameBoxes(labels);
     for (const l of labels) drawn.push({ x: l.x, y: l.y, angle: l.angle, w: measure(l.text, l.size), h: l.size });
     placedLabels = labels;
     paintLabels(c, labels);
@@ -719,6 +757,24 @@ export function createMapView(canvas, map) {
     canvas.dataset.names = String(shown.length);
     canvas.dataset.nameList = [...new Set(shown.map((l) => l.text))].join('|');
     canvas.dataset.namesComplete = String(complete);
+  }
+
+  /**
+   * Marks the canvas with where the names on screen are (CSS px from its top left), for the
+   * screenshot checks: they tap a name by its box.
+   * @param {Label[]} labels
+   */
+  function publishNameBoxes(labels) {
+    const k = kept;
+    if (!k) return;
+    const fw = cssW * (1 + 2 * MARGIN);
+    const fh = cssH * (1 + 2 * MARGIN);
+    const ratio = cam.scale / k.scale;
+    const left = cssW / 2 - (cam.cx - k.cx) * cam.scale - (fw / 2) * ratio;
+    const top = cssH / 2 + (cam.cy - k.cy) * cam.scale - (fh / 2) * ratio;
+    const boxes = labels.map((l) => ({ text: l.text, x: Math.round(left + l.x * ratio), y: Math.round(top + l.y * ratio), kind: l.lake === undefined ? 'river' : 'lake' }))
+      .filter((b) => b.x >= 0 && b.x <= cssW && b.y >= 0 && b.y <= cssH);
+    canvas.dataset.nameBoxes = JSON.stringify(boxes);
   }
 
   const POINT_COLOURS = ['#f4ecd8', '#d4a72c', '#e8e2d0', '#c9c2ad'];
@@ -813,7 +869,7 @@ export function createMapView(canvas, map) {
       requestRender();
       return;
     }
-    if (named && named.complete && named.cx === cam.cx && named.cy === cam.cy) return;
+    if (named && named.complete && named.cx === cam.cx && named.cy === cam.cy) { publishNameBoxes(placedLabels); return; }
     drawNames(Infinity);
     blit();
   }
@@ -850,16 +906,26 @@ export function createMapView(canvas, map) {
     if (layer.year !== wantedYear()) applyYear(wantedYear());
     if (picture.dirtyTiles() && picture.flush(inKept, start + DATE_BUDGET_MS) > 0) frameStale = true;
     const busy = pointers.size > 0 || (kept !== null && kept.scale !== cam.scale);
-    if (kept && !busy && (frameStale || relabel) && start - lastRefresh >= Math.max(REFRESH_MS, REFRESH_SHARE * paintCostMs)) {
+    const due = start - lastRefresh >= Math.max(REFRESH_MS, REFRESH_SHARE * paintCostMs);
+    if (kept && !busy && (frameStale || relabel) && due) {
       const t = performance.now();
       refreshFrame();
       blit();
       paintCostMs = performance.now() - t;
+    } else if (kept && !busy && renamed && due) {
+      // Only the names changed: paint the map again under the old names and place the new ones,
+      // never the whole map (and never through settleNow).
+      const t = performance.now();
+      labelMs = drawNames(RELABEL_BUDGET_MS);
+      blit();
+      lastRefresh = performance.now();
+      renameMs.push(lastRefresh - t);
+      if (named && !named.complete) settleSoon();
     }
     const left = layer.prepare(start + DATE_BUDGET_MS);
     dateMs.push(performance.now() - start);
     if (dateMs.length > 4000) dateMs = dateMs.slice(-2000);
-    if (left || layer.year !== wantedYear() || picture.dirtyTiles() || frameStale || relabel) scheduleDate();
+    if (left || layer.year !== wantedYear() || picture.dirtyTiles() || frameStale || relabel || renamed) scheduleDate();
   }
 
   /** Moves the map's date and notes what must be painted again. @param {number} year */
@@ -867,6 +933,7 @@ export function createMapView(canvas, map) {
     const layer = /** @type {DateLayer} */ (date);
     const changes = layer.goTo(year, picture.setCell);
     canvas.dataset.mapYear = String(layer.year);
+    updateNames();
     if (changes.tags || changes.shapes) frameStale = true;
     if (changes.tags) relabel = true;
     if (changes.coast) {
@@ -902,13 +969,16 @@ export function createMapView(canvas, map) {
    */
   function refreshFrame() {
     if (picture.dirtyTiles()) picture.flush(() => true, Infinity);
-    const names = relabel;
+    const renameWanted = renamed;
+    const names = relabel || renamed;
+    const t0 = performance.now();
     frameStale = false;
     relabel = false;
     paintMap();
     if (names) {
       drawn = [];
       labelMs = drawNames(RELABEL_BUDGET_MS);
+      if (renameWanted) renameMs.push(performance.now() - t0);
       if (named && !named.complete) settleSoon();
     } else {
       paintLabels(fctx, placedLabels);
@@ -939,9 +1009,14 @@ export function createMapView(canvas, map) {
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
+  const tap = createTapTracker();
+  /** The pointer as the tap tracker reads it. @param {PointerEvent} e */
+  const tapEvent = (e) => ({ pointerId: e.pointerId, ...local(e), time: e.timeStamp, button: e.button, isPrimary: e.isPrimary });
+
   canvas.addEventListener('pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, local(e));
+    tap.down(tapEvent(e), pointers.size);
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), cx: cam.cx, cy: cam.cy, scale: cam.scale, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
@@ -950,6 +1025,9 @@ export function createMapView(canvas, map) {
   canvas.addEventListener('pointermove', (e) => {
     const prev = pointers.get(e.pointerId);
     if (!prev) return;
+    // A touch that hardly moves is a tap, not a pan: the map holds still until it moves 10 px,
+    // then pans by the whole distance from where it went down (prev is still that point).
+    if (pointers.size === 1 && tap.move(tapEvent(e)) === 'hold') return;
     const now = local(e);
     pointers.set(e.pointerId, now);
     if (pointers.size === 1) {
@@ -979,10 +1057,46 @@ export function createMapView(canvas, map) {
     // The last finger is off: settle now rather than after the timer, unless a frame is pending.
     if (pointers.size === 0 && !pending) settleNow();
   };
-  canvas.addEventListener('pointerup', lift);
-  canvas.addEventListener('pointercancel', lift);
+  canvas.addEventListener('pointerup', (e) => {
+    const wasTap = pointers.has(e.pointerId) && tap.up(tapEvent(e));
+    lift(e);
+    if (wasTap) {
+      const p = local(e);
+      onTap?.(hitAt(p.x, p.y), p.x, p.y);
+    }
+  });
+  canvas.addEventListener('pointercancel', (e) => { tap.cancel(); lift(e); });
   // A pointer lost without a pointerup must not count as still down (the date's repaint waits for it).
-  canvas.addEventListener('lostpointercapture', (e) => { if (pointers.has(e.pointerId)) lift(e); });
+  canvas.addEventListener('lostpointercapture', (e) => { if (pointers.has(e.pointerId)) { tap.cancel(); lift(e); } });
+
+  /**
+   * What lies under a point of the screen (CSS px from the canvas's top left): a name, lake,
+   * river or sea, or null.
+   * @param {number} sx @param {number} sy
+   * @returns {import('./hit.js').WaterHit | null}
+   */
+  function hitAt(sx, sy) {
+    const water = map.water;
+    if (!water || !waterIndex) return null;
+    const x = cam.cx + (sx - cssW / 2) / cam.scale;
+    const y = cam.cy - (sy - cssH / 2) / cam.scale;
+    const k = kept;
+    const fw = cssW * (1 + 2 * MARGIN);
+    const fh = cssH * (1 + 2 * MARGIN);
+    // The names sit on the kept frame: find the tap there (null while a zoom is under way).
+    const labels = k && k.scale === cam.scale ? placedLabels : null;
+    const fx = k ? fw / 2 + (x - k.cx) * k.scale : 0;
+    const fy = k ? fh / 2 - (y - k.cy) * k.scale : 0;
+    const on = date?.tagOn;
+    const shownTag = (/** @type {number | undefined} */ t) => !t || Boolean(on?.[t]);
+    return hitWater({
+      x, y, scale: cam.scale, level: LEVELS.findIndex((l) => cam.scale < l.below), water, index: waterIndex, labels, fx, fy,
+      lineShown: (i) => shownTag(water.lineTag?.[i]), lakeShown: (k2) => shownTag(water.lakeTag?.[k2]),
+      oldSea: date ? date.seaAt : undefined,
+      sea: (px, py) => px >= 0 && py >= 0 && px <= map.width && py <= map.height && !pointInRings(px, py, map.land),
+      seas: (link?.info.seas ?? []).map((s) => ({ id: s.id, ring: s.ring })),
+    });
+  }
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const p = local(e);
@@ -999,6 +1113,7 @@ export function createMapView(canvas, map) {
     setWater(water) {
       map.water = water;
       waterIndex = indexWater(water);
+      relink();
       waterLevels.fill(null);
       datedLevels.fill(null);
       if (date && water.tags) date.setTags(water.tags);
@@ -1042,6 +1157,21 @@ export function createMapView(canvas, map) {
       pinnedYear = year === null ? null : eraOf(year).year;
       if (date && date.year !== wantedYear()) scheduleDate();
     },
+    /**
+     * The names of rivers, lakes and seas over time (src/ui/map/load.js loadNames). Linked to the
+     * water as soon as both are in; call it before setWater so the first picture has them.
+     * @param {import('./names.js').NamesInfo | null} info
+     */
+    setNames(info) { namesInfo = info; relink(); },
+    /** A tap on the map (short, hardly moving): what is under it (null: nothing), and where. @param {typeof onTap} fn */
+    setOnTap(fn) { onTap = fn; },
+    /** The names changed (a new year crossed a change, or the data came in). @param {typeof onNames} fn */
+    setOnNames(fn) { onNames = fn; },
+    /** The names linked to the water, or null before the water is in. */
+    nameLink: () => link,
+    hitAt,
+    /** How long each rename took since the last call, ms (for the speed test). */
+    takeRenameMs() { const out = renameMs; renameMs = []; return out; },
     /** The year the map shows now, and whether its date data is in. */
     mapYear: () => ({ year: date?.year ?? FIRST_MAP_YEAR, dated: Boolean(date), wanted: wantedYear(), pinned: pinnedYear }),
     /** How long each frame's date work took since the last call, ms. */
