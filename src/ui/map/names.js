@@ -7,7 +7,8 @@
 // One rule decides every name (the "resolver", see nameAt): a group (a lake, or one stretch of a
 // river) takes the name its region's records give for the year, in the language that region's
 // period uses; otherwise today's name stands in. "Later source" and "standing in" are worked out
-// here, never stored in the data.
+// here, never stored in the data. A source counts as of the time when it was written within
+// OF_THE_TIME_YEARS of the year shown (Ignas, 25 October 2026); "later source" marks the rest.
 
 /**
  * @typedef {{ title: string, author: string, written?: number, about?: true, copy?: string }} NameSource
@@ -30,9 +31,11 @@
  *   todayLine: string[], todayLake: string[], changeYears: number[] }} NameLink
  *   lineGroup/lakeGroup: -1 = the feature is not in the list; every line of a listed feature has a
  *   group (its entries may be empty, so the panel still finds the feature). changeYears: sorted
- *   unique finite from/to years of periods and entries, plus every attested and written year.
+ *   unique finite from/to years of periods and entries, every attested and written year, and the
+ *   year each of those starts to count as of the time (the panel's "later source" mark changes).
  * @typedef {{ epoch: number, line: string[], lake: string[] }} NameView what the map shows in one epoch
- * @typedef {{ years: string, name: string, language: string, source: string, marks: string[], stretch?: string }} NameRow
+ * @typedef {{ years: string, name: string, language: string, source: string, marks: string[], stretches?: string[] }} NameRow
+ *   stretches: for a name used on other stretches of the river than the one tapped, their names
  * @typedef {{ title: string, kind: 'River' | 'Lake' | 'Sea', now: string, nowMarks: string[],
  *   over: { heading: string, rows: NameRow[] }[], today: string[], facts: string[] }} PanelInfo
  * @typedef {import('./hit.js').WaterHit} WaterHit
@@ -42,12 +45,53 @@
 export const NO_NAMES = Object.freeze({ sources: {}, languages: {}, regions: [], periods: {}, features: [], seas: [] });
 
 /**
+ * What is wrong with the shape of a names list read from the page, or null when nothing is: the
+ * packer checks the facts, this only stops a damaged block from breaking the map.
+ * @param {any} info
+ * @returns {string | null}
+ */
+export function namesShapeProblem(info) {
+  const isObject = (/** @type {any} */ v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  if (!isObject(info)) return 'not an object';
+  for (const key of ['sources', 'languages', 'periods']) if (!isObject(info[key])) return `no ${key}`;
+  for (const key of ['regions', 'features', 'seas']) if (!Array.isArray(info[key])) return `no ${key} list`;
+  const entryProblem = (/** @type {any} */ e) => (!isObject(e) || typeof e.name !== 'string' || typeof e.language !== 'string' || typeof e.source !== 'string'
+    || (e.stretches !== undefined && !Array.isArray(e.stretches)) || (e.marks !== undefined && !Array.isArray(e.marks)));
+  for (const f of info.features) {
+    if (!isObject(f) || (f.kind !== 'river' && f.kind !== 'lake') || typeof f.wikidata !== 'string' || !Array.isArray(f.names)) return 'a feature does not add up';
+    if (f.names.some(entryProblem)) return `a name of ${f.wikidata} does not add up`;
+  }
+  for (const sea of info.seas) {
+    if (!isObject(sea) || typeof sea.id !== 'string' || typeof sea.name !== 'string' || !Array.isArray(sea.names) || (sea.ring !== null && !Array.isArray(sea.ring))) return 'a sea does not add up';
+    if (sea.names.some(entryProblem)) return `a name of the sea ${sea.id} does not add up`;
+  }
+  for (const r of info.regions) if (!isObject(r) || typeof r.id !== 'string') return 'a region does not add up';
+  for (const list of Object.values(info.periods)) {
+    if (!Array.isArray(list) || list.some((/** @type {any} */ p) => !isObject(p) || typeof p.from !== 'number' || typeof p.language !== 'string')) return 'a period does not add up';
+  }
+  return null;
+}
+
+/**
  * The text of each line's stretch today: the local name of the stretch where the data has one,
  * otherwise the river's. One rule, shared with the packer and with labels.js.
  * @param {import('./load.js').WaterData} water
  */
 export function todayLines(water) {
   return water.rivers.map((_, i) => (water.lineName && water.lineNames[water.lineName[i]]) || water.riverInfo[water.riverOf[i]].name);
+}
+
+/** A source written at most this many years after the year shown counts as of the time. */
+export const OF_THE_TIME_YEARS = 25;
+
+/**
+ * The first year for which a name written in `attested` counts as of the time: OF_THE_TIME_YEARS
+ * before it (there is no year 0, so a span reaching back past 1 AD takes one year more).
+ * @param {number} attested never 0
+ */
+export function ofTheTimeFrom(attested) {
+  const y = attested - OF_THE_TIME_YEARS;
+  return attested > 0 && y <= 0 ? y - 1 : y;
 }
 
 /**
@@ -133,10 +177,11 @@ export function linkNames(info, water) {
 function changeYearsOf(info) {
   const years = new Set();
   const add = (/** @type {number | null | undefined} */ y) => { if (typeof y === 'number' && Number.isFinite(y)) years.add(y); };
+  const addWritten = (/** @type {number | undefined} */ y) => { if (typeof y === 'number' && Number.isFinite(y)) { add(y); add(ofTheTimeFrom(y)); } };
   for (const list of Object.values(info.periods)) for (const p of list) { add(p.from); add(p.to); }
-  for (const s of Object.values(info.sources)) add(s.written);
+  for (const s of Object.values(info.sources)) addWritten(s.written);
   const entries = [...info.features.flatMap((f) => f.names), ...info.seas.flatMap((s) => s.names)];
-  for (const e of entries) { add(e.from); add(e.to); add(e.attested); }
+  for (const e of entries) { add(e.from); add(e.to); addWritten(e.attested); }
   return [...years].sort((a, b) => a - b);
 }
 
@@ -144,7 +189,8 @@ function changeYearsOf(info) {
  * Which name a group shows in a year, and why. Rule: (1) no entry covers the year: today's text
  * (stand-in); (2) the region keeps today's names: today's text (today-rule); (3) the region's
  * period for the year, none: stand-in; (4) the entry the map may show, in the period's language,
- * covering the year: its name (record), none: stand-in.
+ * covering the year: its name (record), none: stand-in. `later`: the name was written more than
+ * OF_THE_TIME_YEARS after the year.
  * @param {NameLink} link @param {number} group index into link.groups @param {number} year never 0
  * @returns {{ name: string, entry: NameEntry | null, why: 'record' | 'today-rule' | 'stand-in', later: boolean }}
  */
@@ -161,7 +207,7 @@ export function nameAt(link, group, year) {
   const entry = covering.find((e) => e.map !== false && e.language === period.language);
   if (!entry) return standIn;
   const attested = attestedOf(link.info, entry);
-  return { name: entry.name, entry, why: 'record', later: attested !== undefined && year < attested };
+  return { name: entry.name, entry, why: 'record', later: attested !== undefined && year < ofTheTimeFrom(attested) };
 }
 
 /**
@@ -217,18 +263,19 @@ function sourceText(info, e) {
   const s = info.sources[e.source];
   if (!s) return e.source;
   // The author is named unless the title already does ("Henry of Livonia's Chronicle").
-  const author = s.author && !s.title.includes(s.author.split(' ')[0]) ? `${s.author}, ` : '';
+  const named = s.author && !/^(unknown|anonymous)/i.test(s.author);
+  const author = named && !s.title.includes(s.author.split(' ')[0]) ? `${s.author}, ` : '';
   return `${author}${s.title}${s.copy ? ` (${s.copy})` : ''}${e.where ? `, ${e.where}` : ''}`;
 }
 
-/** @param {NamesInfo} info @param {NameEntry} e @param {string} [stretch] @returns {NameRow} */
-function rowOf(info, e, stretch) {
+/** @param {NamesInfo} info @param {NameEntry} e @param {string[]} [stretches] @returns {NameRow} */
+function rowOf(info, e, stretches) {
   const disputed = e.marks?.includes('disputed') ?? false;
   const shown = `${e.name}${e.gloss ? ` ('${e.gloss}')` : ''}${disputed ? '?' : ''}`;
   const marks = (e.marks ?? []).map((m) => (m === 'disputed' ? 'identification disputed' : m));
   return {
     years: writtenText(info, e), name: shown, language: info.languages[e.language] ?? e.language,
-    source: sourceText(info, e), marks, ...(stretch ? { stretch } : {}),
+    source: sourceText(info, e), marks, ...(stretches?.length ? { stretches } : {}),
   };
 }
 
@@ -236,10 +283,31 @@ function rowOf(info, e, stretch) {
 const sorted = (list) => list.sort((a, b) => a.year - b.year || a.row.name.localeCompare(b.row.name)).map((x) => x.row);
 
 /**
- * @param {NamesInfo} info @param {NameEntry[]} entries @param {string} [stretch]
+ * @param {NamesInfo} info @param {NameEntry[]} entries @param {(e: NameEntry) => string[] | undefined} [stretchesOf]
  */
-function rowsOf(info, entries, stretch) {
-  return sorted(entries.map((e) => ({ row: rowOf(info, e, stretch), year: attestedOf(info, e) ?? Infinity })));
+function rowsOf(info, entries, stretchesOf) {
+  return sorted(entries.map((e) => ({ row: rowOf(info, e, stretchesOf?.(e)), year: attestedOf(info, e) ?? Infinity })));
+}
+
+/**
+ * The names used on the river's other stretches, each once (an entry may cover several
+ * stretches), leaving out those already listed for the stretch tapped.
+ * @param {NameLink} link @param {number} g the tapped group
+ */
+function elsewhereRows(link, g) {
+  const here = new Set(link.groups[g].entries);
+  /** @type {Map<NameEntry, string[]>} */
+  const stretches = new Map();
+  link.groups.forEach((other, o) => {
+    if (o === g || other.feature !== link.groups[g].feature) return;
+    for (const e of other.entries) {
+      if (here.has(e)) continue;
+      const list = stretches.get(e) ?? [];
+      if (!list.includes(other.today)) list.push(other.today);
+      stretches.set(e, list);
+    }
+  });
+  return rowsOf(link.info, [...stretches.keys()], (e) => stretches.get(e));
 }
 
 const OTHER_NAMES = [['en', 'English'], ['lt', 'Lithuanian'], ['lv', 'Latvian'], ['et', 'Estonian'], ['pl', 'Polish'], ['de', 'German'], ['fi', 'Finnish'], ['sv', 'Swedish']];
@@ -356,7 +424,7 @@ export function panelInfo({ link, water, hit, year, dated }) {
   const over = [];
   if (g >= 0 && link.groups[g].entries.length) over.push({ heading: 'Names over time', rows: rowsOf(info, link.groups[g].entries) });
   if (g >= 0) {
-    const rows = link.groups.flatMap((other, o) => (o !== g && other.feature === link.groups[g].feature ? rowsOf(info, other.entries, other.today) : []));
+    const rows = elsewhereRows(link, g);
     if (rows.length) over.push({ heading: 'Elsewhere on this river', rows });
   }
   const tag = water.tags?.[water.lineTag?.[hit.line] ?? 0] ?? '';

@@ -5,6 +5,12 @@
 
 import { el } from './credits.js';
 
+/** "Narva stretch", "Narva and Narova stretches", "A, B and C stretches". @param {string[]} names */
+function stretchText(names) {
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+  return `${list} ${names.length > 1 ? 'stretches' : 'stretch'}`;
+}
+
 /**
  * @param {HTMLElement} titleEl @param {HTMLElement} bodyEl
  * @param {import('./map/names.js').PanelInfo} info
@@ -20,7 +26,7 @@ export function showWaterPanel(titleEl, bodyEl, info) {
     for (const r of section.rows) {
       const item = document.createElement('li');
       item.append(el('strong', r.name), document.createTextNode(` ${[r.years, r.language, r.source].filter(Boolean).join(' · ')}`));
-      if (r.stretch) item.append(el('span', ` (on the ${r.stretch} stretch)`, 'mark'));
+      if (r.stretches) item.append(el('span', ` (on the ${stretchText(r.stretches)})`, 'mark'));
       if (r.marks.length) item.append(el('span', ` [${r.marks.join('; ')}]`, 'mark'));
       list.append(item);
     }

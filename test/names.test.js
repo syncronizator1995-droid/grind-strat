@@ -3,7 +3,7 @@
 // INVENTED list (test/fixtures/names-invented.js): which name shows when, the marks, the panel.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { epochAt, linkNames, nameAt, namesAt, NO_NAMES, panelInfo } from '../src/ui/map/names.js';
+import { epochAt, linkNames, nameAt, namesAt, namesShapeProblem, NO_NAMES, OF_THE_TIME_YEARS, ofTheTimeFrom, panelInfo } from '../src/ui/map/names.js';
 import { dated, info, water } from './fixtures/names-invented.js';
 
 const link = linkNames(info, water);
@@ -28,8 +28,8 @@ describe('linking', () => {
     assert.deepEqual(link.groups[alpha].entries.map((e) => e.name), ['Alphus', 'Alphe', 'Alphonse']);
     assert.deepEqual(link.groups[beta].entries.map((e) => e.name), ['Betus']);
   });
-  it('lists the change years, sorted and unique', () => {
-    assert.deepEqual(link.changeYears, [-44, 43, 1219, 1227, 1250, 1253, 1290, 1300, 1326, 1400]);
+  it('lists the change years, sorted and unique, with the years written and when they become of the time', () => {
+    assert.deepEqual(link.changeYears, [-69, -44, 18, 43, 1202, 1219, 1227, 1228, 1250, 1253, 1275, 1290, 1300, 1301, 1326, 1400]);
   });
 });
 
@@ -41,19 +41,28 @@ describe('the name a group shows in a year', () => {
     for (const y of [1219, 1289]) assert.deepEqual([at(alpha, y).name, at(alpha, y).why], ['Alphus', 'record'], String(y));
     for (const y of [1290, 1325, 1326, 1399]) assert.deepEqual([at(alpha, y).name, at(alpha, y).why], ['Alphe', 'record'], String(y));
   });
-  it('marks a later source until the year it was written', () => {
-    assert.equal(at(alpha, 1219).later, true);
-    assert.equal(at(alpha, 1226).later, true);
-    assert.equal(at(alpha, 1227).later, false);
+  it('marks a later source only when written more than 25 years after the year shown', () => {
+    assert.equal(OF_THE_TIME_YEARS, 25);
+    assert.equal(at(alpha, 1219).later, false, 'written about 1227: of the time for 1219');
     assert.equal(at(alpha, 1289).later, false);
-    assert.equal(at(alpha, 1325).later, true);
+    assert.equal(at(alpha, 1290).later, true, 'written 1326: 36 years later');
+    assert.equal(at(alpha, 1300).later, true);
+    assert.equal(at(alpha, 1301).later, false, 'exactly 25 years before');
     assert.equal(at(alpha, 1326).later, false);
+  });
+  it('counts the 25 years across the start of the era without a year 0', () => {
+    assert.equal(ofTheTimeFrom(1227), 1202);
+    assert.equal(ofTheTimeFrom(26), 1);
+    assert.equal(ofTheTimeFrom(25), -1);
+    assert.equal(ofTheTimeFrom(20), -6);
+    assert.equal(ofTheTimeFrom(-44), -69);
   });
   it('lets a stretch entry change only its own lines', () => {
     assert.equal(at(beta, 1249).name, 'Beta');
     assert.equal(at(beta, 1250).name, 'Betus');
     assert.equal(at(beta, 1250).later, true, 'attested 1300 beats the source\'s 1227');
-    assert.equal(at(beta, 1300).later, false);
+    assert.equal(at(beta, 1274).later, true);
+    assert.equal(at(beta, 1275).later, false);
     const view = namesAt(link, 1260);
     assert.deepEqual(view.line, ['Alphus', 'Betus', 'Gammus', 'Zeta']);
   });
@@ -82,8 +91,8 @@ describe('epochs and the view', () => {
       else assert.equal(e, last, `at ${y}`);
       last = e;
     }
-    assert.equal(epochAt(link, 1218), 2);
-    assert.equal(epochAt(link, 1219), 3);
+    assert.equal(epochAt(link, 1218), 5);
+    assert.equal(epochAt(link, 1219), 6);
   });
   it('leaves unlinked lines and lakes equal to today\'s, and copies rather than shares', () => {
     const v = namesAt(link, 1219);
@@ -105,7 +114,8 @@ describe('the tap panel', () => {
     assert.equal(p.title, 'Alpha');
     assert.equal(p.kind, 'River');
     assert.equal(p.now, 'Name now: Alphus (Latin). From Invented Chronicle A, I 2, written about 1227.');
-    assert.deepEqual(p.nowMarks, ['later source (written about 1227)']);
+    assert.deepEqual(p.nowMarks, [], 'about 1227 is of the time for 1219');
+    assert.deepEqual(panelInfo({ link, water, hit: hitRiver(0, 0), year: -100, dated }).nowMarks, ['today\'s name standing in']);
     const q = panelInfo({ link, water, hit: hitRiver(0, 0), year: 1300, dated });
     assert.equal(q.now, 'Name now: Alphe (Middle High German). From Invented Rhymed Chronicle B (Invented copy), v. 1, written 1326.');
     assert.deepEqual(q.nowMarks, ['later source (written 1326)']);
@@ -130,7 +140,7 @@ describe('the tap panel', () => {
     assert.deepEqual(p.over[0].rows.map((r) => [r.years, r.name]), [['about 44 BC', 'Alphonse'], ['about 1227', 'Alphus'], ['1326', 'Alphe']]);
     assert.equal(p.over[1].heading, 'Elsewhere on this river');
     assert.deepEqual(p.over[1].rows.map((r) => r.name), ['Betus']);
-    assert.equal(p.over[1].rows[0].stretch, 'Beta');
+    assert.deepEqual(p.over[1].rows[0].stretches, ['Beta']);
     assert.deepEqual(p.over[1].rows[0].marks, ['estimate']);
     const g = panelInfo({ link, water, hit: hitRiver(1, 2), year: 1219, dated });
     assert.deepEqual(g.over[0].rows.map((r) => [r.years, r.name, r.language, r.marks]), [
@@ -169,6 +179,49 @@ describe('the tap panel', () => {
     const p = panelInfo({ link: none, water, hit: hitRiver(0, 0), year: 1219, dated });
     assert.equal(p.title, 'Alpha');
     assert.match(p.now, /today's local name stands in/);
+  });
+});
+
+describe('the rest of the river', () => {
+  // INVENTED: river 0 gets a third stretch, Kappa; one name covers both Beta and Kappa.
+  const water3 = {
+    ...water,
+    rivers: [...water.rivers, Int32Array.from([4000, 500, 5000, 500])],
+    riverLevels: new Uint8Array(12),
+    riverOf: Uint32Array.from([0, 0, 1, 2, 0]),
+    lineName: Uint32Array.from([0, 1, 0, 0, 2]),
+    lineNames: ['', 'Beta', 'Kappa'],
+    lineLocal: ['', '', ''],
+    lineTag: Uint32Array.from([0, 0, 0, 0, 0]),
+  };
+  const info3 = { ...info, features: [{ kind: /** @type {const} */ ('river'), wikidata: 'Qr1', names: [
+    { region: 'west', stretches: ['Alpha'], name: 'Alphus', language: 'la', source: 'src-a' },
+    { region: 'west', stretches: ['Beta', 'Kappa'], name: 'Betkap', language: 'la', source: 'src-a' },
+  ] }] };
+  const l3 = linkNames(info3, water3);
+  it('lists a name used on several other stretches once, with all of them', () => {
+    const p = panelInfo({ link: l3, water: water3, hit: { kind: 'river', river: 0, line: 0 }, year: 1219, dated: null });
+    assert.deepEqual(p.over[1].rows.map((r) => [r.name, r.stretches]), [['Betkap', ['Beta', 'Kappa']]]);
+  });
+  it('does not repeat a name the tapped stretch already lists', () => {
+    const p = panelInfo({ link: l3, water: water3, hit: { kind: 'river', river: 0, line: 1 }, year: 1219, dated: null });
+    assert.deepEqual(p.over[0].rows.map((r) => r.name), ['Betkap']);
+    assert.deepEqual(p.over[1].rows.map((r) => [r.name, r.stretches]), [['Alphus', ['Alpha']]]);
+  });
+});
+
+describe('a damaged names block', () => {
+  it('passes the invented list and the empty one', () => {
+    assert.equal(namesShapeProblem(info), null);
+    assert.equal(namesShapeProblem(NO_NAMES), null);
+  });
+  it('finds a missing part, a feature without names, a bad name or period', () => {
+    assert.match(String(namesShapeProblem(null)), /not an object/);
+    assert.match(String(namesShapeProblem({ ...info, periods: undefined })), /no periods/);
+    assert.match(String(namesShapeProblem({ ...info, features: [{ kind: 'river', wikidata: 'Q1' }] })), /feature/);
+    assert.match(String(namesShapeProblem({ ...info, features: [{ kind: 'river', wikidata: 'Q1', names: [{ name: 3 }] }] })), /name of Q1/);
+    assert.match(String(namesShapeProblem({ ...info, seas: [{ id: 'x', name: 'X', ring: 'no', names: [] }] })), /sea/);
+    assert.match(String(namesShapeProblem({ ...info, periods: { west: [{ from: '1219' }] } })), /period/);
   });
 });
 

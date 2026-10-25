@@ -6,6 +6,7 @@
 import { createCoast } from '../../sim/coast-date.js';
 import { timelineFromBlock } from '../../sim/map-date.js';
 import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleBlocks } from './codec.js';
+import { namesShapeProblem } from './names.js';
 
 /**
  * @typedef {object} PackedBlock
@@ -216,9 +217,8 @@ export async function loadNames(block, times) {
   if (block.kind !== 'names') throw new Error(`expected the names data, got ${block.kind}`);
   const [n] = await unpackBlocks([block], times);
   const info = JSON.parse(new TextDecoder().decode(n('info')));
-  if (!info || typeof info.sources !== 'object' || !Array.isArray(info.features) || !Array.isArray(info.seas) || !Array.isArray(info.regions)) {
-    throw new Error('the names data does not add up');
-  }
+  const problem = namesShapeProblem(info);
+  if (problem) throw new Error(`the names data does not add up: ${problem}`);
   return info;
 }
 

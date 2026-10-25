@@ -177,6 +177,13 @@ function coastPath(rings, levels, level, width, height) {
   return p;
 }
 
+/** Do two lists of names read the same? @param {string[]} a @param {string[]} b */
+function sameTexts(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 /**
  * @param {HTMLCanvasElement} canvas
  * @param {import('./load.js').MapData} map
@@ -243,19 +250,33 @@ export function createMapView(canvas, map) {
   /** The year the names are for: the map's. */
   const namesYear = () => date?.year ?? FIRST_MAP_YEAR;
 
-  /** Links the names to the water (if both are in) and works out what the map shows now. */
+  /**
+   * Links the names to the water (if both are in) and works out what the map shows now. Names
+   * that do not add up are dropped with a warning: the map then keeps today's names.
+   */
   function relink() {
     if (!map.water) return;
-    link = linkNames(namesInfo ?? NO_NAMES, map.water);
-    nameView = namesAt(link, namesYear());
+    try {
+      link = linkNames(namesInfo ?? NO_NAMES, map.water);
+      nameView = namesAt(link, namesYear());
+    } catch (err) {
+      console.warn('The names of the time do not fit the water; today\'s names show.', err);
+      namesInfo = null;
+      link = linkNames(NO_NAMES, map.water);
+      nameView = namesAt(link, namesYear());
+    }
     renamed = true;
     onNames?.();
   }
-  /** Moves to the names of the map's year when the year crossed a change. */
+  /**
+   * Moves to the names of the map's year when the year crossed a change. The names are placed
+   * again only when some text changed (many change years only move the panel's marks).
+   */
   function updateNames() {
     if (!link || !nameView || epochAt(link, namesYear()) === nameView.epoch) return;
-    nameView = namesAt(link, namesYear());
-    renamed = true;
+    const next = namesAt(link, namesYear());
+    if (!sameTexts(next.line, nameView.line) || !sameTexts(next.lake, nameView.lake)) renamed = true;
+    nameView = next;
     onNames?.();
   }
 
@@ -1162,7 +1183,12 @@ export function createMapView(canvas, map) {
      * water as soon as both are in; call it before setWater so the first picture has them.
      * @param {import('./names.js').NamesInfo | null} info
      */
-    setNames(info) { namesInfo = info; relink(); },
+    setNames(info) {
+      namesInfo = info;
+      relink();
+      // Given after the water's first picture: put the new names on it now.
+      if (kept && map.water) { drawNames(Infinity); blit(); }
+    },
     /** A tap on the map (short, hardly moving): what is under it (null: nothing), and where. @param {typeof onTap} fn */
     setOnTap(fn) { onTap = fn; },
     /** The names changed (a new year crossed a change, or the data came in). @param {typeof onNames} fn */

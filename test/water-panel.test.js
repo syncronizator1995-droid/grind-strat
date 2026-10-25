@@ -32,5 +32,7 @@ describe('the water panel', () => {
     showWaterPanel(title, body, panelInfo({ link, water, hit: { kind: 'sea', sea: 'main' }, year: 1219, dated }));
     assert.equal(title.textContent, 'Invented Sea');
     assert.ok(!body.all().includes('Deltus'));
+    showWaterPanel(title, body, panelInfo({ link, water, hit: { kind: 'river', river: 0, line: 0 }, year: 1219, dated }));
+    assert.ok(body.all().includes('(on the Beta stretch)'), body.all());
   });
 });
