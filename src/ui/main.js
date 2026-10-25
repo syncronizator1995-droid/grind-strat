@@ -235,9 +235,23 @@ const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
  * @param {string} kind
  */
 function readBlock(kind) {
-  const el = document.getElementById(`gs-${kind}`);
-  if (!el?.textContent) throw new Error(`the game file is missing its ${kind} data`);
-  return JSON.parse(el.textContent);
+  const text = document.getElementById(`gs-${kind}`)?.textContent ?? lateComment(kind);
+  if (!text) throw new Error(`the game file is missing its ${kind} data`);
+  return JSON.parse(text);
+}
+
+/**
+ * The late blocks sit in HTML comments, "<!--gs:<kind>" then the JSON, which the browser reads
+ * faster than a script element (tools/build.mjs lateElements). Null when there is none.
+ * @param {string} kind
+ */
+function lateComment(kind) {
+  const head = `gs:${kind}\n`;
+  const walker = document.createTreeWalker(document, NodeFilter.SHOW_COMMENT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeValue?.startsWith(head)) return n.nodeValue.slice(head.length);
+  }
+  return null;
 }
 
 /** Shown for the moment before the map is unpacked. */

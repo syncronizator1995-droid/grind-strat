@@ -16,8 +16,8 @@
 // <script type="application/json" id="gs-<kind>">, not into the code: the browser never parses
 // them as code, so the game starts faster. The map over time (M3a: the land over time, the
 // northern coast, our dated facts) is needed only after the first picture, so its blocks come
-// after the code: the page starts running sooner, and the game waits for them only when it needs
-// them. The licence guard stops the build if a block names a
+// after the code, each as an HTML comment (not a script element, which the browser reads slower):
+// the page starts running sooner, and the game waits for them only when it needs them. The licence guard stops the build if a block names a
 // source whose licence was not read on its owner's own host, if a block is an interim stand-in,
 // or if a block mixes licences that must stay apart.
 
@@ -205,6 +205,17 @@ export function dataElements(blocks) {
   return blocks.map(({ kind, text }) => `<script type="application/json" id="gs-${kind}">${text.trim().replace(/</g, '\\u003c')}</script>`).join('\n');
 }
 
+/**
+ * The late blocks as HTML comments, one each: "<!--gs:<kind>" then the JSON. The browser reads a
+ * comment much faster than a script element, and the game reads it back from the page only when
+ * it needs it (src/ui/main.js readBlock). "<" and ">" are written as \u003c and \u003e (only
+ * ever inside JSON strings), so no text inside can end the comment early.
+ * @param {BlockText[]} blocks
+ */
+export function lateElements(blocks) {
+  return blocks.map(({ kind, text }) => `<!--gs:${kind}\n${text.trim().replace(/</g, '\\u003c').replace(/>/g, '\\u003e')}\n-->`).join('\n');
+}
+
 /** The blocks that go after the code: needed only after the first picture of a new game. */
 export const LATE_KINDS = Object.freeze(['terrain-time', 'coast', 'changes']);
 
@@ -263,7 +274,7 @@ export async function build({ dev = false, out = join(ROOT, 'dist'), entry = joi
   html = fill(html, 'ICON', `data:image/png;base64,${icon}`);
   html = fill(html, 'CSS', css);
   const elements = dataElements(data.filter((b) => !LATE_KINDS.includes(b.kind)));
-  const late = dataElements(data.filter((b) => LATE_KINDS.includes(b.kind)));
+  const late = lateElements(data.filter((b) => LATE_KINDS.includes(b.kind)));
   html = fill(html, 'DATA', elements);
   html = fill(html, 'SCRIPT', js);
   html = fill(html, 'LATE_DATA', late);
