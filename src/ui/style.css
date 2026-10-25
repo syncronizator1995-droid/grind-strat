@@ -88,6 +88,9 @@ button:focus-visible { outline: 2px solid var(--weld); outline-offset: 2px; }
   box-shadow: 0 -12px 34px rgba(16, 23, 31, .3);
 }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet.short { max-height: 50%; }
+.sheet-head h2 { overflow-wrap: anywhere; }
+.water .mark { color: var(--muted); font-size: 13px; }
 .sheet-head h2 { margin: 0; font: 600 24px/1.1 var(--display); }
 .results {
   margin: 0; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.45 ui-monospace, Menlo, Consolas, monospace;

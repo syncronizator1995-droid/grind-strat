@@ -11,7 +11,9 @@ import { setUpInstall } from './install.js';
 import { showCredits } from './credits.js';
 import { FIRST_MAP_YEAR } from '../sim/map-date.js';
 import { mapYearOfDay, parseTestLink, yearFromHash } from './map/dated.js';
-import { loadDated, loadMap, loadWater, noTimes } from './map/load.js';
+import { loadDated, loadMap, loadNames, loadWater, noTimes } from './map/load.js';
+import { panelInfo } from './map/names.js';
+import { showWaterPanel } from './water-panel.js';
 /** @typedef {import('./map/load.js').DatedData} DatedData */
 import { formatResults, runSpeedTest } from './map/speedtest.js';
 import { createMapView } from './map/view.js';
@@ -43,6 +45,9 @@ const creditsBody = $('#creditsBody', HTMLElement);
 const speedButton = $('[data-act="speedtest"]', HTMLButtonElement);
 const speedSheet = $('#speedSheet', HTMLElement);
 const speedResults = $('#speedResults', HTMLElement);
+const waterSheet = $('#waterSheet', HTMLElement);
+const waterTitle = $('#waterTitle', HTMLElement);
+const waterBody = $('#waterBody', HTMLElement);
 
 let state = startingState();
 let speed = 0;
@@ -219,6 +224,10 @@ const startup = {
   mapOnScreenMs: NaN, scriptStartMs: performance.now(), base64Ms: NaN, inflateMs: NaN, decodeMs: NaN, paintMs: NaN, pathMs: NaN,
   waterMs: NaN, waterOnScreenMs: NaN, waterUnpackMs: NaN, waterLabelMs: NaN, datedMs: NaN, datedOnScreenMs: NaN,
 };
+/** The unpacked water and map over time, for the tap panel. @type {import('./map/load.js').WaterData | null} */
+let waterData = null;
+/** @type {DatedData | null} */
+let datedData = null;
 const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
 
 /**
@@ -271,6 +280,7 @@ async function showMap() {
   if (year > FIRST_MAP_YEAR) {
     const t = performance.now();
     dated = await loadDated(await datedBlocks(), data.terrain.data, times);
+    datedData = dated;
     data.terrain.data.set(dated.timeline.classesAt(year));
     startup.datedMs = performance.now() - t;
   }
@@ -279,6 +289,8 @@ async function showMap() {
   if (testYear !== null) showTestYear(testYear);
   if (dated) mapView.setDated(dated, year);
   mapView.setDark(darkMode.matches);
+  mapView.setOnTap(onMapTap);
+  mapView.setOnNames(refreshWaterPanel);
   keepNamesClear();
   startup.paintMs = mapView.timings.paintMs;
   mapView.resize();
@@ -298,7 +310,15 @@ async function showMap() {
   await new Promise((done) => requestAnimationFrame(() => setTimeout(done, 0)));
   const t0 = performance.now();
   const waterTimes = { base64Ms: 0, inflateMs: 0, decodeMs: 0 };
-  mapView.setWater(await loadWater(readBlock('water'), waterTimes));
+  waterData = await loadWater(readBlock('water'), waterTimes);
+  // The names of the time come with the water, before its first picture (no flash of today's
+  // names). If they are missing or unreadable the map keeps today's names and taps still work.
+  try {
+    if (document.getElementById('gs-names')?.textContent) mapView.setNames(await loadNames(readBlock('names'), waterTimes));
+  } catch (err) {
+    console.warn('The names of the time could not be read; today\'s names show.', err);
+  }
+  mapView.setWater(waterData);
   startup.waterUnpackMs = performance.now() - t0;
   mapView.render(true);
   startup.waterMs = performance.now() - t0;
@@ -308,7 +328,8 @@ async function showMap() {
   if (!dated) {
     await new Promise((done) => requestAnimationFrame(() => setTimeout(done, 0)));
     const t = performance.now();
-    mapView.setDated(await loadDated(await datedBlocks(), data.terrain.data, noTimes()));
+    datedData = await loadDated(await datedBlocks(), data.terrain.data, noTimes());
+    mapView.setDated(datedData);
     mapView.render(true);
     startup.datedMs = performance.now() - t;
   }
@@ -331,8 +352,7 @@ function showTestYear(year) {
 async function speedTest() {
   if (!mapView) return;
   speedButton.disabled = true;
-  speedSheet.hidden = true;
-  creditsSheet.hidden = true;
+  closeSheets();
   tell('Speed test running: keep your fingers off the screen for about 3 minutes (the last part runs the map from 1219 to today).');
   try {
     const result = await runSpeedTest(mapView);
@@ -360,6 +380,43 @@ async function copyResults() {
   }
 }
 
+// --- the tap panel --------------------------------------------------------------------------
+
+/** What the open panel is about, so it can be written again when the names change. @type {import('./map/hit.js').WaterHit | null} */
+let panelHit = null;
+
+function closeSheets() {
+  speedSheet.hidden = true;
+  creditsSheet.hidden = true;
+  waterSheet.hidden = true;
+  panelHit = null;
+}
+
+/** @param {import('./map/hit.js').WaterHit} hit */
+function fillWaterPanel(hit) {
+  const link = mapView?.nameLink();
+  if (!mapView || !link || !waterData) return;
+  showWaterPanel(waterTitle, waterBody, panelInfo({ link, water: waterData, hit, year: mapView.mapYear().year, dated: datedData }));
+}
+
+/** A tap on the map: nothing under it closes the panel; a river, lake or sea opens it. @param {import('./map/hit.js').WaterHit | null} hit */
+function onMapTap(hit) {
+  if (!hit) {
+    waterSheet.hidden = true;
+    panelHit = null;
+    return;
+  }
+  closeSheets();
+  panelHit = hit;
+  fillWaterPanel(hit);
+  waterSheet.hidden = false;
+}
+
+/** The names changed while the panel is open: write it again. */
+function refreshWaterPanel() {
+  if (panelHit && !waterSheet.hidden) fillWaterPanel(panelHit);
+}
+
 // --- wiring -------------------------------------------------------------------------------
 
 for (const b of speedButtons) b.addEventListener('click', () => setSpeed(Number(b.dataset.speed)));
@@ -369,6 +426,7 @@ newButton.addEventListener('click', startNewGame);
 
 // Desktop: space pauses and resumes, 1 to 5 pick a speed.
 window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeSheets();
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select')) return;
   if (e.key === ' ') {
@@ -391,7 +449,7 @@ speedButton.addEventListener('click', speedTest);
 creditLine.textContent = credits.mapLine;
 for (const el of document.querySelectorAll('[data-act="credits"]')) {
   el.addEventListener('click', () => {
-    speedSheet.hidden = true;
+    closeSheets();
     showCredits(creditsBody, credits);
     creditsSheet.hidden = false;
     creditsBody.scrollTop = 0;
@@ -401,6 +459,7 @@ $('[data-act="close-credits"]', HTMLButtonElement).addEventListener('click', () 
 darkMode.addEventListener('change', () => mapView?.setDark(darkMode.matches));
 window.addEventListener('hashchange', () => showTestYear(yearFromHash(location.hash)));
 $('[data-act="rerun-speed"]', HTMLButtonElement).addEventListener('click', speedTest);
+$('[data-act="close-water"]', HTMLButtonElement).addEventListener('click', closeSheets);
 $('[data-act="close-speed"]', HTMLButtonElement).addEventListener('click', () => { speedSheet.hidden = true; });
 $('[data-act="copy-speed"]', HTMLButtonElement).addEventListener('click', copyResults);
 /** Tells the map where buttons sit over it, so no river or lake name hides under them. */
