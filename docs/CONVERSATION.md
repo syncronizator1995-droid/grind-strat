@@ -327,9 +327,10 @@ So the start-up fix went into PR 2. On which models to use, he kept the same met
 
 > "Alright lets continue same old token strategy sonnet for heavy lifting on meadiun and opus 5.5 on high for planning"
 
-Sonnet at medium effort builds; Opus at high effort plans and checks. He also set the rule for names
-that a source counts as "of the time" when it was written within 25 years of the year shown
-(recorded as a decision in DESIGN; only that summary is kept here, not his words).
+Sonnet at medium effort builds; Opus at high effort plans and checks. While he slept, Claude took
+safe defaults for him to confirm, not his decisions: a source counts as "of the time" when written
+within 25 years of the year shown; medieval forms stop at 1400; BGN/PCGN spelling ("Chudskoye
+ozero"). They are listed in PR 2 and in DESIGN as TO CHECK with Ignas.
 
 ## How to work with Ignas
 
