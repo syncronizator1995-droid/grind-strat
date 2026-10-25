@@ -480,8 +480,8 @@
       "collection": "own",
       "access": "own",
       "url": "https://github.com/syncronizator1995-droid/grind-strat/tree/main/src/data/own",
-      "file": "(none: our own work lives in the repository, in tools/map/water-changes.json and tools/map/history-shapes.json)",
-      "what": "Grind Strat's own work for the map over time (M3a): the dated list of water works and other changes (tools/map/water-changes.json: years, facts in plain English, the sources by name, marks) and our own drawn shapes (tools/map/history-shapes.json: the Vistula Lagoon's old outlets and today's Pillau strait, Ruden and its lost land bridge, a larger Lake Drużno, the Vistula delta's marsh before diking, each marked reconstructed and drawn on public-domain heights and land and published coordinates, never on OpenStreetMap). Packed by tools/map/pack-changes.mjs into src/data/own/changes.json. Nothing to fetch.",
+      "file": "(none: our own work lives in the repository, in tools/map/water-changes.json, tools/map/history-shapes.json and tools/map/names-of-the-time.json)",
+      "what": "Grind Strat's own work for the map over time (M3a): the dated list of water works and other changes (tools/map/water-changes.json: years, facts in plain English, the sources by name, marks) and our own drawn shapes (tools/map/history-shapes.json: the Vistula Lagoon's old outlets and today's Pillau strait, Ruden and its lost land bridge, a larger Lake Drużno, the Vistula delta's marsh before diking, each marked reconstructed and drawn on public-domain heights and land and published coordinates, never on OpenStreetMap). Packed by tools/map/pack-changes.mjs into src/data/own/changes.json. Also the names of rivers, lakes and seas over time (tools/map/names-of-the-time.json: every form with its source named, the title and the place in the text; the web links stay in that file and data/sources.md), packed by tools/map/pack-names.mjs into src/data/own/names.json. Nothing to fetch.",
       "licence": "Grind Strat's own terms (not yet chosen by Ignas; until then all rights reserved, as for the rest of the repository)",
       "licenceUrl": "https://github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md",
       "licenceStatus": "read",
@@ -496,9 +496,9 @@
         "version": "M3a (October 2026)",
         "short": "Grind Strat",
         "onMap": false,
-        "line": "Dated facts and drawn shapes (marked reconstructed): Grind Strat's own work, from the sources named with each fact.",
-        "citation": "Grind Strat, the dated list of water works and other changes, and its drawn shapes (M3a, October 2026). Sources of each fact in data/sources.md.",
-        "changes": "Our own work: years and facts read from the sources named with each, and shapes drawn by us on public-domain heights and land (GEBCO_2026 heights and sea depths, and Natural Earth's land); the Vistula delta's (Żuławy) marsh before diking is the low ground outlined on GEBCO_2026's heights, and its 1 km cells those 5 m or lower in the base block's heights (from GEBCO); years still to check are marked TO CHECK.",
+        "line": "Dated facts, drawn shapes (marked reconstructed) and the names of rivers, lakes and seas over time: Grind Strat's own work, from the sources named with each.",
+        "citation": "Grind Strat, the dated list of water works and other changes, its drawn shapes, and the names of rivers, lakes and seas over time (M3a, October 2026). Sources of each fact in data/sources.md.",
+        "changes": "Our own work: years and facts read from the sources named with each, and shapes drawn by us on public-domain heights and land (GEBCO_2026 heights and sea depths, and Natural Earth's land); the Vistula delta's (Żuławy) marsh before diking is the low ground outlined on GEBCO_2026's heights, and its 1 km cells those 5 m or lower in the base block's heights (from GEBCO); years still to check are marked TO CHECK. The names of rivers, lakes and seas over time are forms read in the chronicles and other texts named with each; the Latin-letter spelling of an Old East Slavic form follows the BGN/PCGN Russian table after plain spelling changes; the rough outlines of the Gulf of Riga and the Gulf of Finland are drawn by us (marked TO CHECK) after the limits in the IHO's Limits of Oceans and Seas (1953).",
         "licenceName": "Grind Strat's own terms (not yet chosen)",
         "licenceUri": "github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md"
       }

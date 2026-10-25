@@ -1,0 +1,300 @@
+{
+  "about": "The names of rivers, lakes and seas over time (M3a, PR 2), written by hand and checked by tools/map/pack-names.mjs, which packs it into src/data/own/names.json. Every form has its source named, with the place in the text; the web links of the sources stay here and in data/sources.md and are never shipped. A form that is not confirmed is left out or marked TO CHECK. Cyrillic is kept only in 'orig' (the form as read, put in the nominative), from which the packer checks the Latin-letter name. Fields only the tools read (stripped when packing): per source edition, url, seen; per entry orig, note; per period note; per feature label; per sea degrees, drawnFrom.",
+  "sources": {
+    "henry": {
+      "title": "Henry of Livonia's Chronicle", "author": "Henry of Livonia", "written": 1227, "about": true,
+      "edition": "Heinrici Chronicon Livoniae, ed. L. Arbusow and A. Bauer, MGH Scriptores rerum Germanicarum 31, 2nd ed., 1955 (Latin, with a German index of places). Chapter and section numbers as that edition prints them.",
+      "url": "https://archive.org/details/heinrici-chronicon-livoniae-1955", "seen": "READ"
+    },
+    "rhymed": {
+      "title": "Livonian Rhymed Chronicle", "author": "unknown", "written": 1290, "about": true,
+      "edition": "Livländische Reimchronik, ed. Leo Meyer, Paderborn 1876 (Middle High German, with a register of names). Verse numbers as the edition prints them.",
+      "url": "https://archive.org/details/livlndischereim00reimgoog", "seen": "READ"
+    },
+    "dusburg": {
+      "title": "Chronicle of the Land of Prussia", "author": "Peter of Dusburg", "written": 1326,
+      "edition": "Petri de Dusburg Chronicon terrae Prussiae, in Scriptores rerum Prussicarum 1, ed. T. Hirsch, M. Töppen and E. Strehlke, Leipzig 1861, pp. 3-219.",
+      "url": "https://archive.org/details/bub_gb_YX8OAAAAYAAJ", "seen": "READ"
+    },
+    "adam": {
+      "title": "Deeds of the Bishops of Hamburg", "author": "Adam of Bremen", "written": 1075, "about": true,
+      "edition": "Adam Bremensis, Gesta Hammaburgensis ecclesiae pontificum, ed. G. Waitz (after Lappenberg), MGH Scriptores rerum Germanicarum 2, Hanover 1876. Chapter numbers as that edition prints them; other editions number the chapters differently.",
+      "url": "https://archive.org/details/gestahammaburgen00adamuoft", "seen": "READ"
+    },
+    "npl-synodal": {
+      "title": "Novgorod First Chronicle", "author": "unknown", "copy": "Synodal manuscript, older version",
+      "edition": "Novgorodskaya pervaya letopis' starshego i mladshego izvodov, ed. A. N. Nasonov, Moscow and Leningrad 1950 (the older version prints the Synodal manuscript); and the TOROT treebank file nov-sin.xml, a digitised Synodal manuscript (facts only; its CC BY-NC-SA text is not shipped). Annals are dated by the year the edition gives, from the Byzantine year (6736 = AD 1228); every entry carries that year as 'attested'.",
+      "url": "https://archive.org/details/novhorodskyj_litopys", "seen": "READ"
+    },
+    "pvl-laurentian": {
+      "title": "Primary Chronicle", "author": "unknown", "written": 1113, "about": true, "copy": "Laurentian Codex, 1377",
+      "edition": "The Laurentian copy of the Primary Chronicle, as the TOROT treebank file lav.xml (from the e-PVL of Ostrowski and Birnbaum); its citation numbers are read as the column and line of PSRL 1 (TO CHECK). Facts only; its CC BY-NC-SA text is not shipped.",
+      "url": "https://raw.githubusercontent.com/torottreebank/treebank-releases/master/lav.xml", "seen": "READ"
+    },
+    "pvl-hypatian": {
+      "title": "Primary Chronicle", "author": "unknown", "written": 1113, "about": true, "copy": "Hypatian Codex",
+      "edition": "Polnoe sobranie russkikh letopisei 2, Ipat'evskaya letopis', issue 1, 3rd ed., Petrograd 1923 (its text opens with the Primary Chronicle).",
+      "url": "https://archive.org/details/Complete_Collection_of_Russian_Chronicles_1923_Vol_2_Hypatian_Chronicle", "seen": "READ"
+    },
+    "treaty-1229": {
+      "title": "Treaty of Smolensk with Riga and Gotland", "author": "the three parties", "written": 1229, "copy": "version A",
+      "edition": "Version A of the 1229 treaty, as the TOROT treebank file riga-goth.xml (after T. A. Sumnikova and V. V. Lopatin, Smolenskie gramoty XIII-XIV vekov, Moscow 1963). Facts only; its CC BY-NC-SA text is not shipped.",
+      "url": "https://raw.githubusercontent.com/torottreebank/treebank-releases/master/riga-goth.xml", "seen": "READ"
+    },
+    "heimskringla": {
+      "title": "Heimskringla", "author": "Snorri Sturluson", "written": 1230, "about": true,
+      "edition": "Heimskringla: Nóregs konunga sǫgur, ed. Finnur Jónsson, Copenhagen 1911 (Old Norse). Page numbers as that edition prints them.",
+      "url": "https://archive.org/details/heimskringlanreg00snor", "seen": "READ"
+    },
+    "tacitus": {
+      "title": "Germania", "author": "Tacitus", "written": 98,
+      "edition": "Perseus Digital Library, canonical-latinLit, Tacitus, Germania, Latin text (ed. H. Furneaux, 1900).",
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/master/data/phi1351/phi002/phi1351.phi002.perseus-lat1.xml", "seen": "READ"
+    },
+    "mela": {
+      "title": "Description of the World", "author": "Pomponius Mela", "written": 43, "about": true,
+      "edition": "The Latin Library, De chorographia, books 2 and 3. Section numbers as the standard citation gives them (3.33 is section 28 of book 3 on The Latin Library; TO CHECK).",
+      "url": "https://www.thelatinlibrary.com/pomponius3.html", "seen": "READ"
+    },
+    "pliny": {
+      "title": "Natural History", "author": "Pliny the Elder", "written": 77,
+      "edition": "Perseus Digital Library, canonical-latinLit, Pliny, Naturalis historia, Latin text (ed. C. Mayhoff, 1906).",
+      "url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/master/data/phi0978/phi001/phi0978.phi001.perseus-lat2.xml", "seen": "READ"
+    },
+    "ptolemy": {
+      "title": "Geography", "author": "Claudius Ptolemy", "written": 150, "about": true,
+      "edition": "Geography 3.5, read in E. L. Stevenson's English translation (1932, which its host calls poor) on LacusCurtius, and the Greek forms and the matchings with today's rivers in V. Blazek, 'An attempt at an etymological analysis of Ptolemy's hydronyms of Eastern Balticum', Acta Linguistica Lithuanica 76 (2017): https://journals.lki.lt/actalinguisticalithuanica/article/download/856/947 . The matchings are older scholars' guesses (Mannert 1820) and Blazek's own; none is certain, so each entry is marked disputed and kept off the map.",
+      "url": "https://penelope.uchicago.edu/Thayer/E/Gazetteer/Periods/Roman/_Texts/Ptolemy/3/5*.html", "seen": "READ"
+    }
+  },
+  "languages": {
+    "la": "Latin",
+    "gmh": "Middle High German",
+    "orv": "Old East Slavic",
+    "non": "Old Norse",
+    "grc": "Ancient Greek"
+  },
+  "regions": [
+    { "id": "lithuania", "name": "Lithuania", "rule": "today" },
+    { "id": "livonia", "name": "Livonia" },
+    { "id": "prussia", "name": "Prussia" },
+    { "id": "poland", "name": "Poland" },
+    { "id": "rus", "name": "Rus" },
+    { "id": "sweden", "name": "Sweden" }
+  ],
+  "periods": {
+    "livonia": [
+      { "from": 1219, "to": 1290, "language": "la", "source": "henry" },
+      { "from": 1290, "to": 1400, "language": "gmh", "source": "rhymed", "marks": ["TO CHECK"], "note": "The end year 1400 is the end of what our medieval sources cover; a game choice. After it today's names stand in until later records are researched." }
+    ],
+    "prussia": [
+      { "from": 1219, "to": 1400, "language": "la", "source": "dusburg", "marks": ["TO CHECK"], "note": "The end year 1400 is a game choice (see Livonia). Dusburg wrote in 1326, so for the 13th century his forms are a later source." }
+    ],
+    "poland": [
+      { "from": 1219, "to": 1400, "language": "la", "source": "dusburg", "marks": ["TO CHECK"], "note": "Polish records of the time were in Latin, but no Polish source has been read yet: Dusburg's Prussian chronicle stands in. The end year 1400 is a game choice (see Livonia)." }
+    ],
+    "rus": [
+      { "from": 1219, "to": 1400, "language": "orv", "source": "npl-synodal", "marks": ["TO CHECK"], "note": "The end year 1400 is a game choice (see Livonia)." }
+    ],
+    "sweden": [
+      { "from": 1219, "to": 1400, "language": "non", "source": "heimskringla", "marks": ["TO CHECK"], "note": "Heimskringla was written about 1230 in Iceland, not Sweden; no Swedish record has been read yet. The end year 1400 is a game choice (see Livonia)." }
+    ]
+  },
+  "features": [
+    {
+      "kind": "river", "wikidata": "Q8197", "label": "Daugava",
+      "names": [
+        { "region": "livonia", "stretches": ["Daugava"], "name": "Duna", "language": "la", "source": "henry", "where": "I 2 ('per Dune flumen'; the edition's index reads 'Duna, die Duna')" },
+        { "region": "livonia", "stretches": ["Daugava"], "name": "Dune", "language": "gmh", "source": "rhymed", "where": "v. 139" },
+        { "region": "livonia", "stretches": ["Daugava"], "name": "Dvina", "orig": "Двина", "language": "orv", "source": "treaty-1229", "where": "the clause on free passage on the river", "note": "read as 'двиноу' and 'по двине', cases of Двина" },
+        { "region": "rus", "stretches": ["Zapadnaya Dvina", "Zakhodnyaya Dzvina"], "name": "Dvina", "orig": "Двина", "language": "orv", "source": "pvl-laurentian", "where": "col. 4 l. 1; col. 6 l. 15" },
+        { "region": "livonia", "stretches": ["Daugava"], "name": "Chesinos", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blazek 2017)", "marks": ["disputed"], "map": false, "note": "Greek Chersinos / Chesinos; Blazek himself matches it with the Salaca" },
+        { "region": "livonia", "stretches": ["Daugava"], "name": "Tourountes", "language": "grc", "source": "ptolemy", "where": "3.5 (Blazek's own matching, 2017)", "marks": ["disputed"], "map": false, "note": "Mannert matched it with the Venta" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q207928", "label": "Gauja",
+      "names": [
+        { "region": "livonia", "name": "Coiwa", "language": "la", "source": "henry", "where": "X 10 (the edition's index reads 'Coiwa, die Livlandische Aa')", "note": "also spelt Coywa and Goiwa in the manuscripts" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q215395", "label": "Lielupe",
+      "names": [
+        { "region": "livonia", "stretches": ["Lielupe"], "name": "Missa", "language": "la", "source": "henry", "where": "XXIII 4 (the editor identifies it as the Semigallian Aa)", "note": "the identification is the editor's; Missa may mean only the Musa branch" },
+        { "region": "livonia", "stretches": ["Lielupe"], "name": "Semegaller A", "language": "gmh", "source": "rhymed", "where": "v. 7400 (the editor's register: a river in Courland)" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q215397", "label": "Venta",
+      "names": [
+        { "region": "livonia", "stretches": ["Venta"], "name": "Winda", "language": "la", "source": "henry", "where": "X 14 (Henry adds 'qui est fluvius Curonie')", "map": false, "note": "Panel only: the river's two lines run through Lithuania under one name, and a stretch name shared across the border cannot be split without geometry." },
+        { "region": "livonia", "stretches": ["Venta"], "name": "Tourountes", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blazek 2017)", "marks": ["disputed"], "map": false }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q215378", "label": "Emajogi",
+      "names": [
+        { "region": "livonia", "name": "Mater Aquarum", "gloss": "Mother of Waters", "language": "la", "source": "henry", "where": "XV 7 and XXIV 1", "note": "Only the passages that are plainly the river by Tartu. The other passages: XXII 2 (a Rus army crossing it) is not used; XXX 2 is the Parnu river, as the editor's footnote says." },
+        { "region": "livonia", "name": "Omovyzha", "orig": "Омовыжа", "language": "orv", "source": "npl-synodal", "attested": 1234, "where": "older version", "note": "read as 'на Омовыжи' (locative): the Germans fell through the ice on it, near Yuryev (Tartu)" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q209031", "label": "Narva",
+      "names": [
+        { "region": "livonia", "stretches": ["Narva jõgi"], "name": "Narva", "language": "la", "source": "henry", "where": "XXV 6 (the edition's index reads 'die Narowa')", "note": "in Henry the word could also mean the land by the river" },
+        { "region": "rus", "stretches": ["Narva"], "name": "Narova", "orig": "Нарова", "language": "orv", "source": "npl-synodal", "attested": 1253, "where": "older version", "note": "read as 'за Нарову' (accusative)" }
+      ]
+    },
+    {
+      "kind": "lake", "wikidata": "Q211516", "label": "Vortsjarv",
+      "names": [
+        { "region": "livonia", "name": "Worcegerwe", "language": "la", "source": "henry", "where": "XV 7 (spelt Worcegerrewe there) and XXIX 3" }
+      ]
+    },
+    {
+      "kind": "lake", "wikidata": "Q1017107", "label": "Burtnieks",
+      "names": [
+        { "region": "livonia", "name": "Astigerwe", "language": "la", "source": "henry", "where": "XII 6 (the edition's index reads 'Burtnecksee')" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q15243", "label": "Volkhov",
+      "names": [
+        { "region": "rus", "name": "Volkhov", "orig": "Волховъ", "language": "orv", "source": "npl-synodal", "attested": 1125, "where": "f. 11r", "note": "read as 'въ волховѣ' (locative)" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q255379", "label": "Lovat",
+      "names": [
+        { "region": "rus", "stretches": ["Lovat"], "name": "Lovot", "orig": "Ловоть", "language": "orv", "source": "pvl-laurentian", "where": "col. 7 l. 3-4", "note": "read as 'до ловоти', 'по ловоти' (genitive, locative)" }
+      ]
+    },
+    {
+      "kind": "lake", "wikidata": "Q203462", "label": "Ilmen",
+      "names": [
+        { "region": "rus", "name": "Ilmer", "orig": "Илмерь", "language": "orv", "source": "pvl-laurentian", "where": "col. 6 l. 20", "note": "read as 'езера илмерѧ' (genitive); col. 7 l. 4 has the nominative 'ылмерь'" }
+      ]
+    },
+    {
+      "kind": "lake", "wikidata": "Q15288", "label": "Ladoga",
+      "names": [
+        { "region": "rus", "name": "Ladozskoye ozero", "orig": "Ладозьское озѣро", "language": "orv", "source": "npl-synodal", "attested": 1228, "where": "older version", "note": "read as 'въ Ладозьское озѣро' (accusative, the same as the nominative)" },
+        { "region": "rus", "name": "Nevo", "orig": "Нево", "language": "orv", "source": "pvl-hypatian", "where": "col. 7; the Laurentian copy reads Novo", "map": false, "note": "read as 'въ озеро великое Нево'. Panel only: the Novgorod annal of 1228 says 'v neve', which is ambiguous; the Laurentian copy reads 'ново'." }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q645", "label": "Neva",
+      "names": [
+        { "region": "rus", "stretches": ["Neva"], "name": "Neva", "orig": "Нева", "language": "orv", "source": "npl-synodal", "attested": 1240, "where": "older version", "note": "read as 'сташа в Невѣ, устье Ижеры' (locative)" }
+      ]
+    },
+    {
+      "kind": "lake", "wikidata": "Q19253", "label": "Peipsi-Pihkva",
+      "names": [
+        { "region": "rus", "name": "Chudskoye ozero", "orig": "Чюдьское озеро", "language": "orv", "source": "npl-synodal", "attested": 1242, "where": "older version, f. 129v", "note": "read as 'на Чюдьскомь озерѣ' (locative); Henry gives the lake no name. BGN/PCGN romanisation, Chudskoye, not the Chudskoe of older notes." }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q40855", "label": "Dnieper",
+      "names": [
+        { "region": "rus", "stretches": ["Dnipro", "Dnepr", "Dnyapro"], "name": "Dnepr", "orig": "Днѣпръ", "language": "orv", "source": "pvl-laurentian", "where": "col. 3 l. 18", "note": "read as 'до днѣпра' (genitive); col. 7 l. 10 has the nominative" },
+        { "region": "rus", "stretches": ["Dnipro", "Dnepr", "Dnyapro"], "name": "Borysthenes", "language": "la", "source": "mela", "where": "2.6", "map": false },
+        { "region": "rus", "stretches": ["Dnipro", "Dnepr", "Dnyapro"], "name": "Borysthenes", "language": "la", "source": "pliny", "where": "4.82", "map": false }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q157042", "label": "Pripyat",
+      "names": [
+        { "region": "rus", "stretches": ["Prypiat", "Prypyats"], "name": "Pripet", "orig": "Припеть", "language": "orv", "source": "pvl-laurentian", "where": "col. 4 l. 1" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q156237", "label": "Western Bug",
+      "names": [
+        { "region": "rus", "stretches": ["Zakhidnyi Buh", "Zakhodni Buh"], "name": "Bug", "orig": "Бугъ", "language": "orv", "source": "pvl-laurentian", "where": "col. 11 l. 7", "note": "read as 'по бугу' (dative). The Western Bug is the standard identification (the Buzhane and Volhynians)." }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q5622", "label": "Nemunas",
+      "names": [
+        { "region": "lithuania", "stretches": ["Nemunas"], "name": "Memela", "language": "la", "source": "dusburg", "where": "III 2 (the passage about the river only)" },
+        { "region": "lithuania", "stretches": ["Nemunas"], "name": "Rhoubon", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blazek 2017)", "marks": ["disputed"], "map": false }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q207903", "label": "Neris",
+      "names": [
+        { "region": "lithuania", "stretches": ["Neris"], "name": "Nare", "language": "la", "source": "dusburg", "where": "Part III, chapter TO CHECK (the editor: 'ist die Wilia')", "marks": ["TO CHECK"], "note": "read as 'Naram' (accusative); the editor's note says Nare, in Jeroschin Nerge, is the Vilia (Neris)" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q5611", "label": "Pregolya",
+      "names": [
+        { "region": "prussia", "name": "Pregor", "language": "la", "source": "dusburg", "where": "Part III, the founding of Konigsberg in 1255; chapter TO CHECK", "marks": ["TO CHECK"] },
+        { "region": "prussia", "name": "Chronos", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blazek 2017)", "marks": ["disputed"], "map": false }
+      ]
+    },
+    {
+      "kind": "lake", "wikidata": "Q5605", "label": "Vistula Lagoon",
+      "names": [
+        { "region": "prussia", "name": "Recens mare", "gloss": "the fresh sea", "language": "la", "source": "dusburg", "where": "III 15" }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q548", "label": "Vistula",
+      "names": [
+        { "region": "poland", "name": "Wisela", "language": "la", "source": "dusburg", "where": "III 2" },
+        { "region": "poland", "name": "Visla", "orig": "Висла", "language": "orv", "source": "pvl-laurentian", "where": "col. 6 l. 9", "note": "read as 'на вислѣ' (locative)" },
+        { "region": "poland", "name": "Vistula", "language": "la", "source": "mela", "where": "3.33", "map": false },
+        { "region": "poland", "name": "Vistla", "language": "la", "source": "pliny", "where": "4.97 (variants Vistulam, Visilam)", "map": false }
+      ]
+    },
+    {
+      "kind": "river", "wikidata": "Q552", "label": "Oder",
+      "names": [
+        { "region": "poland", "stretches": ["Odra", "Oder"], "name": "Oddara", "language": "la", "source": "adam", "where": "II 19 (II 22 in some editions)", "marks": ["TO CHECK"], "note": "the form of the main text; the chapter number differs by edition, TO CHECK" },
+        { "region": "poland", "stretches": ["Odra", "Oder"], "name": "Oddora", "language": "la", "source": "adam", "where": "scholium 15", "map": false, "note": "the form of the scholium (manuscript variants Odderam, Odoram)" }
+      ]
+    },
+    {
+      "kind": "lake", "wikidata": "Q173596", "label": "Vanern",
+      "names": [
+        { "region": "sweden", "name": "Vænir", "language": "non", "source": "heimskringla", "where": "Ynglinga saga, ed. p. 23, chapter TO CHECK", "marks": ["TO CHECK"], "note": "read as 'á Vænis ísi' (genitive): the battle of Adils and Ali on the ice" }
+      ]
+    },
+    {
+      "kind": "lake", "wikidata": "Q184492", "label": "Malaren",
+      "names": [
+        { "region": "sweden", "name": "Lǫgrinn", "language": "non", "source": "heimskringla", "where": "Óláfs saga helga (King Olaf at Stocksund), chapter TO CHECK", "marks": ["TO CHECK"], "note": "the 1911 text prints it with a hooked o; our OCR shows Logrinn" }
+      ]
+    }
+  ],
+  "seas": [
+    {
+      "id": "baltic", "name": "Baltic Sea",
+      "names": [
+        { "name": "Suebicum mare", "language": "la", "source": "tacitus", "where": "45 ('Suebici maris litore', genitive)" },
+        { "name": "Mare Balticum", "language": "la", "source": "adam", "where": "scholium 115 to IV 10 (IV 10 itself has 'Baltici maris')" },
+        { "name": "Mare Barbarum", "language": "la", "source": "adam", "where": "IV 10" },
+        { "name": "Pelagus Scithicum", "language": "la", "source": "adam", "where": "IV 10" },
+        { "name": "More Varyazhskoye", "gloss": "the Varangian Sea", "orig": "Море Варяжьское", "language": "orv", "source": "pvl-laurentian", "where": "col. 4 l. 7; col. 7 l. 7", "note": "read as 'морю варѧжьскому' (dative) and 'море варѧжьское'" },
+        { "name": "Eystrasalt", "language": "non", "source": "heimskringla", "where": "Óláfs saga Tryggvasonar, ed. p. 119, chapter TO CHECK", "marks": ["TO CHECK"] },
+        { "name": "Osterse", "language": "gmh", "source": "rhymed", "where": "v. 137" },
+        { "name": "Mare salsum", "language": "la", "source": "dusburg", "where": "III 2" }
+      ]
+    },
+    {
+      "id": "gulf-of-riga", "name": "Gulf of Riga", "marks": ["TO CHECK"],
+      "degrees": [[21.72, 57.57], [22.05, 57.90], [22.57, 58.58], [22.62, 58.65], [22.58, 59.09], [23.22, 59.22], [24.0, 59.2], [24.9, 58.9], [25.1, 58.0], [24.9, 57.0], [24.0, 56.7], [22.0, 57.15]],
+      "drawnFrom": "The western mouth follows the limit in the IHO's Limits of Oceans and Seas, 3rd edition (1953): Lyser Ort (Ovisi, 57 deg 34 min N) in Latvia, the south end of Saaremaa, Pammerort (22 deg 34 min E), Emmaste on Hiiumaa, Tahkuna Point and Spithami Point. The points are rounded coordinates of those capes and of places on the public-domain Natural Earth coast, set by eye over the land, with no map traced. Rough, TO CHECK.",
+      "names": []
+    },
+    {
+      "id": "gulf-of-finland", "name": "Gulf of Finland", "marks": ["TO CHECK"],
+      "degrees": [[22.90, 59.82], [23.40, 59.30], [23.22, 59.22], [24.5, 59.25], [26.5, 59.25], [28.5, 59.25], [30.2, 59.4], [30.6, 60.0], [30.2, 60.5], [28.5, 60.75], [26.5, 60.55], [24.5, 60.40], [23.0, 60.05]],
+      "drawnFrom": "The western mouth follows the limit in the IHO's Limits of Oceans and Seas, 3rd edition (1953): a line from Spithami Point (59 deg 13 min N) through Osmussaar (Odensholm) to the south-west end of Hanko Head (22 deg 54 min E). The other points are rounded coordinates of places on the public-domain Natural Earth coast, set by eye over the land, with no map traced. Rough, TO CHECK.",
+      "names": []
+    }
+  ]
+}

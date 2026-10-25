@@ -109,7 +109,7 @@ describe('build', () => {
       assert.ok(!html.includes('{{'), 'no placeholder left');
       // The real map makes the file big; past this it would be slow to open on a phone.
       assert.ok(result.bytes < 4 * 1024 * 1024, `game file is ${result.bytes} bytes`);
-      for (const kind of ['base', 'terrain', 'water', 'terrain-time', 'coast', 'changes']) {
+      for (const kind of ['base', 'terrain', 'water', 'names', 'terrain-time', 'coast', 'changes']) {
         assert.ok(html.includes(`<script type="application/json" id="gs-${kind}">`), `the ${kind} data is in the page`);
       }
       assert.ok(html.indexOf('id="gs-water"') < html.lastIndexOf('<script>'), 'the first picture\'s data comes before the code that reads it');
@@ -190,10 +190,12 @@ describe('licence guard', () => {
 
   it('keeps an ODbL block to OpenStreetMap data, and our own block to our own work', () => {
     assert.deepEqual(licenceProblems([block('changes', 'grind-strat-own', ['own'])], sources), []);
+    assert.deepEqual(licenceProblems([block('names', 'grind-strat-own', ['own'])], sources), []);
     assert.ok(licenceProblems([block('water', 'ODbL-1.0', ['pd'])], sources).some((p) => /under the ODbL but holds data that is not OpenStreetMap's/.test(p)));
     assert.ok(licenceProblems([block('water', 'ODbL-1.0', ['own'])], sources).some((p) => /not OpenStreetMap's/.test(p)));
     for (const other of ['pd', 'by', 'osm']) {
       assert.ok(licenceProblems([block('changes', 'grind-strat-own', ['own', other])], sources).some((p) => /our own work but holds data from others/.test(p)), other);
+      assert.ok(licenceProblems([block('names', 'grind-strat-own', ['own', other])], sources).some((p) => /our own work but holds data from others/.test(p)), other);
     }
   });
 
