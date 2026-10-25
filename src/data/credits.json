@@ -7,7 +7,8 @@
     "Rivers and lakes are today's, from OpenStreetMap, with today's local names: a river's name changes where the local language does (Nemunas in Lithuania, Nyoman in Belarus). A river's own name is the one at its lower end (Daugava, not Zapadnaya Dvina). Modern reservoirs, and lakes made later such as flooded mines, appear only from their year, where one is known; the rivers through those reservoirs follow today's mapped line.",
     "All names are written in Latin letters. Russian, Belarusian and Ukrainian names are romanised by the BGN/PCGN systems (Russian 1947, Belarusian 1979, Ukrainian 2019), with the soft and hard signs and the apostrophe left out to keep them easy to read. Where OpenStreetMap gives a name in two languages, the map shows one. A lake shows just its name, without the word for lake (Ilmen, not ozero Ilmen; Plateliai, not Platelių ežeras); where the name only works with that word (Kozhanovskoye ozero, Jezioro Mikołajskie, or Juglas ezers where no plain form is known), the full name is kept.",
     "Heights and sea depths are today's, and so is the coast outside the north, apart from a few drawn changes marked \"reconstructed\" (the Vistula Lagoon's old outlets, Ruden).",
-    "The northern coast (Sweden, Åland, Finland, Estonia) follows the game's year: since 1219 the land there has risen out of the sea. Where the sea stood is an estimate from today's land uplift, fitted to dated shores from local studies; Lake Mälaren is a bay of the sea until about 1300."
+    "The northern coast (Sweden, Åland, Finland, Estonia) follows the game's year: since 1219 the land there has risen out of the sea. Where the sea stood is an estimate from today's land uplift, fitted to dated shores from local studies; Lake Mälaren is a bay of the sea until about 1300.",
+    "Outside Lithuania, rivers and lakes show the names written in the records of the game's date where we have sourced them (Duna for the Daugava in Henry of Livonia's chronicle); Lithuania keeps today's Lithuanian names. Tap a river, lake or sea for all its names and sources."
   ],
   "interim": [],
   "mapLine": "© OpenStreetMap contributors · Natural Earth · GEBCO · ESA WorldCover · more",
@@ -145,6 +146,24 @@
       "unofficialCopy": null
     },
     {
+      "title": "Grind Strat",
+      "owner": "Grind Strat",
+      "version": "M3a (October 2026)",
+      "uses": [
+        "the names of rivers, lakes and seas over time, with their sources",
+        "the dated facts and drawn shapes of the map over time: reservoirs, cuts and outlets, and the Vistula delta"
+      ],
+      "line": "Dated facts, drawn shapes (marked reconstructed) and the names of rivers, lakes and seas over time: Grind Strat's own work, from the sources named with each.",
+      "citation": "Grind Strat, the dated list of water works and other changes, its drawn shapes, and the names of rivers, lakes and seas over time (M3a, October 2026). Sources of each fact in data/sources.md.",
+      "changes": [
+        "Our own work: years and facts read from the sources named with each, and shapes drawn by us on public-domain heights and land (GEBCO_2026 heights and sea depths, and Natural Earth's land); the Vistula delta's (Żuławy) marsh before diking is the low ground outlined on GEBCO_2026's heights, and its 1 km cells those 5 m or lower in the base block's heights (from GEBCO); years still to check are marked TO CHECK. The names of rivers, lakes and seas over time are forms read in the chronicles and other texts named with each; the Latin-letter spelling of an Old East Slavic form follows the BGN/PCGN Russian table after plain spelling changes; the rough outlines of the Gulf of Riga and the Gulf of Finland are drawn by us (marked TO CHECK) after the limits in the IHO's Limits of Oceans and Seas (1953)."
+      ],
+      "licenceName": "Grind Strat's own terms (not yet chosen)",
+      "licenceUri": "github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md",
+      "notes": [],
+      "unofficialCopy": null
+    },
+    {
       "title": "NKG",
       "owner": "Nordic Geodetic Commission (NKG)",
       "version": "NKG_RF17vel (file of 2020-11-04)",
@@ -161,23 +180,6 @@
       "licenceUri": "creativecommons.org/licenses/by/4.0/",
       "notes": [],
       "unofficialCopy": "Fetched from PROJ-data (OSGeo's package of grids for the PROJ software, release 1.25.0), which is byte-identical to the file on the NKG's own site."
-    },
-    {
-      "title": "Grind Strat",
-      "owner": "Grind Strat",
-      "version": "M3a (October 2026)",
-      "uses": [
-        "the dated facts and drawn shapes of the map over time: reservoirs, cuts and outlets, and the Vistula delta"
-      ],
-      "line": "Dated facts and drawn shapes (marked reconstructed): Grind Strat's own work, from the sources named with each fact.",
-      "citation": "Grind Strat, the dated list of water works and other changes, and its drawn shapes (M3a, October 2026). Sources of each fact in data/sources.md.",
-      "changes": [
-        "Our own work: years and facts read from the sources named with each, and shapes drawn by us on public-domain heights and land (GEBCO_2026 heights and sea depths, and Natural Earth's land); the Vistula delta's (Żuławy) marsh before diking is the low ground outlined on GEBCO_2026's heights, and its 1 km cells those 5 m or lower in the base block's heights (from GEBCO); years still to check are marked TO CHECK."
-      ],
-      "licenceName": "Grind Strat's own terms (not yet chosen)",
-      "licenceUri": "github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md",
-      "notes": [],
-      "unofficialCopy": null
     }
   ],
   "font": {
