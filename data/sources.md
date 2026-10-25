@@ -111,7 +111,7 @@ Still to choose (at M2, licence first): the peat and wetland map for the 1219 ma
 | The lagoon mouths in 1219 and 1 AD | The 1219 and 1 AD slices |
 | Which lakes are modern reservoirs (Kaunas, Pļaviņas, Ķegums, Riga, Narva) | The 1219 and 1 AD slices |
 | Land-rise rates for the north Estonian coast | The 1219 and 1 AD slices |
-| Name forms of 1219 and 1 AD for rivers, lakes and seas (for example Düna for the Daugava) | Names of the time on the map; today's name stands in until each is sourced |
+| Name forms of 1219 and 1 AD for rivers, lakes and seas (for example Düna for the Daugava) | Names of the time on the map; today's name stands in until each is sourced. PARTLY DONE in M3a PR 2 (see "Map data used in M3a: names of the time" below): 1219 forms for 25 rivers and lakes and the Baltic Sea; the AD 1 forms are panel only; the rest still stand in |
 | Shore heights and dates for each ice-age stage | The rough ice-age previews in 2a |
 
 (1) Read Henry of Livonia's chronicle (chapter to find). The step 2 research saw this only in a
@@ -469,3 +469,75 @@ New TO CHECK items:
   Elbląg, Bydgoszcz, Klaipėda, the Masurian Canal), the Daugava's old mouth, lake lowerings
   (Hjälmaren, Lubāns, Engure, Võrtsjärv, Tåkern, Hornborgasjön, Søborg Sø), the Vuoksi and Lake
   Suvanto, the Oder's new channel, the Volkhov and Svir dams, and Hel.
+
+## Map data used in M3a: names of the time (25 October 2026)
+
+Outside Lithuania, rivers and lakes show the name written in the records of the game's date where
+we have sourced it; Lithuania keeps today's Lithuanian names all game; tapping shows all the forms.
+The forms are in `tools/map/names-of-the-time.json` (by hand, with the place in the text for each),
+checked and packed by `tools/map/pack-names.mjs` into `src/data/own/names.json` (our own work, under
+the game's own terms, not yet chosen). The block carries titles, authors, years and the place in the
+text, never web addresses. A source counts as "of the time" when it was written within 25 years of
+the year shown; otherwise the game says "later source". TOROT = the Tromsø Old Russian and OCS
+Treebank, https://github.com/torottreebank/treebank-releases (CC BY-NC-SA 3.0; only facts are used,
+none of its text is shipped).
+
+| Id | Source | Link | Status | Used for |
+| --- | --- | --- | --- | --- |
+| `henry` | Henry of Livonia, Chronicon Livoniae (written about 1227), ed. L. Arbusow and A. Bauer, MGH SS rer. Germ. 31, 2nd ed. 1955 (Latin, with a German index of places) | https://archive.org/details/heinrici-chronicon-livoniae-1955 | Read (OCR text) | Duna (I 2, "per Dune flumen"; the index reads "Duna, die Düna"), Coiwa (X 10), Missa (XXIII 4), Winda (X 14), Mater Aquarum (XV 7, XXIV 1), Narva (XXV 6), Worcegerwe (XV 7, XXIX 3), Astigerwe (XII 6) |
+| `rhymed` | Livländische Reimchronik (about 1290, anonymous), ed. L. Meyer 1876 (Middle High German, with a register) | https://archive.org/details/livlndischereim00reimgoog | Read (OCR text) | Dune (v. 139), Ostersê (v. 137, as the list of misprints corrects it), Semegaller Â (v. 7400), Mimele (v. 3847, the river passage; panel only) |
+| `dusburg` | Peter of Dusburg, Chronicon terrae Prussiae (1326), in Scriptores rerum Prussicarum 1 (1861) | https://archive.org/details/bub_gb_YX8OAAAAYAAJ | Read (OCR text) | Wisela, Memela and mare salsum (III 2), Recens mare (III 15), Nare (III 250), Prigora (III 103, written "Prigore"; the nominative TO CHECK) |
+| `adam` | Adam of Bremen, Gesta Hammaburgensis ecclesiae pontificum (about 1075), ed. G. Waitz, MGH SS rer. Germ. 2 (1876) | https://archive.org/details/gestahammaburgen00adamuoft | Read (poor OCR) | Oddara (II 19 here), Oddora (scholium 15), Mare Balticum (I 62; scholium 115), Mare Barbarum and Pelagus Scithicum (IV 10) |
+| `npl-synodal` | Novgorod First Chronicle, older version, Synodal manuscript, ed. A. N. Nasonov 1950; and TOROT `nov-sin.xml` | https://archive.org/details/novhorodskyj_litopys ; https://raw.githubusercontent.com/torottreebank/treebank-releases/master/nov-sin.xml | Read | Ladozskoye ozero (1228), Omovyzha (1234), Neva (1240), Chudskoye ozero (1242, f. 129), Narova (1253) |
+| `pvl-laurentian` | Primary Chronicle (about 1113), Laurentian Codex (1377), TOROT `lav.xml` | https://raw.githubusercontent.com/torottreebank/treebank-releases/master/lav.xml | Read; the citation numbers are read as PSRL 1 column.line: TO CHECK | Dvina, Dnepr, Pripet, Visla, Lovot, Ilmer, Bug, Volkhov (col. 4 l. 1, nominative; the Synodal Novgorod chronicle's accusative "волхово" points to a neuter Volkhovo there), More Varyazhskoye |
+| `pvl-hypatian` | Primary Chronicle, Hypatian Codex: PSRL 2, Ipat'evskaya letopis', issue 1, 3rd ed., Petrograd 1923 | https://archive.org/details/Complete_Collection_of_Russian_Chronicles_1923_Vol_2_Hypatian_Chronicle | Read (OCR text, address found 25 October 2026; the file is the same size as our copy) | Nevo (col. 6, "v ozero velikoe Nevo"; the Laurentian copy reads Novo) |
+| `treaty-1229` | Treaty of Smolensk with Riga and Gotland, 1229, version A, TOROT `riga-goth.xml` (after Sumnikova and Lopatin 1963) | https://raw.githubusercontent.com/torottreebank/treebank-releases/master/riga-goth.xml | Read | Dvina (livonia, panel only) |
+| `heimskringla` | Snorri Sturluson, Heimskringla (about 1230), ed. Finnur Jónsson 1911 (Old Norse) | https://archive.org/details/heimskringlanreg00snor | Read (OCR text) | Vænir (Ynglinga saga 29, p. 23), Lǫgrinn (Óláfs saga helga 7, p. 184), Eystrasalt (Óláfs saga Tryggvasonar 21, p. 119) |
+| `tacitus` | Tacitus, Germania 45 (AD 98), Perseus canonical-latinLit | https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/master/data/phi1351/phi002/phi1351.phi002.perseus-lat1.xml | Read | Suebicum mare ("Suebici maris litore") |
+| `mela` | Pomponius Mela, De chorographia (about AD 43), The Latin Library | https://www.thelatinlibrary.com/pomponius3.html ; https://www.thelatinlibrary.com/pomponius2.html | Read; 3.33 (§ 28 there) and 2.6 are the standard numbers, as Mayhoff's notes to Pliny 4.97 and 4.82 cite them | Vistula (3.33), Borysthenes (2.6) |
+| `pliny` | Pliny the Elder, Naturalis historia (AD 77), Perseus canonical-latinLit (ed. Mayhoff) | https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/master/data/phi0978/phi001/phi0978.phi001.perseus-lat2.xml | Read | Vistla (4.97), Borysthenes (4.82) |
+| `ptolemy` | Ptolemy, Geography 3.5 (about AD 150), Stevenson's translation on LacusCurtius (which its host calls poor) | https://penelope.uchicago.edu/Thayer/E/Gazetteer/Periods/Roman/_Texts/Ptolemy/3/5*.html | Read | Chronos, Rhoubon, Tourountos, Chesinos: all disputed and panel only |
+| blazek-2017 (not a source id in the data) | V. Blažek, "An attempt at an etymological analysis of Ptolemy's hydronyms of Eastern Balticum", Acta Linguistica Lithuanica 76 (2017) | https://journals.lki.lt/actalinguisticalithuanica/article/download/856/947 | Read | The Greek forms and the two matchings of Ptolemy's four rivers (Mannert 1820; Blažek's own) |
+| `iho-1953` (the sea outlines) | IHO, Limits of Oceans and Seas, Special Publication 23, 3rd edition 1953 | https://epic.awi.de/id/eprint/29772/1/IHO1953a.pdf | Read | The mouths of the Gulf of Riga (Lyser Ort, Saaremaa, Pammerort, Hiiumaa, Tahkuna, Spithami) and the Gulf of Finland (Spithami, Osmussaar, Hanko Head) |
+
+Periods (which language and source the map follows, per region; `from` to `to`, the later year not
+included):
+
+| Region | Years | Language | Source | Mark |
+| --- | --- | --- | --- | --- |
+| Lithuania | all | today's Lithuanian names (rule, no period) | none | Decided by Ignas: today's names all game; older forms only in the tap panel |
+| Livonia (Latvia, Estonia) | 1219 to 1290 | Latin | `henry` | |
+| Livonia | 1290 to 1400 | Middle High German | `rhymed` | TO CHECK: 1400 |
+| Prussia | 1219 to 1400 | Latin | `dusburg` | TO CHECK: 1400; Dusburg (1326) is a later source before about 1300 |
+| Poland | 1219 to 1400 | Latin | `dusburg` | TO CHECK: 1400; Polish records were Latin but no Polish source has been read yet |
+| Rus (Belarus, Ukraine, Russia) | 1219 to 1400 | Old East Slavic | `npl-synodal` | TO CHECK: 1400 |
+| Sweden | 1219 to 1400 | Old Norse | `heimskringla` | TO CHECK: 1400; written in Iceland about 1230, no Swedish record read yet |
+
+The end year 1400 is a game choice (the end of what our medieval sources cover). From 1400, today's
+names stand in until later records are researched. Old East Slavic names are written in Latin
+letters by the BGN/PCGN Russian table (Chudskoye ozero, Ladozskoye ozero) after plain spelling
+changes (the old letters ѣ, ѧ, ѹ and the like, and the hard and soft signs dropped); the checks in
+`pack-names.mjs` refuse a name that is not that romanisation of the form as read.
+
+TO CHECK, from this section:
+
+- The end year 1400 of every medieval period (a game choice).
+- Poland has no Polish source yet; Sweden no Swedish one.
+- Henry's chapter and section numbers were read off the 1955 edition's running heads and section
+  numbers (OCR text), and each checked against the edition's index of places (page and line). Three
+  differ from the first research: Coiwa first appears in X 10 (not X 8), the Mater Aquarum "apud
+  Tarbeten" is XXIV 1 (not XXIII 11), and Worcegerwe is XV 7 and XXIX 3 (not XXIX 2). Winda is X 14.
+  The Mater Aquarum of XXII 2 is the southern Embach and that of XXX 2 the Pärnu river (the
+  editor's footnotes); XIX 3, XIX 4 and XXIV 5 are not cited.
+- Dusburg: Nare is III 250 (the editor: the Vilia); the "Naram" of III 241, beside the Licka, is
+  the Narew. Dusburg's Pregel is "Prigore" (III 103, twice, a genitive); the nominative Prigora is
+  from the Sambian canon's Epitome in the same volume: TO CHECK. "Pregor" is Pulkava's (printed in
+  the same volume's appendix) and Jeroschin's, so it is not used.
+- TOROT citation numbers (col. and line) taken as PSRL 1 columns and lines. The Hypatian Nevo is in
+  PSRL 2 col. 6 (counted on the OCR page of cols. 5 and 6).
+- The outlines of the Gulf of Riga and the Gulf of Finland: rough, drawn by eye over the land after
+  the IHO mouths; no old names found for either.
+- Not sourced, left out: Salaca (no Wikidata id), Onega, Lubāns, the Curonian Lagoon, the Velikaya
+  (earliest find 1367), the old names of the gulfs; search-snippet forms (Düna, Embach, Pregel and
+  the like) are not used.
+- Kadłubek's "Vandalus" for the Vistula, Old Norse "Dýna" for the Daugava: snippets only, not used.

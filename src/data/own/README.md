@@ -33,3 +33,21 @@ tags each dated line and lake with one of the ids here (`info.tags`, layers `riv
 `lakeTag`), or with `osm-year-<year>` for a reservoir whose year comes from OpenStreetMap's own
 start_date tag (the `osm-start-date` rule here). `tagsOnAt` in `src/ui/map/water-tiles.js` turns a
 year into on and off per tag.
+
+## names.json: the names of rivers, lakes and seas over time (M3a, PR 2)
+
+Made by `tools/map/pack-names.mjs` (run by `npm run map:pack`, after the water) from
+`tools/map/names-of-the-time.json`, written by hand. Each form has its language, its source (title,
+author, when written, which copy) and the place in the text. The web links of the sources stay in
+the hand file and in `data/sources.md`; the block carries none, and no Cyrillic: an Old East Slavic
+form is kept in Cyrillic (`orig`) only in the hand file, and the packer checks that the Latin-letter
+name is the BGN/PCGN romanisation of it after plain spelling changes.
+
+One layer, `info` (JSON): `sources`, `languages`, `regions` (Lithuania has the rule `today`:
+today's names all game), `periods` (for each region, which language and source the map follows from
+which year; medieval forms stop in 1400, TO CHECK), `features` (rivers and lakes, each keyed by its
+Wikidata id and, for a river, by the stretch names the water block shows today) and `seas` (a rough
+ring in game units for the gulfs; the Baltic Sea has none and is the default). The packer checks
+every key and stretch against the shipped water block, which it reads only for that. Nothing is
+stored of what the map shows at a date: "later source" and "today's name standing in" are worked
+out when the name is shown.
