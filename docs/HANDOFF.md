@@ -363,13 +363,29 @@ every id.
   fog layer. Uses only Natural Earth's global layers, so the JRC clause doesn't apply.
 - **M2:** coast, named rivers and lakes, hill shading, 1219 terrain, Credits screen. Ask Ignas to
   allow GEBCO and OpenStreetMap here.
-- **M3a (in progress):** the map follows the game's date from 1219 to today, in two pull requests:
+- **M3a (built, waiting for Ignas's review):** the map follows the game's date from 1219 to today, in two pull requests:
   "the land changes" (forest, northern coast, water works), then "the names change".
   - **PR 1, "the land changes": built** (21 October 2026, not yet reviewed by Ignas): the forest
     over time, the northern coast (an estimate), reservoirs, cuts and lagoon outlets by date, our
     drawn shapes, a late save opening at its own year, the hidden `#date=` link, and the speed
     test's time run. ARCHITECTURE section 9 has the numbers.
-  - **PR 2, "the names change":** next.
+    Phone results (Ignas, 25 October 2026; Android 10, Chrome 155, 411x632 at 2x, 8 cores, 8 GB):
+    first map 661.9 ms (page and code ready 343.8; text to bytes 19.7, unpacking 42.2, reading shapes
+    43.1, painting terrain 194.4, preparing shapes 7.6); rivers and lakes 865.8 ms (201.4 ms to
+    unpack and draw); full redraw median 11.1, worst 43.6 ms; pan and zoom 989 frames, 99% on time,
+    median 11.0, 95% under 11.1; names median 2.3, worst 17.1 ms; time run 1219 to 2021 at speed 5:
+    9,758 frames in 118.0 s, 99% on time, median 11.0, 95% under 11.1, date work median 0.0, 95%
+    under 11.1, worst 353.3 ms. The first map was 0.40 s in M2b and 0.66 s now, so PR 2 carries a
+    start-up fix (the late data blocks as comments).
+  - **PR 2, "the names change": built** (25 October 2026, not yet reviewed by Ignas): names of rivers,
+    lakes and seas over time from sources (Lithuania keeps today's names), a name counts as "of the
+    time" within 25 years of its source, medieval forms end in 1400 (TO CHECK), the tap panel for a
+    river, lake or sea (name now, names over time, today, facts), the start-up fix, and screenshots
+    of the panel. ARCHITECTURE section 9 has how it is built. To try: tap a river name at a date
+    after 1219 (use a save, or `#date=1290`), tap a lake, tap the open sea. Missing: names for
+    provinces and holdings (later steps); our drawn land (Ruden) taps as the Baltic Sea; no
+    names block means no sea taps; the panel title is always today's name; the Venta's "Winda"
+    and Ladoga's "Nevo" are panel-only; "Chudskoye ozero" follows BGN/PCGN (to confirm with Ignas).
 - **M3b:** AD 1 and the ice-age data (five slices with notes), ready for step 8; planned with
   Ignas after M3a. Ask for PANGAEA if still needed.
 - **Settled at M2:** the forest comes from the finished SpatioCompo maps on GitHub, so neither

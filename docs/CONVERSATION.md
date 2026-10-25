@@ -318,6 +318,19 @@ Sonnet at medium effort for routine jobs, and at most two at once.
 - The speed test now also runs the map from 1219 to today at top speed, about 3 minutes in all:
   "Keep it in one". One button, all numbers together.
 
+**25 October.** After the phone numbers of PR 1 (first map 0.66 s, up from 0.40 s in M2b) he went to
+sleep, leaving the work running:
+
+> "Just build what you can im going to sleep"
+
+So the start-up fix went into PR 2. On which models to use, he kept the same method:
+
+> "Alright lets continue same old token strategy sonnet for heavy lifting on meadiun and opus 5.5 on high for planning"
+
+Sonnet at medium effort builds; Opus at high effort plans and checks. He also set the rule for names
+that a source counts as "of the time" when it was written within 25 years of the year shown
+(recorded as a decision in DESIGN; only that summary is kept here, not his words).
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.

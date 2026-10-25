@@ -387,19 +387,12 @@ and holdings, planned with him after 2a. The approved 2a plan is in docs/HANDOFF
 in step 8. One base coast (Natural Earth) is used by every slice, so the coast doesn't jump where
 nothing changed; 1219 and 1 AD add local fixes, each with a source or marked TO CHECK.
 
-**Names per era.** Every named place (river, lake, sea, later province and holding) stores its
-names by era. A proposed shape:
-```json
-{ "names": {
-    "today":  { "name": "Daugava", "sources": ["ne:<feature id>"] },
-    "1219":   { "name": "Daugava", "standIn": true },
-    "1 AD":   { "name": "Daugava", "standIn": true } },
-  "other": { "lt": "…", "lv": "…", "et": "…", "pl": "…", "de": "…", "ru": "…" } }
-```
-- `standIn: true` means today's local name is standing in because no name of the time is sourced.
-  The map shows the name for the game's date. The panel shows every name with its sources.
-- A test checks that every named feature has a name per era, or a marked stand-in, and a source.
-- The values above are an invented example of the shape, not data.
+**Names over time.** Rivers, lakes and seas keep their names in one list, not in the water data
+(built in M3a, PR 2; see "As built in M3a, pull request 2" below). Each feature is named by its kind
+and Wikidata id, and carries every form with years, language and source. Where no name of the time
+is sourced, today's name stands in; the data never stores that, it is worked out when needed.
+- A test checks that every form names a source, and that every listed feature is found in the water.
+- Provinces and holdings (later steps) will follow the same idea.
 
 **Sources and credits:**
 - data/sources.md lists collections (Natural Earth, OpenStreetMap, GEBCO and so on), each with a
@@ -536,6 +529,54 @@ by ids from data/sources.md.
   Ignas's phone paints a full frame in 11 ms.
 - **The hidden test link** `#date=1550` pins the map to a year without changing the game's date;
   `#date=1550&view=x,y,scale` also places the camera, for the screenshots. Later `#10000BC`.
+
+**As built in M3a, pull request 2 (the names change; the tap panel):**
+- **The names block** `src/data/own/names.json` (our own work, made by `tools/map/pack-names.mjs`
+  from the hand file `tools/map/names-of-the-time.json`; `npm run map:pack` runs it): one JSON
+  layer with `sources` (title, author, year written, or "about"), `languages`, `regions` (Lithuania
+  has the rule "today's names"), `periods` (per region: from, to, language), `features` (river or
+  lake, Wikidata id, and its forms) and `seas` (with a ring of points for a gulf). A form may
+  name `stretches` (the text one of the river's lines shows today) and carries marks (TO CHECK,
+  estimate, disputed) and `map: false` for a form kept for the panel only. The packer checks that
+  every Wikidata id matches exactly one river or lake of the shipped water, every stretch text is
+  one a line shows today, and no web address or Cyrillic gets in. It is an EARLY block (before the
+  code, next to the water): the page reads it with the water, so the first picture of the water
+  already has its names. A damaged block logs a console warning and the map keeps today's names.
+- **The resolver** `src/ui/map/names.js` (pure, runs in Node): `linkNames` joins the list to the
+  shipped water (a group per lake or river stretch; lines of listed rivers all have a group), and
+  `nameAt(group, year)` gives the name by one rule: a group takes the name its region's records give
+  for the year, in the language that region's period uses; a region with the "today" rule, or no
+  record, or no period keeps today's name. "Of the time" is worked out, never stored: a name counts
+  as of the time when its source was written within 25 years of the year shown
+  (`OF_THE_TIME_YEARS`, Ignas, 25 October 2026); a source further off is marked "later source".
+  Medieval forms end in 1400 (a game choice, TO CHECK). `changeYears` lists the years when anything
+  changes, so `epochAt` says in one binary search whether the names on the map must be placed
+  again. `namesAt(year)` returns the text for every line and lake.
+- **On the map:** `labels.js` reads the text from that view, so only a real text change places the
+  names anew (`renamed`, a separate path from a full repaint); the map's date pass calls it. It
+  cost a median 12 ms, worst 18 ms in headless desktop Chrome, and a median 101 ms with the
+  processor slowed 4x (two changes in the time run).
+- **Tap** `src/ui/map/hit.js` (pure): `createTapTracker` counts a touch as a tap when it is one
+  primary pointer, up within 600 ms and 10 px (it holds the pan until 10 px, then releases it by
+  the whole distance). `hitWater` decides in order: a placed name (circles along the label), the
+  old sea, a lake (unless a river runs within 6 px), a river within 20 px, then today's sea. A gulf
+  ring (Riga, Finland) covers the land around it, so a sea is picked only where the point is open
+  sea first, and then the ring decides which sea. Our drawn land (Ruden) still taps as the Baltic Sea.
+- **The panel** `src/ui/water-panel.js` shows `panelInfo` (names.js): the title (today's name), the
+  kind, "Name now" with its source and marks, "Names over time" (name, years, language, source,
+  marks; `stretches` lists the other stretches of the river that share a name), "Today" (today's
+  name, how it is written in the data, other names) and the dated facts. It reuses the Credits
+  sheet's style. A tap on empty land closes it; it is written again when the names change.
+- **Start-up fix:** the three late blocks (terrain-time, coast, changes, 0.8 MB) now sit after the
+  code as HTML comments, `<!--gs:<kind>` then the JSON with "<" and ">" written as `\u003c` and
+  `\u003e`, not as script elements; the game reads them back (`lateComment` in main.js) when it needs
+  them. The licence guard and every block test still run on the block texts. Measured in headless
+  Chrome slowed 4x, 16 runs in turn, first map median 1464 ms against 1501 ms with script elements
+  (a 2 to 3% gain). Against M2b (2.0 MB, 1393 ms) the first map was 106 to 107% in two runs and
+  98% in a third (the machine's noise is about 5%). What remains is the code: 102 KB against 53 KB
+  in M2b, so the page's code starts about 50 ms later (scriptStartMs 570 against 520).
+- **Fonts:** the label font (Grenze Gotisch, subset to Latin Extended) draws every letter of the
+  shipped names (checked: ǫ, Â, ê, æ, and a test keeps the names inside the subset's ranges).
 
 ## 10. Invariants and soak outputs
 
