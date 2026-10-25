@@ -349,7 +349,7 @@ async function slowPhoneNames(browser) {
     failures.push(`${label}: the names on the starting map were never finished`);
   }
   const shown = String(await page.locator('#map').getAttribute('data-name-list')).split('|');
-  for (const must of ['Daugava', 'Neris', 'Nemunas']) check(shown.includes(must), `${label}: "${must}" is not named on the starting map (named: ${shown.join(', ')})`);
+  for (const must of ['Duna', 'Neris', 'Nemunas']) check(shown.includes(must), `${label}: "${must}" is not named on the starting map (named: ${shown.join(', ')})`);
   await page.screenshot({ path: join(SHOTS, 'slow-phone-start.png') });
   await context.close();
 }
