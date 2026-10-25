@@ -485,18 +485,18 @@ none of its text is shipped).
 | Id | Source | Link | Status | Used for |
 | --- | --- | --- | --- | --- |
 | `henry` | Henry of Livonia, Chronicon Livoniae (written about 1227), ed. L. Arbusow and A. Bauer, MGH SS rer. Germ. 31, 2nd ed. 1955 (Latin, with a German index of places) | https://archive.org/details/heinrici-chronicon-livoniae-1955 | Read (OCR text) | Duna (I 2, "per Dune flumen"; the index reads "Duna, die Düna"), Coiwa (X 10), Missa (XXIII 4), Winda (X 14), Mater Aquarum (XV 7, XXIV 1), Narva (XXV 6), Worcegerwe (XV 7, XXIX 3), Astigerwe (XII 6) |
-| `rhymed` | Livländische Reimchronik (about 1290, anonymous), ed. L. Meyer 1876 (Middle High German, with a register) | https://archive.org/details/livlndischereim00reimgoog | Read (OCR text) | Dune (v. 139), Osterse (v. 137), Semegaller A (v. 7400) |
-| `dusburg` | Peter of Dusburg, Chronicon terrae Prussiae (1326), in Scriptores rerum Prussicarum 1 (1861) | https://archive.org/details/bub_gb_YX8OAAAAYAAJ | Read (OCR text) | Wisela, Memela and mare salsum (III 2), Recens mare (III 15), Nare, Pregor (chapters TO CHECK) |
-| `adam` | Adam of Bremen, Gesta Hammaburgensis ecclesiae pontificum (about 1075), ed. G. Waitz, MGH SS rer. Germ. 2 (1876) | https://archive.org/details/gestahammaburgen00adamuoft | Read (poor OCR) | Oddara (II 19 here), Oddora (scholium 15), Mare Balticum, Mare Barbarum, Pelagus Scithicum (IV 10) |
-| `npl-synodal` | Novgorod First Chronicle, older version, Synodal manuscript, ed. A. N. Nasonov 1950; and TOROT `nov-sin.xml` | https://archive.org/details/novhorodskyj_litopys ; https://raw.githubusercontent.com/torottreebank/treebank-releases/master/nov-sin.xml | Read | Volkhov (annal 1125, f. 11r), Ladozskoye ozero (1228), Omovyzha (1234), Neva (1240), Chudskoye ozero (1242, f. 129v), Narova (1253) |
-| `pvl-laurentian` | Primary Chronicle (about 1113), Laurentian Codex (1377), TOROT `lav.xml` | https://raw.githubusercontent.com/torottreebank/treebank-releases/master/lav.xml | Read; the citation numbers are read as PSRL 1 column.line: TO CHECK | Dvina, Dnepr, Pripet, Visla, Lovot, Ilmer, Bug, More Varyazhskoye |
-| `pvl-hypatian` | Primary Chronicle, Hypatian Codex: PSRL 2, Ipat'evskaya letopis', issue 1, 3rd ed., Petrograd 1923 | https://archive.org/details/Complete_Collection_of_Russian_Chronicles_1923_Vol_2_Hypatian_Chronicle | Read (OCR text, address found 25 October 2026; the file is the same size as our copy) | Nevo ("v ozero velikoe Nevo"; the Laurentian copy reads Novo) |
+| `rhymed` | Livländische Reimchronik (about 1290, anonymous), ed. L. Meyer 1876 (Middle High German, with a register) | https://archive.org/details/livlndischereim00reimgoog | Read (OCR text) | Dune (v. 139), Ostersê (v. 137, as the list of misprints corrects it), Semegaller Â (v. 7400), Mimele (v. 3847, the river passage; panel only) |
+| `dusburg` | Peter of Dusburg, Chronicon terrae Prussiae (1326), in Scriptores rerum Prussicarum 1 (1861) | https://archive.org/details/bub_gb_YX8OAAAAYAAJ | Read (OCR text) | Wisela, Memela and mare salsum (III 2), Recens mare (III 15), Nare (III 250), Prigora (III 103, written "Prigore"; the nominative TO CHECK) |
+| `adam` | Adam of Bremen, Gesta Hammaburgensis ecclesiae pontificum (about 1075), ed. G. Waitz, MGH SS rer. Germ. 2 (1876) | https://archive.org/details/gestahammaburgen00adamuoft | Read (poor OCR) | Oddara (II 19 here), Oddora (scholium 15), Mare Balticum (I 62; scholium 115), Mare Barbarum and Pelagus Scithicum (IV 10) |
+| `npl-synodal` | Novgorod First Chronicle, older version, Synodal manuscript, ed. A. N. Nasonov 1950; and TOROT `nov-sin.xml` | https://archive.org/details/novhorodskyj_litopys ; https://raw.githubusercontent.com/torottreebank/treebank-releases/master/nov-sin.xml | Read | Ladozskoye ozero (1228), Omovyzha (1234), Neva (1240), Chudskoye ozero (1242, f. 129), Narova (1253) |
+| `pvl-laurentian` | Primary Chronicle (about 1113), Laurentian Codex (1377), TOROT `lav.xml` | https://raw.githubusercontent.com/torottreebank/treebank-releases/master/lav.xml | Read; the citation numbers are read as PSRL 1 column.line: TO CHECK | Dvina, Dnepr, Pripet, Visla, Lovot, Ilmer, Bug, Volkhov (col. 4 l. 1, nominative; the Synodal Novgorod chronicle's accusative "волхово" points to a neuter Volkhovo there), More Varyazhskoye |
+| `pvl-hypatian` | Primary Chronicle, Hypatian Codex: PSRL 2, Ipat'evskaya letopis', issue 1, 3rd ed., Petrograd 1923 | https://archive.org/details/Complete_Collection_of_Russian_Chronicles_1923_Vol_2_Hypatian_Chronicle | Read (OCR text, address found 25 October 2026; the file is the same size as our copy) | Nevo (col. 6, "v ozero velikoe Nevo"; the Laurentian copy reads Novo) |
 | `treaty-1229` | Treaty of Smolensk with Riga and Gotland, 1229, version A, TOROT `riga-goth.xml` (after Sumnikova and Lopatin 1963) | https://raw.githubusercontent.com/torottreebank/treebank-releases/master/riga-goth.xml | Read | Dvina (livonia, panel only) |
-| `heimskringla` | Snorri Sturluson, Heimskringla (about 1230), ed. Finnur Jónsson 1911 (Old Norse) | https://archive.org/details/heimskringlanreg00snor | Read (OCR text) | Vænir (Ynglinga saga, p. 23), Lǫgrinn (Óláfs saga helga), Eystrasalt (Óláfs saga Tryggvasonar, p. 119); chapters TO CHECK |
+| `heimskringla` | Snorri Sturluson, Heimskringla (about 1230), ed. Finnur Jónsson 1911 (Old Norse) | https://archive.org/details/heimskringlanreg00snor | Read (OCR text) | Vænir (Ynglinga saga 29, p. 23), Lǫgrinn (Óláfs saga helga 7, p. 184), Eystrasalt (Óláfs saga Tryggvasonar 21, p. 119) |
 | `tacitus` | Tacitus, Germania 45 (AD 98), Perseus canonical-latinLit | https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/master/data/phi1351/phi002/phi1351.phi002.perseus-lat1.xml | Read | Suebicum mare ("Suebici maris litore") |
-| `mela` | Pomponius Mela, De chorographia (about AD 43), The Latin Library | https://www.thelatinlibrary.com/pomponius3.html ; https://www.thelatinlibrary.com/pomponius2.html | Read; the section numbers 3.33 (§ 28 there) and 2.6 are the standard ones: TO CHECK | Vistula (3.33), Borysthenes (2.6) |
+| `mela` | Pomponius Mela, De chorographia (about AD 43), The Latin Library | https://www.thelatinlibrary.com/pomponius3.html ; https://www.thelatinlibrary.com/pomponius2.html | Read; 3.33 (§ 28 there) and 2.6 are the standard numbers, as Mayhoff's notes to Pliny 4.97 and 4.82 cite them | Vistula (3.33), Borysthenes (2.6) |
 | `pliny` | Pliny the Elder, Naturalis historia (AD 77), Perseus canonical-latinLit (ed. Mayhoff) | https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/master/data/phi0978/phi001/phi0978.phi001.perseus-lat2.xml | Read | Vistla (4.97), Borysthenes (4.82) |
-| `ptolemy` | Ptolemy, Geography 3.5 (about AD 150), Stevenson's translation on LacusCurtius (which its host calls poor) | https://penelope.uchicago.edu/Thayer/E/Gazetteer/Periods/Roman/_Texts/Ptolemy/3/5*.html | Read | Chronos, Rhoubon, Tourountes, Chesinos: all disputed and panel only |
+| `ptolemy` | Ptolemy, Geography 3.5 (about AD 150), Stevenson's translation on LacusCurtius (which its host calls poor) | https://penelope.uchicago.edu/Thayer/E/Gazetteer/Periods/Roman/_Texts/Ptolemy/3/5*.html | Read | Chronos, Rhoubon, Tourountos, Chesinos: all disputed and panel only |
 | blazek-2017 (not a source id in the data) | V. Blažek, "An attempt at an etymological analysis of Ptolemy's hydronyms of Eastern Balticum", Acta Linguistica Lithuanica 76 (2017) | https://journals.lki.lt/actalinguisticalithuanica/article/download/856/947 | Read | The Greek forms and the two matchings of Ptolemy's four rivers (Mannert 1820; Blažek's own) |
 | `iho-1953` (the sea outlines) | IHO, Limits of Oceans and Seas, Special Publication 23, 3rd edition 1953 | https://epic.awi.de/id/eprint/29772/1/IHO1953a.pdf | Read | The mouths of the Gulf of Riga (Lyser Ort, Saaremaa, Pammerort, Hiiumaa, Tahkuna, Spithami) and the Gulf of Finland (Spithami, Osmussaar, Hanko Head) |
 
@@ -523,21 +523,21 @@ TO CHECK, from this section:
 
 - The end year 1400 of every medieval period (a game choice).
 - Poland has no Polish source yet; Sweden no Swedish one.
-- Henry's chapter and section numbers were counted in the OCR text of the 1955 edition (chapter =
-  year of Bishop Albert's consecration; sections as printed); two differ from the first research:
-  Coiwa is X 10 (not X 8) and the Mater Aquarum by Tartu is XV 7 and XXIV 1 (not XXIII 11). Check
-  against Brundage's translation. The Mater Aquarum of XXX 2 is the Pärnu river (the editor's
-  footnote), and XXII 2 is left out as less sure. Worcegerwe is XXIX 3 (not XXIX 2).
-- Dusburg: chapters of Nare ("Naram", around chapters 240 to 246) and Pregor (the founding of
-  Königsberg, 1255) are not read off; Wisela, Memela and mare salsum are III 2, Recens mare III 15.
-- Adam: Oddara is II 19 in Waitz's edition and II 22 in others.
-- Heimskringla: chapter numbers of Vænir (Ynglinga saga, perhaps 29), Lǫgrinn (Óláfs saga helga) and
-  Eystrasalt (Óláfs saga Tryggvasonar).
-- TOROT citation numbers (col. and line) taken as PSRL 1 columns and lines; the Hypatian "col. 7".
-- Mela 3.33 and 2.6 against a printed edition (The Latin Library numbers them § 28 and § 6).
+- Henry's chapter and section numbers were read off the 1955 edition's running heads and section
+  numbers (OCR text), and each checked against the edition's index of places (page and line). Three
+  differ from the first research: Coiwa first appears in X 10 (not X 8), the Mater Aquarum "apud
+  Tarbeten" is XXIV 1 (not XXIII 11), and Worcegerwe is XV 7 and XXIX 3 (not XXIX 2). Winda is X 14.
+  The Mater Aquarum of XXII 2 is the southern Embach and that of XXX 2 the Pärnu river (the
+  editor's footnotes); XIX 3, XIX 4 and XXIV 5 are not cited.
+- Dusburg: Nare is III 250 (the editor: the Vilia); the "Naram" of III 241, beside the Licka, is
+  the Narew. Dusburg's Pregel is "Prigore" (III 103, twice, a genitive); the nominative Prigora is
+  from the Sambian canon's Epitome in the same volume: TO CHECK. "Pregor" is Pulkava's (printed in
+  the same volume's appendix) and Jeroschin's, so it is not used.
+- TOROT citation numbers (col. and line) taken as PSRL 1 columns and lines. The Hypatian Nevo is in
+  PSRL 2 col. 6 (counted on the OCR page of cols. 5 and 6).
 - The outlines of the Gulf of Riga and the Gulf of Finland: rough, drawn by eye over the land after
   the IHO mouths; no old names found for either.
 - Not sourced, left out: Salaca (no Wikidata id), Onega, Lubāns, the Curonian Lagoon, the Velikaya
   (earliest find 1367), the old names of the gulfs; search-snippet forms (Düna, Embach, Pregel and
-  the like) are not used. The Rhymed Chronicle's Mimele (the Nemunas) is read but not yet entered.
+  the like) are not used.
 - Kadłubek's "Vandalus" for the Vistula, Old Norse "Dýna" for the Daugava: snippets only, not used.

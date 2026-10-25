@@ -60,7 +60,9 @@ describe('the hand file and the shipped block', () => {
     assert.equal(info.features.length, 25);
     const names = (/** @type {string} */ q) => by.get(q).names.map((/** @type {any} */ e) => e.name);
     assert.ok(names('Q8197').includes('Duna') && names('Q207928').includes('Coiwa') && names('Q15288').includes('Ladozskoye ozero'));
-    assert.ok(names('Q19253').includes('Chudskoye ozero') && names('Q5611').includes('Pregor') && names('Q5622').includes('Memela'));
+    assert.ok(names('Q19253').includes('Chudskoye ozero') && names('Q5611').includes('Prigora') && names('Q5622').includes('Memela'));
+    // Dusburg's Pregel is Prigore (III 103); Pregor is Pulkava's and Jeroschin's, not his.
+    assert.ok(!names('Q5611').includes('Pregor'));
     // Lithuania keeps today's names: its region has the rule and no period.
     assert.equal(info.regions.find((/** @type {any} */ r) => r.id === 'lithuania').rule, 'today');
     assert.equal(info.periods.lithuania, undefined);
@@ -69,6 +71,8 @@ describe('the hand file and the shipped block', () => {
     assert.equal(mater.where, 'XV 7 and XXIV 1');
     assert.equal(mater.gloss, 'Mother of Waters');
     assert.match(by.get('Q5622').names.find((/** @type {any} */ e) => e.name === 'Memela').where, /river only/);
+    // The Rhymed Chronicle's Mimele, from its river passage (v. 3847), panel only like Memela.
+    for (const n of ['Memela', 'Mimele']) assert.equal(by.get('Q5622').names.find((/** @type {any} */ e) => e.name === n).map, false, n);
     // Nevo is panel only and from the Hypatian copy; the Venta's Winda is panel only.
     const nevo = by.get('Q15288').names.find((/** @type {any} */ e) => e.name === 'Nevo');
     assert.equal(nevo.map, false); assert.equal(nevo.source, 'pvl-hypatian');
@@ -101,7 +105,7 @@ describe('the hand file and the shipped block', () => {
     assert.equal(info.seas.filter((/** @type {any} */ s) => s.ring === null).length, 1);
     assert.equal(info.seas.find((/** @type {any} */ s) => s.ring === null).id, 'baltic');
     const baltic = info.seas.find((/** @type {any} */ s) => s.id === 'baltic').names.map((/** @type {any} */ e) => e.name);
-    for (const n of ['Suebicum mare', 'Mare Balticum', 'Mare Barbarum', 'Pelagus Scithicum', 'More Varyazhskoye', 'Eystrasalt', 'Osterse', 'Mare salsum']) assert.ok(baltic.includes(n), n);
+    for (const n of ['Suebicum mare', 'Mare Balticum', 'Mare Barbarum', 'Pelagus Scithicum', 'More Varyazhskoye', 'Eystrasalt', 'Ostersê', 'Mare salsum']) assert.ok(baltic.includes(n), n);
     for (const s of info.seas.filter((/** @type {any} */ x) => x.ring)) assert.ok(s.ring.length >= 6 && s.ring.length % 2 === 0);
   });
 });
