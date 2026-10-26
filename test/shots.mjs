@@ -467,7 +467,9 @@ async function namesPanel(browser, scheme) {
   await open(PANEL_VIEWS.livonia);
   const rivers = (await boxes()).filter((b) => b.kind === 'river');
   check(rivers.length > 0, `${label}: no river name placed over Livonia`);
+  // In 1350 Livonia's records are the Rhymed Chronicle's: the Daugava is "Dune" on the map.
   const tapped = rivers.find((b) => b.text === 'Dune') ?? rivers[0];
+  check(tapped?.text === 'Dune', `${label}: the Daugava is not named "Dune" in 1350 (rivers: ${rivers.map((b) => b.text).join(', ')})`);
   const canvasBox = await page.locator('#map').boundingBox();
   if (!canvasBox || !tapped) throw new Error(`${label}: nothing to tap`);
   await page.touchscreen.tap(canvasBox.x + tapped.x, canvasBox.y + tapped.y);
@@ -475,6 +477,7 @@ async function namesPanel(browser, scheme) {
   check(await sheetOpen(), `${label}: tapping the name "${tapped.text}" did not open the panel`);
   const text = await panelText();
   check(/Names over time/.test(text) && /Today/.test(text), `${label}: the river panel lacks its sections:\n${text}`);
+  if (tapped.text === 'Dune') check(text.includes('Name now: Dune') && text.startsWith('Daugava'), `${label}: the Daugava's panel does not give "Dune" as the name now, under today's name:\n${text}`);
   await panelProblems('river panel');
   await page.screenshot({ path: join(SHOTS, `${scheme}-7-water-names.png`) });
   await closeAndWait();
@@ -736,10 +739,20 @@ try {
 const browser = await chromium.launch();
 try {
   if (process.argv.includes('--panel-only')) {
+    // Just the names panel, for working on it.
     await namesPanel(browser, 'light');
     await namesPanel(browser, 'dark');
-    throw new Error('panel-only run');
+  } else {
+    await runAll(browser);
   }
+} catch (err) {
+  failures.push(`the run crashed: ${err instanceof Error ? err.stack : err}`);
+} finally {
+  await browser.close();
+}
+
+/** Every check, in order. @param {import('playwright').Browser} browser */
+async function runAll(browser) {
   await playAsFile(browser, 'light');
   await playAsFile(browser, 'dark');
   await datedMaps(browser, 'light');
@@ -748,10 +761,6 @@ try {
   await namesPanel(browser, 'dark');
   await slowPhoneNames(browser);
   await playAsWebsite(browser);
-} catch (err) {
-  failures.push(`the run crashed: ${err instanceof Error ? err.stack : err}`);
-} finally {
-  await browser.close();
 }
 
 if (failures.length) {
