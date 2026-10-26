@@ -548,14 +548,15 @@ by ids from data/sources.md.
   for the year, in the language that region's period uses; a region with the "today" rule, or no
   record, or no period keeps today's name. "Of the time" is worked out, never stored: a name counts
   as of the time when its source was written within 25 years of the year shown
-  (`OF_THE_TIME_YEARS`, Ignas, 25 October 2026); a source further off is marked "later source".
+  (`OF_THE_TIME_YEARS`; Claude's default of 25 October 2026, TO CHECK with Ignas); a source further off is marked "later source".
   Medieval forms end in 1400 (a game choice, TO CHECK). `changeYears` lists the years when anything
   changes, so `epochAt` says in one binary search whether the names on the map must be placed
   again. `namesAt(year)` returns the text for every line and lake.
 - **On the map:** `labels.js` reads the text from that view, so only a real text change places the
   names anew (`renamed`, a separate path from a full repaint); the map's date pass calls it. It
   cost a median 12 ms, worst 18 ms in headless desktop Chrome, and a median 101 ms with the
-  processor slowed 4x (two changes in the time run).
+  processor slowed 4x (two changes in the time run). The soak follows the names too: every year
+  from 1219 to 2021, 13 changes of the names on the map, none blank, today's names in 2021.
 - **Tap** `src/ui/map/hit.js` (pure): `createTapTracker` counts a touch as a tap when it is one
   primary pointer, up within 600 ms and 10 px (it holds the pan until 10 px, then releases it by
   the whole distance). `hitWater` decides in order: a placed name (circles along the label), the
@@ -570,13 +571,19 @@ by ids from data/sources.md.
 - **Start-up fix:** the three late blocks (terrain-time, coast, changes, 0.8 MB) now sit after the
   code as HTML comments, `<!--gs:<kind>` then the JSON with "<" and ">" written as `\u003c` and
   `\u003e`, not as script elements; the game reads them back (`lateComment` in main.js) when it needs
-  them. The licence guard and every block test still run on the block texts. Measured in headless
+  them. A comment ends only at "-->" or "--!>", and with no ">" inside neither can appear; a test
+  reads every shipped late block back from its comment unchanged. A missing or damaged block stops
+  the map with a plain message ("missing its coast data", "data is damaged"), as before.
+  The licence guard and every block test still run on the block texts. Measured in headless
   Chrome slowed 4x, 16 runs in turn, first map median 1464 ms against 1501 ms with script elements
   (a 2 to 3% gain). Against M2b (2.0 MB, 1393 ms) the first map was 106 to 107% in two runs and
   98% in a third (the machine's noise is about 5%). What remains is the code: 102 KB against 53 KB
   in M2b, so the page's code starts about 50 ms later (scriptStartMs 570 against 520).
-- **Fonts:** the label font (Grenze Gotisch, subset to Latin Extended) draws every letter of the
-  shipped names (checked: ǫ, Â, ê, æ, and a test keeps the names inside the subset's ranges).
+- **Fonts:** the map's names are drawn in the phone's own serif font (`labelFont` in labels.js),
+  which the browser fills letter by letter, so old letters such as ǫ, Â, ê and æ show. The panel's
+  title uses our display font (Grenze Gotisch, subset to Latin Extended); the title is always
+  today's name, and a test keeps every river, line, lake and sea name inside the subset's ranges
+  (one "№" falls back to the next font).
 
 ## 10. Invariants and soak outputs
 

@@ -8,7 +8,8 @@
 // river) takes the name its region's records give for the year, in the language that region's
 // period uses; otherwise today's name stands in. "Later source" and "standing in" are worked out
 // here, never stored in the data. A source counts as of the time when it was written within
-// OF_THE_TIME_YEARS of the year shown (Ignas, 25 October 2026); "later source" marks the rest.
+// OF_THE_TIME_YEARS of the year shown; "later source" marks the rest. (25 years is Claude's default
+// of 25 October 2026, TO CHECK with Ignas: docs/DESIGN.md.)
 
 /**
  * @typedef {{ title: string, author: string, written?: number, about?: true, copy?: string }} NameSource
