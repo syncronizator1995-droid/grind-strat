@@ -237,7 +237,12 @@ const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
 function readBlock(kind) {
   const text = document.getElementById(`gs-${kind}`)?.textContent ?? lateComment(kind);
   if (!text) throw new Error(`the game file is missing its ${kind} data`);
-  return JSON.parse(text);
+  try {
+    return JSON.parse(text);
+  } catch {
+    // A file cut short or edited by hand: say so in plain words, not the parser's message.
+    throw new Error(`the game file's ${kind} data is damaged; download the game again`);
+  }
 }
 
 /**
