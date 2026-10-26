@@ -18,16 +18,19 @@ export const mapYearOfDay = (day) => eraOf(mapYear(day)).year;
 /**
  * The hidden test link: #date=1550 shows the map of 1550, and #date=1550&view=5057,10484,0.12
  * also puts the camera there (game units, CSS px per unit), for the screenshot checks. AD years
- * only for now. Null when the link asks for neither.
+ * only for now. #view=5057,10484,0.12 alone puts the camera there and leaves the year (the shots).
+ * Null when the link asks for neither.
  * @param {string} hash location.hash
- * @returns {{ year: number, view: { cx: number, cy: number, scale: number } | null } | null}
+ * @returns {{ year: number | null, view: { cx: number, cy: number, scale: number } | null } | null}
  */
 export function parseTestLink(hash) {
-  const m = /^#date=(\d{1,4})(?:&view=(\d+(?:\.\d+)?),(\d+(?:\.\d+)?),(\d+(?:\.\d+)?))?$/.exec(hash);
+  const num = '(\\d+(?:\\.\\d+)?)';
+  const m = new RegExp(`^(?:#date=(\\d{1,4})(?:&view=${num},${num},${num})?|#view=${num},${num},${num})$`).exec(hash);
   if (!m) return null;
-  const year = Number(m[1]);
-  if (year < 1) return null;
-  const view = m[2] ? { cx: Number(m[2]), cy: Number(m[3]), scale: Number(m[4]) } : null;
+  const year = m[1] === undefined ? null : Number(m[1]);
+  if (year !== null && year < 1) return null;
+  const v = m[2] ? m.slice(2, 5) : m[5] ? m.slice(5, 8) : null;
+  const view = v ? { cx: Number(v[0]), cy: Number(v[1]), scale: Number(v[2]) } : null;
   return { year, view: view && view.scale > 0 ? view : null };
 }
 

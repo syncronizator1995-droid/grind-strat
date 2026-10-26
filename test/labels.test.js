@@ -170,3 +170,47 @@ describe('placing names', () => {
     assert.ok(Math.abs(/** @type {number} */ (fresh.mx) - /** @type {number} */ (first.mx)) * 0.1 > 60, 'without memory it would have moved');
   });
 });
+
+describe('names of the time', () => {
+  const water = {
+    rivers: [Int32Array.from([0, 500, 1000, 500, 2000, 500, 3000, 500, 4000, 500])],
+    riverLevels: new Uint8Array(5), riverOf: Uint32Array.from([0]),
+    riverInfo: [{ name: 'Long River', names: {}, wikidata: null, lengthKm: 800 }],
+    lineName: /** @type {Uint32Array | null} */ (null), lineNames: [''], lineLocal: [''],
+    // Two rings of one lake, then a second lake: the rings of a lake sit together.
+    lakes: [Int32Array.from([3000, 3000, 3600, 3000, 3600, 3600, 3000, 3600]), Int32Array.from([3100, 3100, 3200, 3100, 3200, 3200]), Int32Array.from([200, 2000, 260, 2000, 260, 2060])],
+    lakeLevels: new Uint8Array(13), lakeOf: Uint32Array.from([0, 0, 1]),
+    lakeInfo: [
+      { name: 'Big Lake', names: {}, wikidata: null, areaKm2: 3600, at: /** @type {[number, number]} */ ([3300, 3300]) },
+      { name: 'Pond', names: {}, wikidata: null, areaKm2: 0.2, at: /** @type {[number, number]} */ ([230, 2030]) },
+    ],
+  };
+  const index = indexWater(water);
+  const args = { water, index, level: 2, scale: 0.1, ox: 0, oy: 400, width: 400, height: 400, measure };
+
+  it('shows the text of the time instead of today\'s, with the width for taps', () => {
+    const labels = placeWaterLabels({ ...args, names: { line: ['Duna'], lake: ['Lacus', 'Pond'] } });
+    const texts = labels.map((l) => l.text);
+    assert.ok(texts.includes('Duna') && texts.includes('Lacus'));
+    assert.ok(!texts.includes('Long River') && !texts.includes('Big Lake'));
+    for (const l of labels) assert.equal(l.width, measure(l.text, l.size));
+  });
+  it('keeps a name where it was when only its text changes', () => {
+    const first = placeWaterLabels({ ...args });
+    const previous = new Map();
+    for (const l of first) if (l.river !== undefined) previous.set(l.river, [l.mx, l.my]);
+    const again = placeWaterLabels({ ...args, previous, names: { line: ['Dune'], lake: ['Big Lake', 'Pond'] } });
+    const a = first.find((l) => l.river === 0);
+    const b = again.find((l) => l.river === 0);
+    assert.ok(a && b);
+    assert.ok(Math.hypot(a.x - b.x, a.y - b.y) < 1, 'same place');
+    assert.equal(b.text, 'Dune');
+  });
+  it('indexes each lake\'s rings and box', () => {
+    assert.deepEqual([...index.lakeRingStart], [0, 2, 3]);
+    assert.deepEqual([...index.lakeBox.subarray(0, 4)], [3000, 3000, 3600, 3600]);
+  });
+  it('refuses lake rings that are not together', () => {
+    assert.throws(() => indexWater({ ...water, lakeOf: Uint32Array.from([1, 0, 1]) }), /lake order/);
+  });
+});

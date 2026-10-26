@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { build, dataElements, findAddressesInData, findNetworkUses, findScriptBreakers, ICONS, licenceProblems, MANIFEST } from '../tools/build.mjs';
+import { build, dataElements, lateElements, LATE_KINDS, shippedBlocks, findAddressesInData, findNetworkUses, findScriptBreakers, ICONS, licenceProblems, MANIFEST } from '../tools/build.mjs';
 import { blockText, makeBlock } from '../tools/map/block.mjs';
 
 // The tests that build the real game build it strictly, as a release does: every real block must
@@ -109,12 +109,16 @@ describe('build', () => {
       assert.ok(!html.includes('{{'), 'no placeholder left');
       // The real map makes the file big; past this it would be slow to open on a phone.
       assert.ok(result.bytes < 4 * 1024 * 1024, `game file is ${result.bytes} bytes`);
-      for (const kind of ['base', 'terrain', 'water', 'terrain-time', 'coast', 'changes']) {
+      for (const kind of ['base', 'terrain', 'water', 'names']) {
         assert.ok(html.includes(`<script type="application/json" id="gs-${kind}">`), `the ${kind} data is in the page`);
+      }
+      for (const kind of ['terrain-time', 'coast', 'changes']) {
+        assert.ok(html.includes(`<!--gs:${kind}\n`), `the ${kind} data is in the page, as a comment the browser does not parse`);
+        assert.ok(!html.includes(`id="gs-${kind}"`), `the ${kind} data is not a script element`);
       }
       assert.ok(html.indexOf('id="gs-water"') < html.lastIndexOf('<script>'), 'the first picture\'s data comes before the code that reads it');
       // The map over time is needed only after the first picture: after the code, so it starts sooner.
-      for (const kind of ['terrain-time', 'coast', 'changes']) assert.ok(html.indexOf(`id="gs-${kind}"`) > html.lastIndexOf('<script>'), `the ${kind} data comes after the code`);
+      for (const kind of ['terrain-time', 'coast', 'changes']) assert.ok(html.indexOf(`<!--gs:${kind}\n`) > html.lastIndexOf('<script>'), `the ${kind} data comes after the code`);
       assert.equal(await readFile(join(out, 'index.html'), 'utf8'), html);
 
       const manifest = JSON.parse(await readFile(join(out, 'manifest.webmanifest'), 'utf8'));
@@ -190,10 +194,12 @@ describe('licence guard', () => {
 
   it('keeps an ODbL block to OpenStreetMap data, and our own block to our own work', () => {
     assert.deepEqual(licenceProblems([block('changes', 'grind-strat-own', ['own'])], sources), []);
+    assert.deepEqual(licenceProblems([block('names', 'grind-strat-own', ['own'])], sources), []);
     assert.ok(licenceProblems([block('water', 'ODbL-1.0', ['pd'])], sources).some((p) => /under the ODbL but holds data that is not OpenStreetMap's/.test(p)));
     assert.ok(licenceProblems([block('water', 'ODbL-1.0', ['own'])], sources).some((p) => /not OpenStreetMap's/.test(p)));
     for (const other of ['pd', 'by', 'osm']) {
       assert.ok(licenceProblems([block('changes', 'grind-strat-own', ['own', other])], sources).some((p) => /our own work but holds data from others/.test(p)), other);
+      assert.ok(licenceProblems([block('names', 'grind-strat-own', ['own', other])], sources).some((p) => /our own work but holds data from others/.test(p)), other);
     }
   });
 
@@ -207,6 +213,29 @@ describe('licence guard', () => {
     const sneaky = { kind: 'water', text: good[2].text.replace('A notice.', 'see https://example.com/a') };
     assert.equal(findAddressesInData([sneaky]).length, 1);
     assert.deepEqual(findAddressesInData(good), []);
+  });
+
+  it('puts a late block into the page as a comment that nothing inside can end', () => {
+    const nasty = block('changes', 'grind-strat-own', ['own'], { notice: 'a --> b <!-- c </script> d --!> e' });
+    const html = lateElements([nasty]);
+    assert.ok(html.startsWith('<!--gs:changes\n') && html.endsWith('\n-->'));
+    assert.equal(html.indexOf('-->'), html.length - 3, 'no "-->" inside');
+    assert.ok(!html.slice(4).includes('<!--') && !html.includes('--!>'));
+    const text = html.slice('<!--gs:changes\n'.length, -'\n-->'.length);
+    assert.equal(JSON.parse(text).notice, 'a --> b <!-- c </script> d --!> e', 'the JSON reads back the same');
+  });
+
+  it('every shipped late block reads back unchanged from its comment, which nothing inside ends', async () => {
+    const late = (await shippedBlocks()).filter((b) => LATE_KINDS.includes(b.kind));
+    assert.deepEqual(late.map((b) => b.kind).sort(), [...LATE_KINDS].sort());
+    for (const b of late) {
+      const html = lateElements([b]);
+      const head = `<!--gs:${b.kind}\n`;
+      const inner = html.slice(head.length, -'\n-->'.length);
+      // An HTML comment ends only at "-->" or "--!>"; with no ">" inside, neither can appear.
+      assert.ok(!inner.includes('>') && !inner.includes('<'), `${b.kind}: no < or > inside`);
+      assert.deepEqual(JSON.parse(inner), JSON.parse(b.text), `${b.kind} reads back the same`);
+    }
   });
 
   it('a strict build refuses an interim block and an unread source, and builds good blocks', async () => {

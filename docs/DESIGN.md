@@ -351,7 +351,8 @@ polished, error-free Lithuanian playthrough that holds together however the play
   the years pass. Lithuania keeps today's Lithuanian names all game; elsewhere a river or lake
   shows the form in the records of that date (Henry of Livonia's Latin in 1219, Dusburg in
   Prussia, the chronicles for Rus' lands). Where no name of the time is sourced, today's name
-  stands in, marked so. Tap a place for all its names and sources (the tap panel is M3a part 2).
+  stands in, marked so. Tap a place for all its names and sources (the tap panel, built in M3a part 2).
+  Medieval forms end in 1400; from 1400 today's names stand in (TO CHECK).
 - Terrain: one 1 km terrain map covers every province. Battle maps (step 6) and town maps (step 7)
   are made finer from it later.
 - Time slices: the map data for every age is prepared now, so nothing is redone later. M3a (1219
@@ -552,6 +553,11 @@ Step 2 split down are his step 2 answers, later the same day.
 | Our own map data | Same terms as the game; Ignas chooses them later (Ignas, 12 October 2026: "Same as the game (Recommended)") |
 | Reservoirs | The 12 big ones get researched, sourced filling years. The small ones too: each appears in the year OpenStreetMap gives, marked "year from OpenStreetMap"; ones with no year stay hidden (Ignas, 12 October 2026: "Small ones too") |
 | Lake names (M3) | Keep as is: just the name (Ignas, 11 October 2026: "Keep as is") |
+| "Of the time" (M3a, names) | A name counts as of the time when its source was written within 25 years of the year shown; only a source further off is marked "later source". So Henry of Livonia (about 1227) is of the time for 1219; Dusburg (1326) is a later source for the 13th century. Claude's default while Ignas slept (25 October 2026): TO CHECK with Ignas |
+| Where medieval forms stop (M3a, names) | At 1400: from 1400 today's names stand in. A game choice, not a fact: TO CHECK with Ignas |
+| Lake Peipus (M3a, names) | "Chudskoye ozero", as BGN/PCGN gives it, not "Chudskoe"; the same rule gives the other Russian forms (TO CHECK with Ignas) |
+| Names panel details (M3a) | Claude's defaults, TO CHECK with Ignas: the Venta's "Winda" is shown in the panel only (a name shared across the Lithuanian border cannot be split without geometry); Ladoga shows the 1228 Novgorod form from 1219, and "Nevo" is panel-only |
+| Model strategy (working method) | Sonnet at medium effort builds the heavy parts; Opus 5.5 at high effort plans and checks (Ignas, 25 October 2026: "same old token strategy sonnet for heavy lifting on meadiun and opus 5.5 on high for planning") |
 | Helper agents (working method) | Opus at high effort for hard code and for the sceptics, Sonnet at medium for routine jobs, at most two at once (Ignas, 20 October 2026) |
 | First map speed (M3a) | 6 to 10% slower than M2b in a slowed-down test is accepted; Ignas's phone decides (Ignas, 21 October 2026: "Accept it (Recommended)") |
 | Speed test (M3a) | One button: the usual test plus a time run from 1219 to today at speed 5, about 3 minutes (Ignas, 21 October 2026: "Keep it in one") |

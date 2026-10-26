@@ -28,6 +28,7 @@ const USES = /** @type {Record<string, string>} */ ({
   'terrain-time': 'how the land changes from 1250 to today: forest cleared and grown back',
   coast: 'the northern coast over time (where the sea stood higher in the game\'s year)',
   changes: 'the dated facts and drawn shapes of the map over time: reservoirs, cuts and outlets, and the Vistula delta',
+  names: 'the names of rivers, lakes and seas over time, with their sources',
 });
 
 /** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
@@ -61,6 +62,10 @@ const ABOUT = [
 const ABOUT_COAST = [
   'The northern coast (Sweden, Åland, Finland, Estonia) follows the game\'s year: since 1219 the land there has risen out of the sea. Where the sea stood is an estimate from today\'s land uplift, fitted to dated shores from local studies; Lake Mälaren is a bay of the sea until about 1300.',
 ];
+/** What the names are, when the names block ships. */
+const ABOUT_NAMES = [
+  'Outside Lithuania, rivers and lakes show the names written in the records of the game\'s date where we have sourced them (Duna for the Daugava in Henry of Livonia\'s chronicle); Lithuania keeps today\'s Lithuanian names. Tap a river, lake or sea for all its names and sources.',
+];
 /** What the rivers and lakes are, by where the shipped water comes from. */
 const ABOUT_WATER = {
   osm: [
@@ -84,7 +89,7 @@ const FOLDERS = [
   ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid and how it changes up to today (see its LICENSE.md and README.md).'],
   ['src/data/by/', 'Creative Commons Attribution 4.0 (CC BY 4.0): the northern coast over time (see its LICENSE.md and README.md). Nothing share-alike or from OpenStreetMap is mixed into it.'],
   ['src/data/map/', 'Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).'],
-  ['src/data/own/', 'Grind Strat\'s own work under the game\'s own terms (not yet chosen): the dated facts and drawn shapes of the map over time (see its LICENSE.md and README.md).'],
+  ['src/data/own/', 'Grind Strat\'s own work under the game\'s own terms (not yet chosen): the dated facts and drawn shapes of the map over time, and the names of rivers, lakes and seas over time (see its LICENSE.md and README.md).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
   // Raw bytes of Overture's OpenStreetMap water data, kept to test the Parquet reader: ODbL too,
   // whether or not the game ships OpenStreetMap data.
@@ -179,7 +184,7 @@ export function makeAttribution({ sources, blocks, ofl }) {
   const osmWater = Boolean(water?.block.sources.some((/** @type {string} */ id) => sources.find((s) => s.id === id)?.collection === 'osm'));
   /** @type {Credits} */
   const credits = {
-    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : []), ...(blocks.some((b) => b.kind === 'coast') ? ABOUT_COAST : [])],
+    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : []), ...(blocks.some((b) => b.kind === 'coast') ? ABOUT_COAST : []), ...(blocks.some((b) => b.kind === 'names') ? ABOUT_NAMES : [])],
     interim: blocks.filter((b) => b.block.interim).map((b) => INTERIM[b.kind] ?? `Interim: the ${b.kind} data is a stand-in.`),
     mapLine: [...onMap.map(short), 'more'].join(' · '),
     datasets: all.map((d) => d.entry),

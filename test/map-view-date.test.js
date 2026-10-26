@@ -144,6 +144,9 @@ describe('the hidden test link', () => {
   it('reads #date=1550 and an optional camera, and nothing else', () => {
     assert.equal(yearFromHash('#date=1550'), 1550);
     assert.deepEqual(parseTestLink('#date=1900&view=5057,10484,0.12'), { year: 1900, view: { cx: 5057, cy: 10484, scale: 0.12 } });
+    assert.deepEqual(parseTestLink('#view=5057,10484,0.12'), { year: null, view: { cx: 5057, cy: 10484, scale: 0.12 } });
+    assert.equal(yearFromHash('#view=5057,10484,0.12'), null, 'a camera alone leaves the year');
+    assert.equal(parseTestLink('#view=1,2'), null);
     for (const bad of ['', '#date=', '#date=0', '#date=-5', '#date=1550x', '#1550', '#date=1550&view=1,2']) assert.equal(yearFromHash(bad), null, bad);
   });
 
