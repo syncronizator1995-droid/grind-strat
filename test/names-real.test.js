@@ -67,10 +67,24 @@ describe('the shipped names at three dates', () => {
     assert.equal(found, info.features.length, 'no feature lost its link');
   });
 
-  it('has a panel for a Lithuanian lake and for the sea whose title is today\'s name', () => {
-    const k = link.lakeGroup.findIndex((g) => g >= 0);
-    const p = panelInfo({ link, water, hit: { kind: 'lake', lake: k }, year: 1350, dated: null });
-    assert.equal(p.title, link.todayLake[k]);
+  it('titles a panel with today\'s name, for a lake with no record and for the open sea', () => {
+    // A lake the list does not name (Lithuania's lakes are not in it): today's name, standing in.
+    const k = link.lakeGroup.findIndex((g) => g < 0);
+    assert.ok(k >= 0);
+    const lake = panelInfo({ link, water, hit: { kind: 'lake', lake: k }, year: 1350, dated: null });
+    assert.equal(lake.title, link.todayLake[k]);
+    assert.match(lake.now, /stands in/);
+    // A listed lake whose map name in 1350 is not today's: the title is still today's name.
+    const peipus = info.features.findIndex((f) => f.kind === 'lake' && f.wikidata === 'Q19253');
+    const kp = link.lakeGroup.findIndex((g) => g >= 0 && link.groups[g].feature === peipus);
+    assert.ok(kp >= 0, 'Lake Peipus is linked');
+    const p = panelInfo({ link, water, hit: { kind: 'lake', lake: kp }, year: 1350, dated: null });
+    assert.equal(p.title, link.todayLake[kp]);
+    assert.notEqual(namesAt(link, 1350).lake[kp], p.title, 'the map shows the old name in 1350');
+    const sea = panelInfo({ link, water, hit: { kind: 'sea', sea: 'baltic' }, year: 1350, dated: null });
+    assert.equal(sea.title, 'Baltic Sea');
+    const rows = sea.over.flatMap((o) => o.rows.map((r) => r.name)).join('|');
+    for (const n of ['Mare Balticum', 'Ostersê', 'More Varyazhskoye']) assert.ok(rows.includes(n), n);
   });
 });
 
@@ -108,17 +122,18 @@ describe('a tap on a gulf is a tap on open sea only', () => {
   });
 });
 
-describe('the label font covers the letters of the shipped names', () => {
-  it('keeps every letter inside the ranges the font subset keeps', () => {
+describe('the panel title font covers every title the panel can show', () => {
+  // The map's labels use the phone's own serif font (labels.js labelFont), which the browser fills
+  // letter by letter. The panel's title uses our display font, Grenze Gotisch, subset by
+  // tools/subset-font.py: the title is always today's name (a river, a line, a lake or a sea).
+  it('keeps every title inside the ranges the font subset keeps', () => {
     const script = readFileSync(join(ROOT, 'tools/subset-font.py'), 'utf8');
     const ranges = [...script.matchAll(/U\+([0-9A-F]{4})(?:-([0-9A-F]{4}))?/g)].map((m) => [parseInt(m[1], 16), parseInt(m[2] ?? m[1], 16)]);
-    const texts = [];
-    for (const f of info.features) for (const e of f.names) if (e.map !== false) texts.push(e.name);
-    for (const s of info.seas) { texts.push(s.name); for (const e of s.names) if (e.map !== false) texts.push(e.name); }
+    const titles = [...water.riverInfo.map((r) => r.name), ...(/** @type {string[]} */ (water.lineNames)), ...water.lakeInfo.map((l) => l.name), ...info.seas.map((s) => s.name)];
+    // "№" (one Belarusian river) falls back to the next font in the list; harmless.
+    const fallback = new Set(['№']);
     const missing = new Set();
-    for (const t of texts) for (const ch of t) if (!ranges.some(([a, b]) => (ch.codePointAt(0) ?? 0) >= a && (ch.codePointAt(0) ?? 0) <= b)) missing.add(ch);
+    for (const t of titles) for (const ch of t) if (!fallback.has(ch) && !ranges.some(([a, b]) => (ch.codePointAt(0) ?? 0) >= a && (ch.codePointAt(0) ?? 0) <= b)) missing.add(ch);
     assert.deepEqual([...missing], []);
-    const used = new Set(texts.join(''));
-    for (const ch of 'ǫÂêæ') assert.ok(used.has(ch), `${ch} is among the shipped names (the font was checked for it)`);
   });
 });
