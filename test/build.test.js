@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { build, dataElements, lateElements, findAddressesInData, findNetworkUses, findScriptBreakers, ICONS, licenceProblems, MANIFEST } from '../tools/build.mjs';
+import { build, dataElements, lateElements, LATE_KINDS, shippedBlocks, findAddressesInData, findNetworkUses, findScriptBreakers, ICONS, licenceProblems, MANIFEST } from '../tools/build.mjs';
 import { blockText, makeBlock } from '../tools/map/block.mjs';
 
 // The tests that build the real game build it strictly, as a release does: every real block must
@@ -223,6 +223,19 @@ describe('licence guard', () => {
     assert.ok(!html.slice(4).includes('<!--') && !html.includes('--!>'));
     const text = html.slice('<!--gs:changes\n'.length, -'\n-->'.length);
     assert.equal(JSON.parse(text).notice, 'a --> b <!-- c </script> d --!> e', 'the JSON reads back the same');
+  });
+
+  it('every shipped late block reads back unchanged from its comment, which nothing inside ends', async () => {
+    const late = (await shippedBlocks()).filter((b) => LATE_KINDS.includes(b.kind));
+    assert.deepEqual(late.map((b) => b.kind).sort(), [...LATE_KINDS].sort());
+    for (const b of late) {
+      const html = lateElements([b]);
+      const head = `<!--gs:${b.kind}\n`;
+      const inner = html.slice(head.length, -'\n-->'.length);
+      // An HTML comment ends only at "-->" or "--!>"; with no ">" inside, neither can appear.
+      assert.ok(!inner.includes('>') && !inner.includes('<'), `${b.kind}: no < or > inside`);
+      assert.deepEqual(JSON.parse(inner), JSON.parse(b.text), `${b.kind} reads back the same`);
+    }
   });
 
   it('a strict build refuses an interim block and an unread source, and builds good blocks', async () => {
