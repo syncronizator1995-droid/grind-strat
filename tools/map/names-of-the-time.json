@@ -63,7 +63,7 @@
     },
     "ptolemy": {
       "title": "Geography", "author": "Claudius Ptolemy", "written": 150, "about": true,
-      "edition": "Geography 3.5, read in E. L. Stevenson's English translation (1932, which its host calls poor) on LacusCurtius, and the Greek forms and the matchings with today's rivers in V. Blazek, 'An attempt at an etymological analysis of Ptolemy's hydronyms of Eastern Balticum', Acta Linguistica Lithuanica 76 (2017): https://journals.lki.lt/actalinguisticalithuanica/article/download/856/947 . The matchings are older scholars' guesses (Mannert 1820) and Blazek's own; none is certain, so each entry is marked disputed and kept off the map.",
+      "edition": "Geography 3.5, read in E. L. Stevenson's English translation (1932, which its host calls poor) on LacusCurtius, and the Greek forms and the matchings with today's rivers in V. Blažek, 'An attempt at an etymological analysis of Ptolemy's hydronyms of Eastern Balticum', Acta Linguistica Lithuanica 76 (2017): https://journals.lki.lt/actalinguisticalithuanica/article/download/856/947 . The matchings are older scholars' guesses (Mannert 1820) and Blažek's own; none is certain, so each entry is marked disputed and kept off the map.",
       "url": "https://penelope.uchicago.edu/Thayer/E/Gazetteer/Periods/Roman/_Texts/Ptolemy/3/5*.html", "seen": "READ"
     }
   },
@@ -108,8 +108,8 @@
         { "region": "livonia", "stretches": ["Daugava"], "name": "Dune", "language": "gmh", "source": "rhymed", "where": "v. 139" },
         { "region": "livonia", "stretches": ["Daugava"], "name": "Dvina", "orig": "Двина", "language": "orv", "source": "treaty-1229", "where": "the clause on free passage on the river", "note": "read as 'двиноу' and 'по двине', cases of Двина" },
         { "region": "rus", "stretches": ["Zapadnaya Dvina", "Zakhodnyaya Dzvina"], "name": "Dvina", "orig": "Двина", "language": "orv", "source": "pvl-laurentian", "where": "col. 4 l. 1; col. 6 l. 15" },
-        { "region": "livonia", "stretches": ["Daugava"], "name": "Chesinos", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blazek 2017)", "marks": ["disputed"], "map": false, "note": "Greek Chersinos / Chesinos; Blazek himself matches it with the Salaca" },
-        { "region": "livonia", "stretches": ["Daugava"], "name": "Tourountos", "language": "grc", "source": "ptolemy", "where": "3.5 (Blazek's own matching, 2017)", "marks": ["disputed"], "map": false, "note": "Greek Tourountos as Blazek gives it (Ptolemy has the genitive Tourountou; Latin Turuntus); Mannert matched it with the Venta" }
+        { "region": "livonia", "stretches": ["Daugava"], "name": "Chesinos", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blažek 2017)", "marks": ["disputed"], "map": false, "note": "Greek Chersinos / Chesinos; Blažek himself matches it with the Salaca" },
+        { "region": "livonia", "stretches": ["Daugava"], "name": "Tourountos", "language": "grc", "source": "ptolemy", "where": "3.5 (Blažek's own matching, 2017)", "marks": ["disputed"], "map": false, "note": "Greek Tourountos as Blažek gives it (Ptolemy has the genitive Tourountou; Latin Turuntus); Mannert matched it with the Venta" }
       ]
     },
     {
@@ -129,7 +129,7 @@
       "kind": "river", "wikidata": "Q215397", "label": "Venta",
       "names": [
         { "region": "livonia", "stretches": ["Venta"], "name": "Winda", "language": "la", "source": "henry", "where": "X 14 (Henry adds 'qui est fluvius Curonie')", "map": false, "note": "Panel only: the river's two lines run through Lithuania under one name, and a stretch name shared across the border cannot be split without geometry." },
-        { "region": "livonia", "stretches": ["Venta"], "name": "Tourountos", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blazek 2017)", "marks": ["disputed"], "map": false }
+        { "region": "livonia", "stretches": ["Venta"], "name": "Tourountos", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blažek 2017)", "marks": ["disputed"], "map": false }
       ]
     },
     {
@@ -220,7 +220,7 @@
       "names": [
         { "region": "lithuania", "stretches": ["Nemunas"], "name": "Memela", "language": "la", "source": "dusburg", "where": "III 2 (the passage about the river only)", "map": false, "note": "'Memela eciam est fluens aqua, descendens de regno Russie'; many other passages mean the castle or town of Memel" },
         { "region": "lithuania", "stretches": ["Nemunas"], "name": "Mimele", "language": "gmh", "source": "rhymed", "where": "v. 3847 ('die Mimele ist ein wazzer groz'; also vv. 3629-3640)", "map": false, "note": "printed 'die Mimele ist ein waʒʒer grôʒ' (page image, p. 89). The editor's register: the river Memel, though often the castle built on it; only the river passages are cited." },
-        { "region": "lithuania", "stretches": ["Nemunas"], "name": "Rhoubon", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blazek 2017)", "marks": ["disputed"], "map": false }
+        { "region": "lithuania", "stretches": ["Nemunas"], "name": "Rhoubon", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blažek 2017)", "marks": ["disputed"], "map": false }
       ]
     },
     {
@@ -233,7 +233,7 @@
       "kind": "river", "wikidata": "Q5611", "label": "Pregolya",
       "names": [
         { "region": "prussia", "name": "Prigora", "language": "la", "source": "dusburg", "where": "III 103 ('in flumine Prigore', 'super aquam Prigore')", "marks": ["TO CHECK"], "note": "Dusburg writes only the genitive Prigore (the Prussians' bridge over the river by Konigsberg). The nominative Prigora is the one in the same volume's Epitome of the Sambian canon ('a Prigora'); TO CHECK. The form Pregor of the first notes is not Dusburg's: it is in Pulkava's Bohemian chronicle (printed in the volume's appendix) and in Jeroschin's German verse." },
-        { "region": "prussia", "name": "Chronos", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blazek 2017)", "marks": ["disputed"], "map": false }
+        { "region": "prussia", "name": "Chronos", "language": "grc", "source": "ptolemy", "where": "3.5 (Mannert's matching, in Blažek 2017)", "marks": ["disputed"], "map": false }
       ]
     },
     {
