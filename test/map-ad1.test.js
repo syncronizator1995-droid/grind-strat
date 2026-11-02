@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { inflateSync } from 'node:zlib';
-import { COAST_CODE, coastLevel, createCoast, LEAD, leadLevel } from '../src/sim/coast-date.js';
+import { COAST_CODE, coastLevel, createCoast, LEAD, leadFromMain, leadLevel } from '../src/sim/coast-date.js';
 import { createTerrainTimeline, eraOf, FIRST_LEAD_YEAR, timelineFromBlock } from '../src/sim/map-date.js';
 import { createDateLayer, mapYearOfDay, parseTestLink } from '../src/ui/map/dated.js';
 import { unbundleBlocks } from '../src/ui/map/codec.js';
@@ -224,7 +224,11 @@ describe('the shipped coast-ad1 block', () => {
   it('has no jump at 1219: the same cells are sea just before it as in the 1219 field', () => {
     assert.equal(leadLevel(1218), 152);
     for (let i = 0; i < codes.length; i++) assert.equal(coast.seaAtCell(i, 1218), coast.seaAtCell(i, 1219), `cell ${i}`);
-    for (let i = 0; i < codes.length; i++) assert.equal(lead[i] > 152, codes[i] >= 1, `cell ${i}`);
+    const full = /** @type {Uint8Array} */ (coast.lead);
+    for (let i = 0; i < codes.length; i++) assert.equal(full[i] > 152, codes[i] >= 1, `cell ${i}`);
+    // the block leaves the cells still sea in 1219 at 0; the game puts them back from the 1219 field
+    for (let i = 0; i < codes.length; i++) if (codes[i] >= 1 && codes[i] <= COAST_CODE.last) { assert.equal(lead[i], 0); assert.equal(full[i], leadFromMain(codes[i])); }
+    assert.ok(full.some((v, i) => v !== lead[i]));
     // and at the level of the old sea's picture: nothing but the field changes
     coast.step(1218);
     assert.equal(coast.onLead, true);
@@ -312,6 +316,7 @@ describe('the AD 1 coast rules on a made-up shore', () => {
     assert.ok(own[1] > own[2], 'the lower cell stays sea longer');
     assert.equal(own[4], 0, 'above the AD 1 sea');
     assert.ok(leadCodeOfYear(1223) === 153 && leadCodeOfYear(1) === 0 && leadCodeOfYear(9) === 1);
+    for (let k = 1; k <= COAST_CODE.last; k++) assert.equal(leadFromMain(k), leadCodeOfYear(1219 + 4 * k), `code ${k}`);
   });
 
   it('cells still sea in 1219 keep the 1219 field\'s years, in 8-year steps from 153', () => {
@@ -353,6 +358,22 @@ describe('the names at AD 1', () => {
     // Lithuania keeps today's names at every year, AD 1 too
     const nem = group('Q5622');
     assert.equal(nameAt(link, nem, 1).why, 'today-rule');
+  });
+
+  it('shows no medieval record at AD 1: only Mela, Pliny and Tacitus count before 200 (Duna, Oddara, Prigora are not AD 1 names)', async () => {
+    const info = await loadNames(block('src/data/own/names.json'), noTimes());
+    const water = await loadWater(block('src/data/odbl/water.json'), noTimes());
+    const link = linkNames(info, water);
+    for (const y of [1, 100, 199]) {
+      link.groups.forEach((g, i) => {
+        const r = nameAt(link, i, y);
+        if (r.why === 'record') assert.ok(['mela', 'pliny', 'tacitus'].includes(/** @type {any} */ (r.entry).source), `${g.today} in ${y}: ${r.name} from ${r.entry?.source}`);
+      });
+    }
+    const daugava = link.groups.findIndex((g) => g.today === 'Daugava');
+    assert.ok(daugava >= 0);
+    assert.equal(nameAt(link, daugava, 1).name, 'Daugava');
+    assert.equal(nameAt(link, daugava, 1219).name, 'Duna');
   });
 
   it('keeps Codanus sinus and Ptolemy\'s four rivers off the map, in the panel with "?"', async () => {

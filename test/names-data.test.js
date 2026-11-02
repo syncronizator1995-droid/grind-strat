@@ -139,6 +139,10 @@ describe('the checks of pack-names.mjs each refuse a bad invented case', () => {
     assert.ok(has(/'today' region has no periods/, problems(h)));
     h = clone(); delete h.periods.rus[1].marks;
     assert.ok(has(/1400 is a game choice/, problems(h)));
+    h = clone(); h.periods.livonia[0].sources = ['mela', 'nobody'];
+    assert.ok(has(/lists unknown source nobody/, problems(h)));
+    h = clone(); h.periods.livonia[0].sources = ['pliny'];
+    assert.ok(has(/must be a list that holds its own source/, problems(h)));
   });
 
   it('3: each key matches exactly one feature; stretches exist; a group has one region', () => {

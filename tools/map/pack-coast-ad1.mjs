@@ -10,9 +10,9 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEAD } from '../../src/sim/coast-date.js';
+import { COAST_CODE, LEAD, leadFromMain } from '../../src/sim/coast-date.js';
 import { blockText, makeBlock, ROOT, writeBlock } from './block.mjs';
-import { ANCHORS_FILE } from './build-coast.mjs';
+import { ANCHORS_FILE, OUT_NAME as MAIN_OUT } from './build-coast.mjs';
 import { ANCHORS_AD1_FILE, OUT_NAME } from './build-coast-ad1.mjs';
 import { coastParamsSha256 } from './coast.mjs';
 import { coastAd1ParamsSha256 } from './coast-ad1.mjs';
@@ -43,6 +43,18 @@ export async function packCoastAd1() {
   const stale = coastAd1StaleReasons(meta, anchorsAd1Text, anchorsText);
   if (stale.length) throw new Error(`the AD 1 coast field is stale (${stale.join('; ')}): run npm run map:coast-ad1`);
   for (const k of codes) if (k > LEAD.last && k !== 254) throw new Error(`lead code ${k} is not one the game knows`);
+  // The cells still sea in 1219 follow from the 1219 field (leadFromMain): stored as 0, put back
+  // by createCoast. Checked here, so the game rebuilds exactly the field that was built.
+  const main = await readDerived(MAIN_OUT);
+  const mainCodes = new Uint8Array(main.bytes.buffer, main.bytes.byteOffset, main.bytes.byteLength);
+  if (mainCodes.length !== codes.length) throw new Error(`${OUT_NAME} and ${MAIN_OUT} cover different boxes`);
+  const stored = codes.slice();
+  for (let i = 0; i < stored.length; i++) {
+    const k = mainCodes[i];
+    if (k < COAST_CODE.first || k > COAST_CODE.last) continue;
+    if (stored[i] !== leadFromMain(k)) throw new Error(`cell ${i}: lead code ${stored[i]} does not follow from the 1219 code ${k}: run npm run map:coast-ad1`);
+    stored[i] = 0;
+  }
   const ad = JSON.parse(anchorsAd1Text);
   /** @type {string[]} */
   const sources = meta.sources;
@@ -54,7 +66,7 @@ export async function packCoastAd1() {
     sources,
     meta: {
       coast: { col0: meta.col0, row0: meta.row0, cols: meta.cols, rows: meta.rows, cell: meta.cell, rowOrder: 'south-first' },
-      codes: { land: 0, last: LEAD.last, sea: 254, baseYear: LEAD.baseYear, step: LEAD.step, handOver: LEAD.handOver },
+      codes: { land: 0, last: LEAD.last, sea: 254, baseYear: LEAD.baseYear, step: LEAD.step, handOver: LEAD.handOver, fromMain: 'cells the 1219 field has as sea in 1219 are stored as 0 and rebuilt from it (src/sim/coast-date.js completeLead)' },
       estimate: true,
       sgu: meta.sgu,
       fitted: meta.fitted,
@@ -64,7 +76,7 @@ export async function packCoastAd1() {
       older: ad.older,
       built: { paramsSha256: meta.paramsSha256, mainParamsSha256: meta.mainParamsSha256 },
     },
-    layers: { lead: codes },
+    layers: { lead: stored },
   });
 }
 

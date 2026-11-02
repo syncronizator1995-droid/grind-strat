@@ -55,7 +55,7 @@ export async function packTerrainAd1() {
   return makeBlock({
     kind: 'terrain-ad1',
     licence: 'CC-BY-SA-4.0',
-    notice: `The land around AD 1 for Grind Strat, 1 km grid, and how it changes to 1219: forest shares estimated from pollen (about 250 BC to AD 250), which places were forest and when they changed placed by a rule. Squares in the east are model-filled and of lower quality. Shared under CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0/). ${await madeFrom(meta.sources)}`,
+    notice: `The land around AD 1 for Grind Strat, 1 km grid, and how it changes to 1219: forest shares estimated from pollen (about 250 BC to AD 250), which places were forest and when they changed placed by a rule. Squares east of 28E are marked lower quality (our line, after the paper's warning about the east). Shared under CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0/). ${await madeFrom(meta.sources)}`,
     sources: meta.sources,
     meta: {
       grid: { cols: meta.cols, rows: meta.rows, cell: meta.cell, rowOrder: 'south-first' },

@@ -19,6 +19,8 @@
 //   254        sea all game
 // Before 1219 a cell is sea when its lead code is above leadLevel(year); from 1219 on the 1219
 // field above is used, so nothing jumps at the hand-over: the sea cells are the same set.
+// The codes 153 and up follow from the 1219 field (leadFromMain), so the shipped block stores 0
+// in those cells to save space, and createCoast puts them back (completeLead).
 //
 // Cells of today's sea within two cells of the land carry the code of the land beside them
 // (the smallest one), so the old shore drawn from this field never leaves a sliver of old sea on
@@ -97,13 +99,35 @@ function sortedByCode(codes, last) {
 }
 
 /**
- * @param {{ box: CoastBox, codes: Uint8Array, lead?: Uint8Array | null }} field lead: the AD 1 to 1219
- *   field over the same box (see the top of the file), or null
+ * The lead code of a cell the 1219 field still has under the sea in 1219 (code k, 1 to 201): the
+ * same year, land from 1219 + 4k, in the lead-in's 8-year steps (153 to 253).
+ * @param {number} k
  */
-export function createCoast({ box, codes, lead = null }) {
+export const leadFromMain = (k) => Math.min(LEAD.last, Math.ceil((COAST_BASE_YEAR + COAST_STEP * k - LEAD.baseYear) / LEAD.step));
+
+/**
+ * The full lead-in field from the stored one: every cell the 1219 field has as sea in 1219 takes
+ * its lead code from it (the block leaves those cells 0). A new array.
+ * @param {Uint8Array} stored @param {Uint8Array} codes the 1219 field
+ */
+export function completeLead(stored, codes) {
+  const lead = stored.slice();
+  for (let i = 0; i < lead.length; i++) {
+    const k = codes[i];
+    if (k >= COAST_CODE.first && k <= COAST_CODE.last) lead[i] = leadFromMain(k);
+  }
+  return lead;
+}
+
+/**
+ * @param {{ box: CoastBox, codes: Uint8Array, lead?: Uint8Array | null }} field lead: the AD 1 to 1219
+ *   field over the same box as stored (see the top of the file), or null
+ */
+export function createCoast({ box, codes, lead: stored = null }) {
   const { col0, row0, cols, rows, cell } = box;
   if (codes.length !== cols * rows) throw new Error(`coast field: ${codes.length} cells for a box of ${cols} x ${rows}`);
-  if (lead && lead.length !== codes.length) throw new Error(`coast lead-in field: ${lead.length} cells for a box of ${cols} x ${rows}`);
+  if (stored && stored.length !== codes.length) throw new Error(`coast lead-in field: ${stored.length} cells for a box of ${cols} x ${rows}`);
+  const lead = stored ? completeLead(stored, codes) : null;
   const leadSorted = lead ? sortedByCode(lead, LEAD.last) : null;
   /** Is a year before the hand-over, with a lead-in field to answer for it? @param {number} year */
   const inLead = (year) => Boolean(lead) && year < LEAD.handOver;

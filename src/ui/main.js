@@ -367,7 +367,13 @@ async function showMap() {
  */
 function showTestYear(year) {
   mapView?.setMapYear(year);
-  if (year !== null) tell(`Test link: the map shows ${year < FIRST_MAP_YEAR ? Math.max(1, year) : year}. The game's date is not changed.`);
+  if (year === null) return;
+  // The AD 1 data is loaded only when the page opens on a date before 1219: a link changed in
+  // place to such a date shows 1219 until the page is opened again, and says so.
+  const asked = Math.max(1, year);
+  const shown = Math.max(datedData?.timeline.leadIn ? 1 : FIRST_MAP_YEAR, asked);
+  const reload = shown > asked ? ' Open the link again (reload) to see years before 1219.' : '';
+  tell(`Test link: the map shows ${shown}.${reload} The game's date is not changed.`);
 }
 
 async function speedTest() {

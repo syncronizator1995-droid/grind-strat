@@ -34,11 +34,17 @@ export const AD1 = Object.freeze({
 });
 
 /**
- * Pollen squares whose centre lies at or east of this longitude are "model-filled, lower
- * quality": the paper says the north-eastern and south-eastern parts of its map, with few or no
- * pollen records, are of considerably lower quality (Githumbi et al. 2022, section 4.1). The CSV
- * has no per-square flag, so this line is OUR reading of "eastern" (TO CHECK against the paper's
- * site map): it takes in Belarus east of Minsk, Pskov and Novgorod, and Ukraine east of 28E.
+ * Pollen squares whose centre lies at or east of this longitude are marked "model-filled, lower
+ * quality". What the paper says (Githumbi et al. 2022, section 4.1): its map of the remote areas of
+ * north-eastern and south-eastern Europe, where there are no REVEALS (pollen-based) estimates, is
+ * "of considerably lower quality than the rest of Europe", and the squares whose confidence region
+ * is over 9 were left out of the map altogether (section 5.1: north-eastern Europe and south-east of
+ * the Caspian). Every land square of our map is in the CSV, so none of ours was left out: the
+ * eastern ones passed the paper's own cut, but stand far from pollen records. The paper's per-square
+ * confidence (its Figure 3A) is not in the CSV, so this longitude line is OUR stand-in (TO CHECK).
+ * The precise rule would be "no REVEALS estimate in this square for window 6": the REVEALS grid's
+ * per-window square quality is in GC_quality_by_TW.xlsx (Fyfe et al. 2021, PANGAEA,
+ * doi:10.1594/PANGAEA.937075, CC BY 4.0), on download.pangaea.de, which is blocked here.
  */
 export const LOW_QUALITY_FROM_LON = 28;
 

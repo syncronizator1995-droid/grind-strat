@@ -33,7 +33,7 @@ export const AD1_SOURCES = Object.freeze([...TERRAIN_SOURCES, AD1.source]);
 export const LABELS = Object.freeze({
   forestShare: 'Forest share: estimated from pollen (REVEALS; 1 degree cells; gaps filled by a statistical model) for about 250 BC to AD 250',
   forestEdges: 'Which places were forest at AD 1, and in which year before 1219 they changed: placed by a rule (the 1219 rule), not a historical map',
-  quality: `Squares in the east (Belarus, north-west Russia, Ukraine) are ${LOW_QUALITY_LABEL}: the paper says the north-eastern and south-eastern parts of its map have few or no pollen records and are of considerably lower quality (Githumbi et al. 2022).`,
+  quality: `Squares east of 28E (Belarus, north-west Russia, Ukraine) are marked ${LOW_QUALITY_LABEL}: the paper finds its map of remote north-eastern and south-eastern Europe, where it has no pollen-based (REVEALS) estimates, of considerably lower quality, and leaves out the squares that are too uncertain (confidence region over 9); none of this map's land squares were left out. The 28E line is our own reading, not the paper's (Githumbi et al. 2022, section 4.1; TO CHECK).`,
 });
 
 /** A rough box over Lithuania (21-27E, 54-56N), for the plain-words check of the shares. */

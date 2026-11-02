@@ -2,10 +2,10 @@
   "about": "Control points for the AD 1 coast (M3b; tools/map/coast-ad1.mjs, npm run map:coast-ad1). Kept apart from tools/map/coast-anchors.json so the 1219 field's fingerprint does not move. A 'group' with the name of a 1219 group REPLACES that group's k for AD 1 (its points are fitted again with the older ones added); groups of 1219 that are not named here keep their k. 'value' points are fitted, 'check' points only compared. Heights are metres above today's mean sea level in each study's own datum. Ages in cal BP are years before 1950 (AD = 1950 - cal BP, so 2205 cal BP is 255 BC, written -255). The AD 1 sea height is then a straight line in time from AD 1 to the 1219 value (src/sim/coast-date.js lead-in).",
   "groups": {
     "uppland-north": {
-      "about": "North Uppland (Forsmark area). The 1219 fit used Eckarfjärden alone; for AD 1 the two older lake isolations of Hedenström and Risberg are fitted instead, and Eckarfjärden (1100) is only compared. The plain uplift rule is about 2 m too low at AD 1 here (about 12 m against about 14 to 15 m).",
+      "about": "North Uppland (Forsmark area). The 1219 fit used Eckarfjärden alone; for AD 1 the two older lake isolations of Hedenström and Risberg are fitted instead, and Eckarfjärden (1100) is only compared. The plain uplift rule is about 2 m too low at AD 1 here (about 12 m against about 14 to 15 m). Heights are in RH70, the report's datum (Table 4-1).",
       "points": [
         "sodra-asjon-550",
-        "landholmssjon-m255"
+        "landholmssjon-m251"
       ]
     }
   },
@@ -14,7 +14,7 @@
       "id": "eckarfjarden",
       "group": "uppland-north",
       "use": "check",
-      "place": "Lake Eckarfjärden, near Forsmark, north Uppland (the same point as in coast-anchors.json)",
+      "place": "Lake Eckarfjärden, near Forsmark, north Uppland (60°22'N 18°12'E, the report's Table 4-1; the same point as in coast-anchors.json): isolated 850 cal BP",
       "lon": 18.2,
       "lat": 60.3667,
       "year": 1100,
@@ -27,28 +27,28 @@
       "id": "sodra-asjon-550",
       "group": "uppland-north",
       "use": "value",
-      "place": "Södra Åsjön, north Uppland (position: the Forsmark area, within about 10 km, TO CHECK against the report's site map)",
-      "lon": 18.2,
-      "lat": 60.3667,
+      "place": "Södra Åsjön, north Uppland (60°23'N 18°03'E, the report's Table 4-1)",
+      "lon": 18.05,
+      "lat": 60.3833,
       "year": 550,
       "rslM": 10.8,
       "toleranceM": 0.8,
       "age": "1400 cal BP",
-      "source": "Hedenström, A. and Risberg, J. (2003), SKB TR-03-17: isolation threshold 10.8 m above sea level",
+      "source": "Hedenström, A. and Risberg, J. (2003), SKB TR-03-17: isolation threshold 10.8 m above sea level (RH70, Table 4-1), isolated 1400 cal BP",
       "url": "https://skb.com/publication/20970/TR-03-17.pdf"
     },
     {
-      "id": "landholmssjon-m255",
+      "id": "landholmssjon-m251",
       "group": "uppland-north",
       "use": "value",
-      "place": "Landholmssjön, north Uppland (position: the Forsmark area, within about 10 km, TO CHECK against the report's site map)",
-      "lon": 18.2,
-      "lat": 60.3667,
-      "year": -255,
+      "place": "Landholmssjön, north Uppland (60°26'N 17°51'E, the report's Table 4-1)",
+      "lon": 17.85,
+      "lat": 60.4333,
+      "year": -251,
       "rslM": 16.0,
       "toleranceM": 1.0,
-      "age": "2205 cal BP",
-      "source": "Hedenström, A. and Risberg, J. (2003), SKB TR-03-17: isolation threshold 16.0 m (RH2000) at 2205 cal BP",
+      "age": "2200 cal BP (1950 - 2200 = 251 BC; there is no year 0)",
+      "source": "Hedenström, A. and Risberg, J. (2003), SKB TR-03-17: isolation threshold 16.0 m above sea level (RH70, Table 4-1), isolated 2200 cal BP",
       "url": "https://skb.com/publication/20970/TR-03-17.pdf"
     },
     {
@@ -66,6 +66,34 @@
       "url": "https://doi.org/10.5880/GFZ.1.3.2020.003"
     },
     {
+      "id": "tallinn-fig8-m51",
+      "group": "tallinn-east",
+      "use": "check",
+      "place": "Kopli strait, Tallinn (about 59.45N 24.69E): between the 5.25 m and 5.5 m isobases of the paper's Fig. 8 (about 2000 cal BP); our reading of the figure",
+      "lon": 24.69,
+      "lat": 59.45,
+      "year": -51,
+      "rslM": 5.3,
+      "toleranceM": 0.5,
+      "age": "about 2000 cal BP (51 BC)",
+      "source": "Saarse, L. and Vassiljev, J. (2010), Estonian Journal of Earth Sciences 59(3), 207-215, Fig. 8 (water-level isobases about 2000 cal BP, reconstruction by J. Vassiljev)",
+      "url": "https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2010/issue_3/earth-2010-3-207-215.pdf"
+    },
+    {
+      "id": "tallinn-fig9-950",
+      "group": "tallinn-east",
+      "use": "check",
+      "place": "Kopli, Tallinn (about 59.45N 24.69E): on the 2.75 m isobase of the paper's Fig. 9 (about 1000 cal BP); our reading of the figure",
+      "lon": 24.69,
+      "lat": 59.45,
+      "year": 950,
+      "rslM": 2.75,
+      "toleranceM": 0.5,
+      "age": "about 1000 cal BP (AD 950)",
+      "source": "Saarse, L. and Vassiljev, J. (2010), Estonian Journal of Earth Sciences 59(3), 207-215, Fig. 9 (water-level isobases about 1000 cal BP, reconstruction by J. Vassiljev)",
+      "url": "https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2010/issue_3/earth-2010-3-207-215.pdf"
+    },
+    {
       "id": "salme-1",
       "group": "saaremaa-ad1",
       "use": "check",
@@ -80,7 +108,7 @@
     }
   ],
   "tallinn": {
-    "about": "Kopli (Tallinn): Kakumäe joined the mainland about 2800 cal BP, Kopli about 1000 years later (about AD 150) (Saarse and Vassiljev 2010). GEBCO's heights at 450 m cannot show the narrow low neck of the Kopli peninsula, so the island is a HAND-DRAWN CUT: the cells under the line below are sea until the year given and land after it. The line's place (across the low ground that joins the peninsula to the mainland, about 59.4465N from 24.655E to 24.725E, and carried on along the same line in both directions until it meets today's sea) is our own reading of today's map, not the paper's map: TO CHECK. It stands for an estimate, not a survey.",
+    "about": "Kopli (Tallinn): Kakumäe joined the mainland about 2800 cal BP, Kopli about 1000 years later (about 1800 cal BP, AD 150) (Saarse and Vassiljev 2010, text); the paper's Fig. 8 (about 2000 cal BP) still shows Kopli as an island and Fig. 9 (about 1000 cal BP) joined. GEBCO's heights at 450 m cannot show the narrow low neck of the Kopli peninsula, so the island is a HAND-DRAWN CUT: the cells under the line below are sea until the year given and land after it. The line (about 59.4465N from 24.655E to 24.725E, carried on along the same line in both directions until it meets today's sea) is our own: in Fig. 8 the strait lies at about 59.448-59.455N, 24.690-24.697E (our reading of the figure against its latitude and longitude ticks), so the line crosses near its southern mouth, within about 300 m. TO CHECK against a survey or a better map. It stands for an estimate, not a survey.",
     "kopliCut": {
       "from": [
         24.655,
