@@ -103,6 +103,8 @@ function layoutProblems(page) {
     for (const el of document.querySelectorAll('.brand, .date, .speed button, .btn, .status, .chip, .map-credit span, .credits h3')) {
       if (!(el instanceof HTMLElement) || el.closest('[hidden]')) continue;
       if (el.scrollWidth > el.clientWidth + 1) problems.push(`text does not fit in ${el.className || el.tagName}: "${el.innerText}"`);
+      // The status line shows two lines and cuts off the rest.
+      if (el.classList.contains('status') && el.scrollHeight > el.clientHeight + 1) problems.push(`the status line is cut off: "${el.innerText}"`);
       const r = el.getBoundingClientRect();
       if (r.right > window.innerWidth + 0.5 || r.left < -0.5) problems.push(`${el.className || el.tagName} sticks out of the screen`);
     }
@@ -456,6 +458,35 @@ async function earlyMaps(browser, scheme) {
     if (v.name === 'stockholm') check(!names.includes('Mälaren'), `${at}: Mälaren is named at AD 1`);
     await page.screenshot({ path: join(SHOTS, `${scheme}-ad1-${v.name}.png`) });
     await latinNames(page, at);
+    await page.goto('about:blank');
+  }
+  // The link changed in place, from a game in 1219 (no AD 1 data loaded): 1219 with a note to
+  // reload, then an ice age, then back to 1550 with nothing of the age left over.
+  {
+    const at = `${label} link changed in place`;
+    await page.goto(fileUrl);
+    await mapShown(page, at);
+    await page.waitForFunction(() => document.documentElement.dataset.datedOnScreenMs, undefined, { timeout: 30000 });
+    const mapAttr = (/** @type {string} */ name) => page.locator('#map').getAttribute(name);
+    await page.evaluate(() => { location.hash = '#date=1'; });
+    await settle(page);
+    check(await mapAttr('data-map-year') === '1219', `${at}: #date=1 without the AD 1 data shows ${await mapAttr('data-map-year')}`);
+    check(/Reload the page/.test(await statusText(page)), `${at}: no note to reload ("${await statusText(page)}")`);
+    for (const p of await layoutProblems(page)) failures.push(`${at} #date=1: ${p}`);
+    await page.evaluate(() => { location.hash = '#date=10000BC'; });
+    await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-age') === 'age-10000bc', undefined, { timeout: 30000 }).catch(() => failures.push(`${at}: no ice-age map`));
+    check(await page.locator('#ageBanner').isVisible(), `${at}: no banner at 10,000 BC`);
+    await page.evaluate(() => { location.hash = '#date=1550'; });
+    await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-year') === '1550', undefined, { timeout: 30000 }).catch(() => failures.push(`${at}: 1550 did not come`));
+    await settle(page);
+    check(await mapAttr('data-map-age') === null, `${at}: the age is left over at 1550`);
+    check(await page.locator('#ageBanner').isHidden(), `${at}: the banner is left over at 1550`);
+    check(Number(await mapAttr('data-names')) > 0, `${at}: no names at 1550 after the ice age`);
+    await page.evaluate(() => { location.hash = ''; });
+    await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-year') === '1219', undefined, { timeout: 30000 }).catch(() => {});
+    check(await mapAttr('data-map-year') === '1219', `${at}: leaving the link shows ${await mapAttr('data-map-year')}, not the game's 1219`);
+    check(/^Test link off/.test(await statusText(page)), `${at}: the old test link message stays ("${await statusText(page)}")`);
+    for (const p of await layoutProblems(page)) failures.push(`${at} link off: ${p}`);
     await page.goto('about:blank');
   }
   for (const year of ['10000BC', '9500BC', '8500BC', '7500BC', '5000BC']) {

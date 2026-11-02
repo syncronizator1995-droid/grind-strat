@@ -442,17 +442,24 @@ async function showMap() {
  */
 function showTestYear(year) {
   mapView?.setMapYear(year);
-  if (year === null) return;
+  if (year === null) {
+    // Only a changed link gets here (the page opening without one never calls this): say the
+    // map is back on the game's date, so no old "Test link: ..." message is left standing.
+    if (statusEl.textContent?.startsWith('Test link')) tell('Test link off: the map follows the game\'s date again.');
+    return;
+  }
   if (year < 0) {
-    tell(`Test link: ice-age map, ${ageLabel(eraOf(year).year)}. The game's date is not changed.`);
+    // The banner gives the years ago; the status line keeps to two lines on a 360 px phone.
+    tell(`Test link: ice-age map, ${ageLabel(eraOf(year).year).replace(/ \(.*\)$/, '')}. The game's date is not changed.`);
     return;
   }
   // The AD 1 data is loaded only when the page opens on a date before 1219: a link changed in
   // place to such a date shows 1219 until the page is opened again, and says so.
   const asked = Math.max(1, year);
   const shown = Math.max(datedData?.timeline.leadIn ? 1 : FIRST_MAP_YEAR, asked);
-  const reload = shown > asked ? ' Open the link again (reload) to see years before 1219.' : '';
-  tell(`Test link: the map shows ${shown < 1219 ? `AD ${shown}` : shown}.${reload} The game's date is not changed.`);
+  // Two lines at most on a 360 px phone: the status line cuts off a third.
+  const after = shown > asked ? ' Reload the page to see years before 1219.' : ' The game\'s date is not changed.';
+  tell(`Test link: the map shows ${shown < 1219 ? `AD ${shown}` : shown}.${after}`);
 }
 
 async function speedTest() {
