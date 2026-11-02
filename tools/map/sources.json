@@ -378,6 +378,47 @@
       }
     },
     {
+      "id": "spatiocompo-tw6",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_2000.csv",
+      "file": "spatiocompo/Land_Cover_2000.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 6 (about 250 BC to AD 250 (1700-2200 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub (the same as the other windows). Used for the forest anchor of M3b's AD 1 map. Its eastern squares (Belarus, north-west Russia) are model-filled from far away and of lower quality (Githumbi et al. 2022).",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP, then 500-year steps (BP = AD 1950): 1200-1700, 1700-2200 and so on. That Land_Cover_2000.csv is the 1700-2200 BP window (250 BC to AD 250) rests on the count and the names (each named after its rounded middle), not on a per-file statement. The 25 file names match the 25 windows."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 6 (about 250 BC to AD 250)",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest around AD 1: a pollen-based land-cover map (about 250 BC to AD 250) by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 6 (about 250 BC to AD 250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of the AD 1 forest; which 1 km cells are forest, and in which year before 1219 they change, is a rule (see the terrain-ad1 block). The eastern squares are model-filled and of lower quality, as the paper says.",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
       "id": "osm-water",
       "collection": "osm",
       "access": "overture",

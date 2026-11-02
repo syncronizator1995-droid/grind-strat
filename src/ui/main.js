@@ -279,9 +279,11 @@ function drawLoading() {
  * The blocks of the map over time: the land, the northern coast, and our dated facts and shapes.
  * They come after the code in the page (tools/build.mjs), so the page may still be reading them.
  */
-async function datedBlocks() {
+async function datedBlocks(beforeFirstGrid = false) {
   if (document.readyState === 'loading') await new Promise((done) => document.addEventListener('DOMContentLoaded', done, { once: true }));
-  return { terrainTime: readBlock('terrain-time'), coast: readBlock('coast'), changes: readBlock('changes') };
+  const blocks = { terrainTime: readBlock('terrain-time'), coast: readBlock('coast'), changes: readBlock('changes') };
+  // M3b: the AD 1 land and coast are read only for a date before 1219 (a 1219 game never touches them).
+  return beforeFirstGrid ? { ...blocks, terrainAd1: readBlock('terrain-ad1'), coastAd1: readBlock('coast-ad1') } : blocks;
 }
 
 /**
@@ -296,9 +298,9 @@ async function showMap() {
   const testYear = yearFromHash(location.hash);
   const year = testYear ?? mapYearOfDay(state.day);
   let dated = /** @type {DatedData | null} */ (null);
-  if (year > FIRST_MAP_YEAR) {
+  if (year !== FIRST_MAP_YEAR) {
     const t = performance.now();
-    dated = await loadDated(await datedBlocks(), data.terrain.data, times);
+    dated = await loadDated(await datedBlocks(year < FIRST_MAP_YEAR), data.terrain.data, times);
     datedData = dated;
     data.terrain.data.set(dated.timeline.classesAt(year));
     startup.datedMs = performance.now() - t;
@@ -365,7 +367,7 @@ async function showMap() {
  */
 function showTestYear(year) {
   mapView?.setMapYear(year);
-  if (year !== null) tell(`Test link: the map shows ${Math.max(FIRST_MAP_YEAR, year)}. The game's date is not changed.`);
+  if (year !== null) tell(`Test link: the map shows ${year < FIRST_MAP_YEAR ? Math.max(1, year) : year}. The game's date is not changed.`);
 }
 
 async function speedTest() {

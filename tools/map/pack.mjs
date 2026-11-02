@@ -14,6 +14,9 @@
 //                                     layer with another source's.
 //   src/data/by/coast.json            CC BY 4.0: the northern coast over time, from the field
 //                                     that npm run map:coast builds (refused if it is stale)
+//   src/data/by-sa/terrain-ad1.json   CC BY-SA 4.0: the land of AD 1 and how it changes to 1219 (M3b), from
+//                                     the plane npm run map:terrain-ad1 builds; late, read before 1219 only
+//   src/data/by/coast-ad1.json        CC BY 4.0: the AD 1 coast (M3b), from npm run map:coast-ad1; late
 //   src/data/own/changes.json         our own work, under the game's own terms: the dated facts and
 //                                     drawn shapes of the map over time (tools/map/pack-changes.mjs)
 //   src/data/own/names.json           our own work: the names of rivers, lakes and seas over time
@@ -29,8 +32,10 @@ import { ROOT, writeBlock, writeFingerprints } from './block.mjs';
 import { packBase } from './pack-base.mjs';
 import { COAST_BLOCK, packCoast } from './pack-coast.mjs';
 import { CHANGES_BLOCK, packChanges } from './pack-changes.mjs';
+import { COAST_AD1_BLOCK, packCoastAd1 } from './pack-coast-ad1.mjs';
 import { NAMES_BLOCK, packNames } from './pack-names.mjs';
 import { packTerrain } from './pack-terrain.mjs';
+import { AD1_BLOCK, packTerrainAd1 } from './pack-terrain-ad1.mjs';
 import { packTerrainTime, TIME_BLOCK } from './pack-terrain-time.mjs';
 import { packWater } from './pack-water.mjs';
 
@@ -48,6 +53,11 @@ async function main() {
   // The land over time: left as it is where its planes were never built (npm run map:terrain-time).
   const time = await packTerrainTime();
   if (time) written.push({ path: TIME_BLOCK, text: await writeBlock(TIME_BLOCK, time) });
+  // M3b's AD 1 lead-in blocks: left as they are where their fields were never built.
+  const ad1 = await packTerrainAd1();
+  if (ad1) written.push({ path: AD1_BLOCK, text: await writeBlock(AD1_BLOCK, ad1) });
+  const coastAd1 = await packCoastAd1();
+  if (coastAd1) written.push({ path: COAST_AD1_BLOCK, text: await writeBlock(COAST_AD1_BLOCK, coastAd1) });
   written.push({ path: COAST_BLOCK, text: await writeBlock(COAST_BLOCK, await packCoast()) });
   written.push({ path: CHANGES_BLOCK, text: await writeBlock(CHANGES_BLOCK, await packChanges()) });
   written.push({ path: NAMES_BLOCK, text: await writeBlock(NAMES_BLOCK, await packNames()) });

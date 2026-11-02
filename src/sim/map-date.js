@@ -23,6 +23,13 @@
 // nearness, as the quota thresholds are blended between square centres. Then
 //   t = y0 + 1 + floor(f * (y1 - y0)),  in (y0, y1].
 // One counting pass works it out for every cell: no sorting and no distance maths on the phone.
+//
+// The lead-in (M3b): before the 1219 grid, AD 1 to 1219. A lead-in is one more stretch, run
+// BACKWARDS in what it stores: its plane keeps, per cell, (band << 3) | the AD 1 class (0: the
+// cell is the same at AD 1), and the cell shows that class until its switch year, then the
+// 1219 grid's. The switch years come from the same rule (bands, blocks, hash) over the years
+// AD 2..1219. So at AD 1 the map is the AD 1 cut, from 1219 on it is exactly what it always was,
+// and in between each cell changes once. A game that starts in 1219 never loads a lead-in.
 
 // Years: BC years are negative and there is no year 0 (1 BC comes right before AD 1), as in
 // src/sim/calendar.js. Year spans are counted on "year indexes" (AD 1 is 0, 1 BC is -1), so a
@@ -33,6 +40,10 @@ import { hash01 } from './grid.js';
 
 /** The game starts in 1219: the earliest year the historic map shows. */
 export const FIRST_MAP_YEAR = 1219;
+/** The first year of the lead-in: AD 1 (the AD 1 map; BC years show it too until M3b's ages). */
+export const FIRST_LEAD_YEAR = 1;
+/** Added to the timeline's seed for the lead-in's order inside a band (the stretches use 31 x k). */
+export const LEAD_SEED_OFFSET = 1031;
 /** Cells per side of the blocks in which change runs at a steady pace (32 km on the 1 km grid). */
 export const BLOCK_CELLS = 32;
 /** Distance bands in a plane byte (5 bits). */
@@ -49,15 +60,15 @@ export function mapYear(day) {
 }
 
 /**
- * Which set of map data a year uses. M3a has one, 'historic' (1219 to today), built for every
- * year from AD 1 on, with years before 1219 showing 1219. M3b adds AD 1 and the ice-age slices,
- * each with its own grids; until then a BC year shows the 1219 map and says so (noData).
+ * Which set of map data a year uses. One, 'historic' (AD 1 to today; M3b adds the ice-age ages),
+ * and a year before AD 1 shows AD 1 and says so (noData). Whether the data for AD 1 to 1219 (the
+ * lead-in) is loaded is the view's business: without it the map floors at 1219.
  * @param {number} year never 0
  * @returns {{ id: 'historic', year: number, noData: boolean }} year: the year to draw
  */
 export function eraOf(year) {
   checkYear(year);
-  return { id: 'historic', year: Math.max(FIRST_MAP_YEAR, year), noData: year < 1 };
+  return { id: 'historic', year: Math.max(FIRST_LEAD_YEAR, year), noData: year < 1 };
 }
 
 /**
@@ -92,6 +103,10 @@ const indexYear = (index) => (index >= 0 ? index + 1 : index);
  * @property {number} y0 the anchor the stretch starts from (its grid holds at y0)
  * @property {number} y1 the next anchor (its grid holds from y1)
  * @property {Uint8Array} plane one byte per cell: (band << 3) | newClass, newClass 0 = no change
+ *
+ * @typedef {object} LeadIn the stretch before the first grid: AD 1 up to y1 (the 1219 grid)
+ * @property {number} y0 the year its AD 1 grid holds at (AD 1) @property {number} y1 the year the base grid holds from (1219)
+ * @property {Uint8Array} plane one byte per cell: (band << 3) | the class at y0, 0 = the same as the base
  *
  * @typedef {object} Override cells that keep a class of their own for part of the time, on top
  *   of the anchors (Żuławy's marsh until it was diked, for example)
@@ -230,9 +245,10 @@ const MAX_YEAR = 32767;
  * game never stops for it when the date runs into a new stretch. Whatever is not prepared ahead
  * is prepared when it is needed; either way the answers are the same.
  * @param {{ cols: number, rows: number, base: Uint8Array, intervals: Interval[], overrides?: Override[],
- *   seed: number, block?: number }} spec base: the grid at the first anchor, held until intervals[0].y0
+ *   seed: number, block?: number, leadIn?: LeadIn | null }} spec base: the grid at the first anchor, held until
+ *   intervals[0].y0; leadIn: the stretch before it (see the top of the file), or null
  */
-export function createTerrainTimeline({ cols, rows, base, intervals, overrides = [], seed, block = BLOCK_CELLS }) {
+export function createTerrainTimeline({ cols, rows, base, intervals, overrides = [], seed, block = BLOCK_CELLS, leadIn = null }) {
   const n = cols * rows;
   if (base.length !== n) throw new Error(`base grid has ${base.length} cells, not ${cols} x ${rows}`);
   for (let k = 0; k < intervals.length; k++) {
@@ -241,6 +257,12 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
     if (!(y1 > y0)) throw new Error(`interval ${k}: ${y0} to ${y1} does not move forward`);
     if (k && y0 < intervals[k - 1].y1) throw new Error(`interval ${k} starts before interval ${k - 1} ends`);
     if (plane.length !== n) throw new Error(`interval ${k}: plane has ${plane.length} cells, not ${n}`);
+  }
+  if (leadIn) {
+    checkYear(leadIn.y0); checkYear(leadIn.y1); checkRange(leadIn.y0); checkRange(leadIn.y1);
+    if (!(leadIn.y1 > leadIn.y0)) throw new Error(`the lead-in ${leadIn.y0} to ${leadIn.y1} does not move forward`);
+    if (intervals.length && leadIn.y1 > intervals[0].y0) throw new Error('the lead-in ends after the first interval starts');
+    if (leadIn.plane.length !== n) throw new Error(`the lead-in plane has ${leadIn.plane.length} cells, not ${n}`);
   }
 
   /** @type {(Events | null)[]} */
@@ -280,12 +302,20 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
    * @param {number} k
    */
   function job(k) {
-    const { y0, y1, plane } = intervals[k];
+    return jobOf(intervals[k], seed + 31 * k, false, (out) => done(k, out));
+  }
+
+  /**
+   * The same work for any stretch. A lead-in's plane keeps the class BEFORE the switch, so what a
+   * cell becomes is the base grid's.
+   * @param {{ y0: number, y1: number, plane: Uint8Array }} iv @param {number} s the seed
+   * @param {boolean} lead @param {(out: Events) => void} finish
+   */
+  function jobOf({ y0, y1, plane }, s, lead, finish) {
     const first = yearIndex(y0) + 1;
     const span = yearIndex(y1) - yearIndex(y0);
     const stepRows = Math.max(1, Math.floor(STEP_CELLS / Math.max(1, cols)));
     const pace = pacer(cols, rows, block);
-    const s = seed + 31 * k;
     let phase = 0; let row = 0; let m = 0; let j = 0;
     /** @type {Int32Array} */ let cells = new Int32Array(0);
     /** @type {Int32Array} */ let years = new Int32Array(0);
@@ -334,16 +364,22 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
         const at = start[years[j] - first]++;
         out.cells[at] = cells[j];
         out.years[at] = indexYear(years[j]);
-        out.cls[at] = plane[cells[j]] & 7;
+        out.cls[at] = lead ? base[cells[j]] : plane[cells[j]] & 7;
       }
       if (j < m) return true;
-      done(k, out);
+      finish(out);
       return false;
     };
   }
 
   /** @type {((() => boolean) | null)[]} */
   const jobs = intervals.map(() => null);
+  // The lead-in's switches (null until worked out) and, per override cell, its lead-in switch.
+  /** @type {Events | null} */
+  let leadEvents = null;
+  /** @type {(() => boolean) | null} */
+  let leadJob = null;
+  const leadSlotYear = new Int16Array(slots.length);
 
   /** Stores interval k's finished switches. @param {number} k @param {Events} out */
   function done(k, out) {
@@ -369,6 +405,25 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
     return /** @type {Events} */ (events[k]);
   }
 
+  /** The lead-in's switches, worked out once (finishing any work done ahead). */
+  function prepareLead() {
+    if (leadEvents) return leadEvents;
+    const step = leadJob ?? (leadJob = leadStep());
+    while (step());
+    return /** @type {Events} */ (/** @type {unknown} */ (leadEvents));
+  }
+
+  function leadStep() {
+    return jobOf(/** @type {LeadIn} */ (leadIn), seed + LEAD_SEED_OFFSET, true, (out) => {
+      for (let j = 0; j < out.cells.length && slots.length; j++) {
+        const s = slotOf.get(out.cells[j]);
+        if (s !== undefined) leadSlotYear[s] = out.years[j];
+      }
+      leadEvents = out;
+      leadJob = null;
+    });
+  }
+
   /**
    * One small piece of preparing work, for the stretch `year` is in (or the next one), then for
    * the later ones, then the earlier ones. For spare frame time: call it until it returns false
@@ -378,18 +433,28 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
    */
   function prepareStep(year) {
     checkYear(year);
+    if (leadIn && !leadEvents && year < leadIn.y1) { // before 1219 the lead-in comes first
+      leadJob ??= leadStep();
+      leadJob();
+      return true;
+    }
     let k = -1;
     for (let q = 0; q < intervals.length; q++) if (!events[q] && intervals[q].y1 > year) { k = q; break; }
     if (k < 0) k = events.findIndex((e) => !e);
-    if (k < 0) return false;
+    if (k < 0) {
+      if (!leadIn || leadEvents) return false;
+      leadJob ??= leadStep();
+      leadJob();
+      return Boolean(!leadEvents);
+    }
     const step = jobs[k] ?? job(k);
     jobs[k] = step;
     step();
-    return events.some((e) => !e);
+    return events.some((e) => !e) || Boolean(leadIn && !leadEvents);
   }
 
-  /** Whether interval k's switch years are worked out. @param {number} k */
-  const isPrepared = (k) => Boolean(events[k]);
+  /** Whether interval k's switch years are worked out (-1: the lead-in's). @param {number} k */
+  const isPrepared = (k) => (k < 0 ? Boolean(leadEvents) : Boolean(events[k]));
 
   /**
    * Every change of interval k at once, for a year past its end: from the switches if they are
@@ -410,6 +475,11 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
   function anchorClassAt(s, year) {
     const cell = slots[s].cell;
     let c = base[cell];
+    if (leadIn && year < leadIn.y1) { // before 1219: the AD 1 class until the cell's lead-in switch
+      const before = leadIn.plane[cell] & 7;
+      if (before) { prepareLead(); if (year < leadSlotYear[s]) c = before; }
+      return c;
+    }
     for (let k = 0; k < intervals.length && intervals[k].y0 < year; k++) {
       if (year >= intervals[k].y1) {
         const v = intervals[k].plane[cell] & 7;
@@ -446,6 +516,13 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
   function classesAt(year) {
     checkYear(year);
     const grid = base.slice();
+    if (leadIn && year < leadIn.y1) { // the AD 1 grid, then the cells that have switched to 1219's
+      const plane = leadIn.plane;
+      for (let i = 0; i < n; i++) { const v = plane[i] & 7; if (v) grid[i] = v; }
+      const e = prepareLead();
+      const end = after(e.years, year);
+      for (let j = 0; j < end; j++) grid[e.cells[j]] = e.cls[j];
+    }
     for (let k = 0; k < intervals.length && intervals[k].y0 < year; k++) {
       if (year >= intervals[k].y1) { eachChange(k, (i, c) => { grid[i] = c; }); continue; }
       const e = prepare(k);
@@ -484,6 +561,15 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
       for (let i = 0; i < n; i++) if (grid[i] !== now[i]) put(i, now[i]);
       return changed;
     }
+    if (leadIn && fromYear < leadIn.y1) { // the lead-in's cells switch to the base grid's class
+      if (fromYear <= leadIn.y0 && toYear >= leadIn.y1) {
+        for (let i = 0; i < n; i++) if (leadIn.plane[i] & 7) putShown(i, base[i]);
+      } else {
+        const e = prepareLead();
+        const end = after(e.years, toYear);
+        for (let j = after(e.years, fromYear); j < end; j++) putShown(e.cells[j], e.cls[j]);
+      }
+    }
     for (let k = 0; k < intervals.length; k++) {
       const { y0, y1 } = intervals[k];
       if (y1 <= fromYear || y0 >= toYear) continue;
@@ -505,8 +591,10 @@ export function createTerrainTimeline({ cols, rows, base, intervals, overrides =
    * @param {number} k
    */
   const switches = (k) => prepare(k);
+  /** The lead-in's switches in year order (for tests and previews); null without a lead-in. */
+  const leadSwitches = () => (leadIn ? prepareLead() : null);
 
-  return { cols, rows, intervals, classesAt, advance, switches, prepareStep, isPrepared };
+  return { cols, rows, intervals, leadIn, classesAt, advance, switches, leadSwitches, prepareStep, isPrepared };
 }
 
 /** @param {number} year */
@@ -520,14 +608,28 @@ function checkRange(year) {
  * The timeline from the shipped terrain-time block (src/data/by-sa/terrain-time.json, unpacked)
  * and the 1219 terrain it grows from. The block's layers are its change planes; its meta says
  * which stretch each one covers and the seed and block size the switch years use.
+ * The lead-in comes from the terrain-ad1 block (src/data/by-sa/terrain-ad1.json), read only for
+ * dates before 1219: its meta names the layer and the years.
  * @param {{ meta: { grid: { cols: number, rows: number }, intervals: { y0: number, y1: number, layer: string }[],
- *   seed: number, blockCells: number }, layers: Record<string, Uint8Array>, base: Uint8Array, overrides?: Override[] }} spec
+ *   seed: number, blockCells: number }, layers: Record<string, Uint8Array>, base: Uint8Array, overrides?: Override[],
+ *   lead?: { meta: { leadIn: { y0: number, y1: number, layer: string }, grid: { cols: number, rows: number }, seed: number, blockCells: number },
+ *   layers: Record<string, Uint8Array> } | null }} spec
  */
-export function timelineFromBlock({ meta, layers, base, overrides = [] }) {
+export function timelineFromBlock({ meta, layers, base, overrides = [], lead = null }) {
   const intervals = meta.intervals.map(({ y0, y1, layer }) => {
     const plane = layers[layer];
     if (!plane) throw new Error(`the terrain-time block has no layer ${layer}`);
     return { y0, y1, plane };
   });
-  return createTerrainTimeline({ cols: meta.grid.cols, rows: meta.grid.rows, base, intervals, overrides, seed: meta.seed, block: meta.blockCells });
+  /** @type {LeadIn | null} */
+  let leadIn = null;
+  if (lead) {
+    const { y0, y1, layer } = lead.meta.leadIn;
+    const plane = lead.layers[layer];
+    if (!plane) throw new Error(`the terrain-ad1 block has no layer ${layer}`);
+    if (lead.meta.grid.cols !== meta.grid.cols || lead.meta.grid.rows !== meta.grid.rows) throw new Error('the AD 1 land and the land over time use different grids');
+    if (lead.meta.seed !== meta.seed || lead.meta.blockCells !== meta.blockCells) throw new Error('the AD 1 land and the land over time use different settings');
+    leadIn = { y0, y1, plane };
+  }
+  return createTerrainTimeline({ cols: meta.grid.cols, rows: meta.grid.rows, base, intervals, overrides, seed: meta.seed, block: meta.blockCells, leadIn });
 }

@@ -21,8 +21,10 @@
     "attribution": "node tools/map/attribution.mjs",
     "map:terrain": "node tools/map/build-terrain-1219.mjs",
     "map:terrain-time": "node tools/map/build-terrain-time.mjs && node tools/map/pack-terrain-time.mjs",
+    "map:terrain-ad1": "node tools/map/build-terrain-ad1.mjs && node tools/map/pack-terrain-ad1.mjs",
     "map:pack": "node tools/map/pack.mjs && node tools/map/attribution.mjs",
     "map:water": "node tools/map/fetch-overture.mjs && node --max-old-space-size=8192 tools/map/build-water.mjs",
+    "map:coast-ad1": "node --max-old-space-size=8192 tools/map/build-coast-ad1.mjs && node tools/map/pack-coast-ad1.mjs",
     "map:coast": "node tools/map/fetch.mjs nkg-rf17vel && node --max-old-space-size=8192 tools/map/build-coast.mjs"
   },
   "devDependencies": {
