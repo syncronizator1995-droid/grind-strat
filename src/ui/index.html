@@ -36,6 +36,7 @@
       <button type="button" class="chip" data-act="credits">Credits</button>
       <button type="button" class="chip" data-act="speedtest">Speed test</button>
     </div>
+    <button type="button" class="age-banner" id="ageBanner" hidden aria-haspopup="dialog"><span id="ageBannerText"></span><span class="more" id="ageBannerMore"></span></button>
     <button type="button" class="map-credit" data-act="credits" id="mapCredit"><span id="mapCreditText"></span></button>
     <section class="sheet" id="speedSheet" hidden aria-labelledby="speedTitle">
       <div class="sheet-head">
@@ -61,6 +62,13 @@
         <button type="button" class="btn" data-act="close-water">Close</button>
       </div>
       <div class="credits water" id="waterBody"></div>
+    </section>
+    <section class="sheet" id="ageSheet" hidden role="dialog" aria-labelledby="ageTitle">
+      <div class="sheet-head">
+        <h2 id="ageTitle"></h2>
+        <button type="button" class="btn" data-act="close-age">Close</button>
+      </div>
+      <div class="credits water" id="ageBody"></div>
     </section>
   </main>
   <footer class="bar">

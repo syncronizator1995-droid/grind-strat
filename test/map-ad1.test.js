@@ -96,10 +96,13 @@ describe('the lead-in engine on a made-up world', () => {
     assert.equal(plain.leadSwitches(), null);
   });
 
-  it('years: AD 1 is the first map year, a BC year shows it with noData', () => {
+  it('years: AD 1 is the first AD map year (the ad1 era), a BC year is an ice-age map', () => {
     assert.equal(FIRST_LEAD_YEAR, 1);
-    assert.deepEqual(eraOf(1), { id: 'historic', year: 1, noData: false });
-    assert.deepEqual(eraOf(-300), { id: 'historic', year: 1, noData: true });
+    assert.deepEqual(eraOf(1), { id: 'ad1', year: 1, noData: false });
+    assert.deepEqual(eraOf(1218), { id: 'ad1', year: 1218, noData: false });
+    assert.deepEqual(eraOf(1219), { id: 'historic', year: 1219, noData: false });
+    assert.deepEqual(eraOf(-1), { id: 'age-5000bc', year: -5000, noData: false });
+    assert.deepEqual(eraOf(-300), { id: 'age-5000bc', year: -5000, noData: false });
     assert.throws(() => eraOf(0), /no year 0/);
   });
 });

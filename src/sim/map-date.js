@@ -40,7 +40,7 @@ import { hash01 } from './grid.js';
 
 /** The game starts in 1219: the earliest year the historic map shows. */
 export const FIRST_MAP_YEAR = 1219;
-/** The first year of the lead-in: AD 1 (the AD 1 map; BC years show it too until M3b's ages). */
+/** The first year of the lead-in: AD 1 (the AD 1 map). BC years show the ice-age maps (AGES). */
 export const FIRST_LEAD_YEAR = 1;
 /** Added to the timeline's seed for the lead-in's order inside a band (the stretches use 31 x k). */
 export const LEAD_SEED_OFFSET = 1031;
@@ -60,15 +60,45 @@ export function mapYear(day) {
 }
 
 /**
- * Which set of map data a year uses. One, 'historic' (AD 1 to today; M3b adds the ice-age ages),
- * and a year before AD 1 shows AD 1 and says so (noData). Whether the data for AD 1 to 1219 (the
- * lead-in) is loaded is the view's business: without it the map floors at 1219.
+ * The ice-age maps (M3b): five rough ages, each shown from its own year until the next age. A BC
+ * year shows the age at or before it (9,000 BC shows 9,500 BC, 4,000 BC shows 5,000 BC), and
+ * anything earlier than 10,000 BC shows 10,000 BC. Years are negative; there is no year 0.
+ */
+export const AGES = Object.freeze([
+  { id: 'age-10000bc', year: -10000 },
+  { id: 'age-9500bc', year: -9500 },
+  { id: 'age-8500bc', year: -8500 },
+  { id: 'age-7500bc', year: -7500 },
+  { id: 'age-5000bc', year: -5000 },
+]);
+
+/**
+ * The ice-age map a year shows, or null for AD years (and nothing from AD 1 on is an age).
  * @param {number} year never 0
- * @returns {{ id: 'historic', year: number, noData: boolean }} year: the year to draw
+ * @returns {{ id: string, year: number } | null}
+ */
+export function ageOf(year) {
+  checkYear(year);
+  if (year > 0) return null;
+  let found = AGES[0];
+  for (const a of AGES) if (a.year <= year) found = a;
+  return found;
+}
+
+/**
+ * Which set of map data a year uses. 'historic' is 1219 to today, built for every year from AD 1
+ * on (AD 1 to 1218 is the 'ad1' era: M3b's lead-in before the 1219 grid; until it is in, those
+ * years draw 1219). A BC year is one of the five ice-age maps (AGES), each with its own data.
+ * @param {number} year never 0
+ * @returns {{ id: string, year: number, noData: boolean }} year: the year to draw
  */
 export function eraOf(year) {
   checkYear(year);
-  return { id: 'historic', year: Math.max(FIRST_LEAD_YEAR, year), noData: year < 1 };
+  const age = ageOf(year);
+  if (age) return { id: age.id, year: age.year, noData: false };
+  // AD 1 to 1218: the lead-in's own year. The view floors it at 1219 when the lead-in is not loaded.
+  if (year < FIRST_MAP_YEAR) return { id: 'ad1', year: Math.max(FIRST_LEAD_YEAR, year), noData: false };
+  return { id: 'historic', year, noData: false };
 }
 
 /**
