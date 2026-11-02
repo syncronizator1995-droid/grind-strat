@@ -528,7 +528,7 @@ by ids from data/sources.md.
   headless canvas makes slow (M2b's own full redraw of that view takes 0.4 to 0.6 s there too);
   Ignas's phone paints a full frame in 11 ms.
 - **The hidden test link** `#date=1550` pins the map to a year without changing the game's date;
-  `#date=1550&view=x,y,scale` also places the camera, for the screenshots. Later `#10000BC`.
+  `#date=1550&view=x,y,scale` also places the camera, for the screenshots. BC years since M3b: `#date=10000BC`.
 
 **As built in M3a, pull request 2 (the names change; the tap panel):**
 - **The names block** `src/data/own/names.json` (our own work, made by `tools/map/pack-names.mjs`
@@ -646,7 +646,11 @@ by ids from data/sources.md.
   comments (`LATE_KINDS`). `main.js` reads the first two only for a date before 1219
   (`datedBlocks(beforeFirstGrid)`) and the notes and the optional `ages` block only for a shown
   age; tests on each branch check it, and a 1219 game's first map was 97.7% of the one before the
-  merge (1586 against 1624 ms, 5 runs in turn, CPU slowed 4x).
+  merge (1586 against 1624 ms, 5 runs in turn, CPU slowed 4x; rechecked by the final review:
+  100.0%, 1649 against 1651 ms, 7 runs, and a 1219 game's map pixel for pixel the same as before
+  the merge). A page opened on a BC date loads the lead-in too (BC is before 1219), so the link
+  can go on to AD 1 in place; a page opened on 1219 or later shows 1219 for `#date=1` and asks for
+  a reload, and leaving the link says the map follows the game's date again.
 - **Soak:** `npm run soak` also runs the map from AD 1 to 2021 and requires it to meet a 1219
   game's land and coast exactly at 1219 and to end on today.
 - **For PR 3 (the ages' data):** the `ages` block format is in the header of `src/ui/map/slice.js`

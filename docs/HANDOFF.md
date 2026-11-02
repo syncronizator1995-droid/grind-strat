@@ -268,9 +268,9 @@ Then M3: the map follows the game's date.
   and marshes, painted. Pinch to zoom, drag to pan; mouse wheel on a computer.
 - **A map that follows the game's date** (no slider): it shows the land, water and names of the
   game's own date, from 1219 to today (M3a). AD 1 and the five ice-age slices (10,000, 9,500,
-  8,500, 7,500 and 5,000 BC) come as ready data in M3b, with a short sourced note on land,
+  8,500, 7,500 and 5,000 BC) come as ready data in M3b, with a full sourced note on land,
   water, ice, plants, animals and people, checked with a hidden test link (`#date=1550`,
-  later `#10000BC`).
+  `#date=1`, `#date=10000BC`).
 - **Names that change with the time:** 1219 shows the forms used in sources of that age; today
   shows today's local names. Where no name of the time is sourced, today's local name stands in,
   and the data says so. Tap a river, lake or sea for all its names and sources.

@@ -357,7 +357,7 @@ polished, error-free Lithuanian playthrough that holds together however the play
   are made finer from it later.
 - Time slices: the map data for every age is prepared now, so nothing is redone later. M3a (1219
   to today) is shown while playing. M3b (AD 1 and the five ice-age slices) is built as data, ready
-  for step 8, and checked with the hidden test link (#10000BC and so on). The ice-age slices are
+  for step 8, and checked with the hidden test link (`#date=1`, `#date=10000BC` and so on). The ice-age slices are
   played properly in step 8, with the hunters.
 - Credits: a Credits screen lists every data owner, the licence and what we changed. It opens
   from a Credits button and from a small credit line in a corner of the map. It starts with
@@ -367,8 +367,8 @@ polished, error-free Lithuanian playthrough that holds together however the play
   peat-soil and wetland maps. Heights and sea depths are today's. Under modern reservoirs the land
   shows flat, at today's water level, because no height data from before the dams exists.
 - The map follows the date (M3a, from 11 October 2026). There is no slider: the map shows the
-  land, water and names of the game's own date. A hidden test link (`#date=1550`, later
-  `#10000BC`) shows any year, for checking only.
+  land, water and names of the game's own date. A hidden test link (`#date=1550`; since M3b
+  also `#date=1` and `#date=10000BC`) shows any year, for checking only.
   - Forest: the 1219 grid is held to 1250. Anchors follow at 1425, 1725, 1900 and 2021. Between
     two anchors each 1 km square has its own clearing year, so the forest thins bit by bit.
     Clearings spread out from open land.
@@ -385,6 +385,12 @@ polished, error-free Lithuanian playthrough that holds together however the play
     the form in the records of the date (part 2 of M3a).
   - M3a comes as two pull requests: "the land changes", then "the names change". M3b (AD 1 and
     the ice-age data) follows, planned with Ignas.
+  - M3b as built (2 November 2026), seen only through the test link: AD 1 in full like 1219
+    (more forest, a higher northern sea, no reservoirs), blending into 1219 square by square;
+    on the map the only Roman names are the Vistula and the Borysthenes (Mela), with Ptolemy's
+    guesses in the tap panel only, marked "?". Each ice-age date shows a banner ("Rough preview:
+    about 10,000 BC (about 12,000 years ago)") that opens the full sourced note; until the age
+    maps' data is in (PR 3) the map is hatched and says "map not built yet".
 
 The Baltic basin changed shape after the ice:
 
@@ -544,7 +550,7 @@ Step 2 split down are his step 2 answers, later the same day.
 | Letters on the map | Latin letters everywhere: today's local names, with Cyrillic ones romanised by the BGN/PCGN systems (Russian, Belarusian, Ukrainian), soft and hard signs left out. Original spellings stay in the data for the info panel (Ignas, 11 October 2026) |
 | Lake names on the map | Just the name, without the word for "lake": Ilmen, Narach, Plateliai. Where the plain form can't be found reliably, the full name stays, spelled out (Ignas, 11 October 2026) |
 | Time slider | None: the map follows the game's date. Land, water and names are those of the game's own date (Ignas, 11 October 2026: "Yes, the map follows the game") |
-| Hidden test link | `#date=1550` (later `#10000BC`) shows the map of any year, for checking only; the game's own date doesn't change |
+| Hidden test link | `#date=1550` (since M3b also `#date=1` and `#date=10000BC`) shows the map of any year, for checking only; the game's own date doesn't change |
 | Build order | Keep the plan: the 1219 dynasties first, the ice-age hunters in step 8; map data for every age is still prepared now (Ignas, 11 October 2026: "Keep the plan (Recommended)") |
 | M3 parts | Two parts. M3a: 1219 to today, seen while playing, in two pull requests ("the land changes", then "the names change"). M3b: AD 1 and the ice-age data, ready for step 8, planned with Ignas after M3a (Ignas, 12 October 2026: "Two parts (Recommended)") |
 | Forest over time | Changes gradually: the 1219 grid is held to 1250, then anchors at 1425, 1725, 1900 and 2021, and each 1 km square gets its own clearing year between anchors (Ignas, 12 October 2026: "Gradually (Recommended)") |
