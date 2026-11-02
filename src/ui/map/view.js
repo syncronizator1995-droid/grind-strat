@@ -784,6 +784,11 @@ export function createMapView(canvas, map) {
       placedLabels = [];
       named = { cx: cam.cx, cy: cam.cy, complete: true };
       renamed = false;
+      // And say so to the shots: no names left over from the map before.
+      canvas.dataset.names = '0';
+      canvas.dataset.nameList = '';
+      canvas.dataset.namesComplete = 'true';
+      canvas.dataset.nameBoxes = '[]';
       return 0;
     }
     if (drawn.length) {

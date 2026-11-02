@@ -11,7 +11,8 @@ import { el } from './credits.js';
  * @param {{ author: string, year: number }} s
  */
 export function citation(s) {
-  const names = [...s.author.matchAll(/([A-Z][\p{L}'-]+),\s*(?:[A-Z]\.[-A-Z.]*\s*,?\s*)+/gu)].map((m) => m[1]);
+  // Capitals with accents count too ("David, É.", "Påsse, T.").
+  const names = [...s.author.matchAll(/(\p{Lu}[\p{L}'-]+),\s*(?:\p{Lu}\.[-\p{Lu}.]*\s*,?\s*)+/gu)].map((m) => m[1]);
   const who = names.length === 0 ? s.author : names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} and ${names[1]}` : `${names[0]} and others`;
   return s.year ? `${who} ${s.year}` : who;
 }
@@ -38,7 +39,7 @@ export function noteView(note, notes, hasData) {
     })),
     water: `The water on this map is the ${note.stage.name}.`,
     waterFrom: cites(note.stage.sources),
-    dates: 'Years are calendar years BC. "Converted by us (IntCal20)" marks dates we worked out from radiocarbon years with the standard IntCal20 curve. Heights say "now found N m up": where an old shore is found today, after the land rose.',
+    dates: 'Years are calendar years BC. "Converted by us (IntCal20)" marks dates we worked out from radiocarbon years with the standard IntCal20 curve. Heights say "now found N m up": where an old shore is found today, after the land rose. "The reservoir effect": the bones of people who ate much fish, and food burnt onto pots, can give radiocarbon dates that read too old.',
     sources: used.map((id) => cites([id])[0]),
   };
 }

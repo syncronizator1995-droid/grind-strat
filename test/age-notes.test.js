@@ -8,7 +8,7 @@ import { describe, it } from 'node:test';
 import { AGES } from '../src/sim/map-date.js';
 import { followAge, landYearFor } from '../src/ui/map/dated.js';
 import { loadAgeNotes, noTimes } from '../src/ui/map/load.js';
-import { noteView } from '../src/ui/age-panel.js';
+import { citation, noteView } from '../src/ui/age-panel.js';
 import { ageNotesBlock, ageNotesProblems } from '../tools/map/pack-age-notes.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
@@ -58,10 +58,11 @@ describe('the age notes', () => {
     assert.match(wholeText('age-9500bc'), /short spell of slightly salty \(brackish\) water/);
     assert.match(wholeText('age-7500bc'), /one of the largest Stone Age cemeteries in northern Europe/);
     assert.doesNotMatch(all(...AGES.map((a) => a.id)), /longest-used/);
-    assert.match(wholeText('age-7500bc'), /Elk is the main game, with beaver and wild boar; bones of red deer and aurochs were used to make tools/);
-    assert.match(wholeText('age-8500bc'), /1968-73 and 1975-76/);
+    assert.match(wholeText('age-7500bc'), /elk is the main game, with beaver and wild boar; bones of red deer and aurochs were used to make tools/);
+    assert.match(wholeText('age-8500bc'), /a few km from the Baltic shore/, 'Pulli lay by the Yoldia shore before the Ancylus Lake began');
+    assert.doesNotMatch(wholeText('age-8500bc'), /1968-76/, 'the dig was 1968-73 and 1975-76, not 1968-76');
     assert.match(wholeText('age-7500bc'), /Ladoga is already a lake of its own/);
-    assert.match(wholeText('age-7500bc'), /SGU\) still shows a lake here, while Estonian studies/);
+    assert.match(wholeText('age-7500bc'), /SGU\) still shows a lake here.*while a study of the Tallinn shore/);
     assert.match(wholeText('age-5000bc'), /first pottery, made by people who still hunted and fished/);
     assert.match(wholeText('age-5000bc'), /Kuyavia.*5,300/);
     assert.doesNotMatch(all(...AGES.map((a) => a.id)), /Zealand/, 'Zealand is not sourced: left out');
@@ -80,8 +81,12 @@ describe('the age notes', () => {
     const mammoth = sentences.find((s) => /mammoth/.test(s.text));
     assert.deepEqual(mammoth?.marks, ['not yet confirmed']);
     assert.equal(mammoth?.age, 'age-10000bc');
+    // Adamczyk 2021 was read in full on 2 November 2026 (the journal's own PDF): no longer TO CHECK.
     const ahrens = sentences.find((s) => /Ahrensburgian/.test(s.text));
-    assert.deepEqual(ahrens?.marks, ['TO CHECK']);
+    assert.deepEqual(ahrens?.sources, ['adamczyk-2021']);
+    assert.equal(hand.sources['adamczyk-2021'].seen, 'read');
+    // Converted dates end with the tag, not nested brackets.
+    for (const s of sentences) assert.ok(!/\(converted by us/.test(s.text), `"${s.text}" nests the tag in brackets`);
   });
 
   it('writes the sheet in plain words: marks as "Not yet ...", sources by name, no web addresses', () => {
@@ -92,6 +97,16 @@ describe('the age notes', () => {
       for (const s of v.sentences) assert.ok(s.from.length > 0);
       assert.ok(!/TO CHECK/.test(JSON.stringify(v)), 'TO CHECK is shown as "Not yet checked"');
     }
+  });
+});
+
+describe('the note sheet\'s citations', () => {
+  it('names authors with accented capitals, and keeps an encyclopedia as it is', () => {
+    assert.equal(citation({ author: 'David, É.', year: 2003 }), 'David 2003');
+    assert.equal(citation({ author: 'Påsse, T. and Daniels, J.', year: 2015 }), 'Påsse and Daniels 2015');
+    assert.equal(citation({ author: 'Stančikaitė, M.', year: 2006 }), 'Stančikaitė 2006');
+    assert.equal(citation({ author: 'Taavitsainen, J.-P., Ikonen, L. and Saksa, A.', year: 1994 }), 'Taavitsainen and others 1994');
+    assert.equal(citation({ author: 'Visuotinė lietuvių enciklopedija', year: 0 }), 'Visuotinė lietuvių enciklopedija');
   });
 });
 

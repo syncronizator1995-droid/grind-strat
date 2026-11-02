@@ -29,6 +29,7 @@ const USES = /** @type {Record<string, string>} */ ({
   coast: 'the northern coast over time (where the sea stood higher in the game\'s year)',
   changes: 'the dated facts and drawn shapes of the map over time: reservoirs, cuts and outlets, and the Vistula delta',
   names: 'the names of rivers, lakes and seas over time, with their sources',
+  'age-notes': 'the notes of the ice-age maps, each sentence with its sources',
 });
 
 /** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */

@@ -610,6 +610,11 @@ by ids from data/sources.md.
   dashed. The date layer stays parked at the year it had; leaving the age is the ordinary move of the
   date layer to the wanted year, so nothing is left to undo. `canvas.dataset.mapAge` names the age.
   A tap in an age says the water's stage name (`setOnAgeTap`).
+- **Cost of an age** (measured in Node on a made-up full-size age, 1573 x 1328 cells, water with many
+  small lakes, 2 November 2026): `oldShore` about 150-175 ms, `paintAge` 40-70 ms, `hatchRects`
+  30-40 ms on the development computer, once each time an age is first shown (the picture is
+  dropped on leaving it). On a mid-range phone that may be a pause of about a second: PR 3 times it
+  on the real data, and if it is too slow ships the shore lines in the block or builds them in pieces.
 - **The notes** (`tools/map/age-notes.json` by hand, packed by `pack-age-notes.mjs` into
   `src/data/own/age-notes.json`, kind `age-notes`, a late block): every sentence carries source ids,
   explained with links in data/sources.md; the block holds authors, years and titles, no links. The
