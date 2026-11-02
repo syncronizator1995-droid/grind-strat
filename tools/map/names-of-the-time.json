@@ -84,19 +84,24 @@
   ],
   "periods": {
     "livonia": [
+      { "from": 1, "to": 200, "language": "la", "source": "mela", "marks": ["TO CHECK"], "note": "The Roman writers (Mela 43, Pliny 77, Tacitus 98): the map shows their Latin forms from AD 1 to 200 where they gave one that is sure (the Vistula, the Borysthenes); after that, until 1219, no record has been read and today's names stand in. The end year 200 is a game choice, TO CHECK with Ignas." },
       { "from": 1219, "to": 1290, "language": "la", "source": "henry" },
       { "from": 1290, "to": 1400, "language": "gmh", "source": "rhymed", "marks": ["TO CHECK"], "note": "The end year 1400 is the end of what our medieval sources cover; a game choice. After it today's names stand in until later records are researched." }
     ],
     "prussia": [
+      { "from": 1, "to": 200, "language": "la", "source": "mela", "marks": ["TO CHECK"], "note": "The Roman writers (Mela 43, Pliny 77, Tacitus 98): the map shows their Latin forms from AD 1 to 200 where they gave one that is sure (the Vistula, the Borysthenes); after that, until 1219, no record has been read and today's names stand in. The end year 200 is a game choice, TO CHECK with Ignas." },
       { "from": 1219, "to": 1400, "language": "la", "source": "dusburg", "marks": ["TO CHECK"], "note": "The end year 1400 is a game choice (see Livonia). Dusburg wrote in 1326, so for the 13th century his forms are a later source." }
     ],
     "poland": [
+      { "from": 1, "to": 200, "language": "la", "source": "mela", "marks": ["TO CHECK"], "note": "The Roman writers (Mela 43, Pliny 77, Tacitus 98): the map shows their Latin forms from AD 1 to 200 where they gave one that is sure (the Vistula, the Borysthenes); after that, until 1219, no record has been read and today's names stand in. The end year 200 is a game choice, TO CHECK with Ignas." },
       { "from": 1219, "to": 1400, "language": "la", "source": "dusburg", "marks": ["TO CHECK"], "note": "Polish records of the time were in Latin, but no Polish source has been read yet: Dusburg's Prussian chronicle stands in. The end year 1400 is a game choice (see Livonia)." }
     ],
     "rus": [
+      { "from": 1, "to": 200, "language": "la", "source": "mela", "marks": ["TO CHECK"], "note": "The Roman writers (Mela 43, Pliny 77, Tacitus 98): the map shows their Latin forms from AD 1 to 200 where they gave one that is sure (the Vistula, the Borysthenes); after that, until 1219, no record has been read and today's names stand in. The end year 200 is a game choice, TO CHECK with Ignas." },
       { "from": 1219, "to": 1400, "language": "orv", "source": "npl-synodal", "marks": ["TO CHECK"], "note": "The end year 1400 is a game choice (see Livonia)." }
     ],
     "sweden": [
+      { "from": 1, "to": 200, "language": "la", "source": "mela", "marks": ["TO CHECK"], "note": "The Roman writers (Mela 43, Pliny 77, Tacitus 98): the map shows their Latin forms from AD 1 to 200 where they gave one that is sure (the Vistula, the Borysthenes); after that, until 1219, no record has been read and today's names stand in. The end year 200 is a game choice, TO CHECK with Ignas." },
       { "from": 1219, "to": 1400, "language": "non", "source": "heimskringla", "marks": ["TO CHECK"], "note": "Heimskringla was written about 1230 in Iceland, not Sweden; no Swedish record has been read yet. The end year 1400 is a game choice (see Livonia)." }
     ]
   },
@@ -199,7 +204,7 @@
       "kind": "river", "wikidata": "Q40855", "label": "Dnieper",
       "names": [
         { "region": "rus", "stretches": ["Dnipro", "Dnepr", "Dnyapro"], "name": "Dnepr", "orig": "Днѣпръ", "language": "orv", "source": "pvl-laurentian", "where": "col. 3 l. 18", "note": "read as 'до днѣпра' (genitive); col. 7 l. 10 has the nominative" },
-        { "region": "rus", "stretches": ["Dnipro", "Dnepr", "Dnyapro"], "name": "Borysthenes", "language": "la", "source": "mela", "where": "2.6", "map": false },
+        { "region": "rus", "stretches": ["Dnipro", "Dnepr", "Dnyapro"], "name": "Borysthenes", "language": "la", "source": "mela", "where": "2.6", "from": 1, "to": 200 },
         { "region": "rus", "stretches": ["Dnipro", "Dnepr", "Dnyapro"], "name": "Borysthenes", "language": "la", "source": "pliny", "where": "4.82", "map": false }
       ]
     },
@@ -245,9 +250,9 @@
     {
       "kind": "river", "wikidata": "Q548", "label": "Vistula",
       "names": [
-        { "region": "poland", "name": "Wisela", "language": "la", "source": "dusburg", "where": "III 2" },
+        { "region": "poland", "name": "Wisela", "language": "la", "source": "dusburg", "where": "III 2", "from": 1219 },
         { "region": "poland", "name": "Visla", "orig": "Висла", "language": "orv", "source": "pvl-laurentian", "where": "col. 6 l. 9", "note": "read as 'на вислѣ' (locative)" },
-        { "region": "poland", "name": "Vistula", "language": "la", "source": "mela", "where": "3.33", "map": false },
+        { "region": "poland", "name": "Vistula", "language": "la", "source": "mela", "where": "3.33", "from": 1, "to": 200 },
         { "region": "poland", "name": "Vistla", "language": "la", "source": "pliny", "where": "4.97 (variants Vistulam, Visilam)", "map": false }
       ]
     },
@@ -282,7 +287,9 @@
         { "name": "More Varyazhskoye", "gloss": "the Varangian Sea", "orig": "Море Варяжьское", "language": "orv", "source": "pvl-laurentian", "where": "col. 4 l. 7; col. 7 l. 7", "note": "read as 'морю варѧжьскому' (dative) and 'море варѧжьское'" },
         { "name": "Eystrasalt", "language": "non", "source": "heimskringla", "where": "Óláfs saga Tryggvasonar 21 (ed. p. 119)", "note": "'helt svá út í hafit í Eystrasalt'" },
         { "name": "Ostersê", "language": "gmh", "source": "rhymed", "where": "v. 137", "note": "'mit schiffen ûf die Ostersê'; the edition's list of misprints reads '137. Ostersê statt Ôstersê' (page images seen)" },
-        { "name": "Mare salsum", "language": "la", "source": "dusburg", "where": "III 2" }
+        { "name": "Mare salsum", "language": "la", "source": "dusburg", "where": "III 2" },
+        { "name": "Codanus sinus", "language": "la", "source": "mela", "where": "3.31 (The Latin Library section 26)", "marks": ["disputed"], "map": false, "note": "a gulf full of islands beyond the Elbe: probably the western Baltic and the Danish straits, not the whole sea; scholars disagree" },
+        { "name": "Codanus sinus", "language": "la", "source": "pliny", "where": "4.96", "marks": ["disputed"], "map": false, "note": "as in Mela: probably the western Baltic and the Danish straits; scholars disagree" }
       ]
     },
     {
