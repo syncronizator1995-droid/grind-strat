@@ -550,6 +550,10 @@ Step 2 split down are his step 2 answers, later the same day.
 | Forest over time | Changes gradually: the 1219 grid is held to 1250, then anchors at 1425, 1725, 1900 and 2021, and each 1 km square gets its own clearing year between anchors (Ignas, 12 October 2026: "Gradually (Recommended)") |
 | Lithuania's names | Today's Lithuanian names all game; the old written forms show when you tap. Elsewhere the forms in the records of the date (Ignas, 12 October 2026: "Lithuanian names (Recommended)") |
 | North coast | Estimated from land rise and fitted to local studies, and marked "estimate" (Ignas, 12 October 2026: "Estimate it (Recommended)"). Needs resource.sgu.se for Sweden and Mälaren |
+| Ice-age east | Hatched "no model yet" until 5,000 BC, where a rough estimate stands (Ignas, 2 November 2026: "Hatch it (Recommended)") |
+| Ice-age notes | The full note (4 to 6 sentences, each with its sources), with neighbours inside the map, mammoths marked "not yet confirmed", and our converted dates tagged "converted by us" (Ignas, 2 November 2026: "Full note"; "Neighbours on the map, Mammoths (TO CHECK), Our converted dates") |
+| Age label | "about 10,000 BC (about 12,000 years ago)", never "BP" (Ignas, 2 November 2026) |
+| M3b defaults (approved with the plan) | SGU's shore model is the main source for the ice-age water; SGU's small modelled lakes are left out; Narva written as "first pottery, made by people who still hunted and fished"; AD 1 uses the same clearing rule as 1219; the ice-age maps switch at each age, AD 1 blends into 1219. Hazel is dropped from the 5,000 BC note (no source for that time). 4,999 BC to 1 BC show the 5,000 BC map, then AD 1 |
 | Our own map data | Same terms as the game; Ignas chooses them later (Ignas, 12 October 2026: "Same as the game (Recommended)") |
 | Reservoirs | The 12 big ones get researched, sourced filling years. The small ones too: each appears in the year OpenStreetMap gives, marked "year from OpenStreetMap"; ones with no year stay hidden (Ignas, 12 October 2026: "Small ones too") |
 | Lake names (M3) | Keep as is: just the name (Ignas, 11 October 2026: "Keep as is") |

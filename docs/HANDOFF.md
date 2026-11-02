@@ -387,7 +387,11 @@ every id.
     names block means no sea taps; the panel title is always today's name; the Venta's "Winda"
     and Ladoga's "Nevo" are panel-only; "Chudskoye ozero" follows BGN/PCGN (to confirm with Ignas).
 - **M3b:** AD 1 and the ice-age data (five slices with notes), ready for step 8; planned with
-  Ignas after M3a. Ask for PANGAEA if still needed.
+  Ignas after M3a. PR 1 (AD 1: land, coast, names) and PR 2 (the age engine, banner and five
+  notes) are built and merged on this branch (2 November 2026). To try: `#date=1` (over
+  Stockholm, Tallinn, Lithuania) and `#date=10000BC` (banner, note, "map not built yet").
+  PR 3 (the five ages' maps) waits for Ignas to allow resource.sgu.se and doi.pangaea.de /
+  download.pangaea.de. Missing until then: the age maps themselves; Sweden's AD 1 coast from SGU.
 - **Settled at M2:** the forest comes from the finished SpatioCompo maps on GitHub, so neither
   waiting until M3 nor PANGAEA was needed (Ignas, 6 October 2026).
 - If M1 shows his phone is too slow, the drawing gets fixed before M2.

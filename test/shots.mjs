@@ -417,6 +417,80 @@ async function datedMaps(browser, scheme) {
   await context.close();
 }
 
+/** AD 1 views (the hidden link, #date=1): Stockholm, Tallinn (Kopli) and Lithuania. */
+const AD1_VIEWS = [
+  { name: 'stockholm', view: '4800,10500,0.1' },
+  { name: 'tallinn', view: '8855,10518,0.12' },
+  { name: 'lithuania', view: '8434,5899,0.075' },
+  { name: 'vistula', view: '5852,4994,0.12' },
+  { name: 'dnipro', view: '12500,3800,0.08' },
+];
+
+/**
+ * M3b: the map of AD 1 (Roman names only where sourced), and the ice-age maps without data: the
+ * banner, "map not built yet", and the age's note sheet open.
+ * @param {import('playwright').Browser} browser @param {'light' | 'dark'} scheme
+ */
+async function earlyMaps(browser, scheme) {
+  const label = `early/${scheme}`;
+  const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: scheme });
+  await blockOutside(context, label, (url) => url.protocol === 'file:' || url.protocol === 'data:');
+  const page = await context.newPage();
+  watch(page, label);
+  const fileUrl = pathToFileURL(join(DIST, 'grind-strat.html')).href;
+  for (const v of AD1_VIEWS) {
+    const at = `${label} AD 1 ${v.name}`;
+    await page.goto(`${fileUrl}#date=1&view=${v.view}`);
+    await page.evaluate(() => document.fonts.ready);
+    try {
+      await page.waitForFunction(() => document.documentElement.dataset.datedOnScreenMs, undefined, { timeout: 30000 });
+    } catch {
+      failures.push(`${at}: the map over time did not appear`);
+    }
+    await settle(page);
+    check(await page.locator('#map').getAttribute('data-map-year') === '1', `${at}: the map shows ${await page.locator('#map').getAttribute('data-map-year')}`);
+    check((await dateText(page)) === '1 January 1219', `${at}: the test link changed the game's date`);
+    check(await page.locator('#ageBanner').isHidden(), `${at}: the ice-age banner shows at AD 1`);
+    for (const p of await layoutProblems(page)) failures.push(`${at}: ${p}`);
+    const names = ((await page.locator('#map').getAttribute('data-name-list')) ?? '').split('|').filter(Boolean);
+    if (v.name === 'stockholm') check(!names.includes('Mälaren'), `${at}: Mälaren is named at AD 1`);
+    await page.screenshot({ path: join(SHOTS, `${scheme}-ad1-${v.name}.png`) });
+    await latinNames(page, at);
+    await page.goto('about:blank');
+  }
+  for (const year of ['10000BC', '9500BC', '8500BC', '7500BC', '5000BC']) {
+    const at = `${label} ${year}`;
+    await page.goto(`${fileUrl}#date=${year}&view=8434,5899,0.05`);
+    await page.evaluate(() => document.fonts.ready);
+    try {
+      await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-age'), undefined, { timeout: 30000 });
+    } catch {
+      failures.push(`${at}: no ice-age map appeared`);
+    }
+    await settle(page);
+    check(await page.locator('#ageBanner').isVisible(), `${at}: no banner`);
+    const banner = await page.locator('#ageBanner').innerText();
+    check(/Rough preview: about/.test(banner) && /years ago/.test(banner) && !/\bBP\b/.test(banner), `${at}: the banner reads "${banner}"`);
+    check(/Map not built yet/.test(banner), `${at}: the banner does not say the map is not built yet ("${banner}")`);
+    check((await dateText(page)) === '1 January 1219', `${at}: the test link changed the game's date`);
+    for (const p of await layoutProblems(page)) failures.push(`${at}: ${p}`);
+    await page.screenshot({ path: join(SHOTS, `${scheme}-age-${year}.png`) });
+    await page.locator('#ageBanner').click();
+    await page.waitForTimeout(400);
+    check(await page.locator('#ageSheet').evaluate((e) => !(/** @type {HTMLElement} */ (e)).hidden), `${at}: the banner did not open the note`);
+    const wide = await page.locator('#ageBody').evaluate((e) => e.scrollWidth > e.clientWidth + 1);
+    check(!wide, `${at}: the note spills sideways`);
+    const box = await page.locator('#ageSheet').boundingBox();
+    check(Boolean(box && box.x >= -0.5 && box.x + box.width <= PHONE.width + 0.5 && box.y + box.height <= PHONE.height + 0.5), `${at}: the note sheet is cut off by the screen`);
+    const note = await page.locator('#ageBody').innerText();
+    check(note.length > 300, `${at}: the note is short (${note.length} characters)`);
+    for (const p of await layoutProblems(page)) failures.push(`${at} note: ${p}`);
+    await page.screenshot({ path: join(SHOTS, `${scheme}-age-${year}-note.png`) });
+    await page.goto('about:blank');
+  }
+  await context.close();
+}
+
 /** Views for the names panel, at a late save of 1350: game units and CSS px per unit. */
 const PANEL_VIEWS = {
   livonia: '8500,7300,0.1',
@@ -757,6 +831,8 @@ async function runAll(browser) {
   await playAsFile(browser, 'dark');
   await datedMaps(browser, 'light');
   await datedMaps(browser, 'dark');
+  await earlyMaps(browser, 'light');
+  await earlyMaps(browser, 'dark');
   await namesPanel(browser, 'light');
   await namesPanel(browser, 'dark');
   await slowPhoneNames(browser);

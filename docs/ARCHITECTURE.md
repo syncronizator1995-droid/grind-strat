@@ -622,6 +622,36 @@ by ids from data/sources.md.
   `main.js` reads the notes and the ages only when an age is shown (a test checks that `showMap` and
   a 1219 game never touch them).
 
+### As built in M3b: AD 1, the lead-in and the ages (merged 2 November 2026)
+
+- **One era rule** (`eraOf`, `src/sim/map-date.js`): a BC year is an ice-age map (the age at or
+  before it); AD 1 to 1218 is the era `ad1`, drawn from the lead-in at its real year (floor 1) when
+  the lead-in is loaded, else the view floors it at 1219; 1219 on is `historic`. `mapYearOfDay`
+  keeps game days AD below 1219 at 1219 and lets BC days through as the age year.
+- **The lead-in land** (block `terrain-ad1`, CC-BY-SA, late): a plane before the 1219 grid. Per 1 km
+  cell it keeps `(band << 3) | the AD 1 class` (0: same as 1219); the cell shows that class until
+  its switch year (the 1219 rule's bands, blocks and hash over AD 2 to 1219, seed offset
+  `LEAD_SEED_OFFSET`), then the 1219 grid's. At AD 1 the map is the AD 1 cut (pollen window about
+  250 BC to AD 250, same repository as 1219); from 1219 on it is exactly the old map, and each
+  cell changes once in between. Squares east of 28E are marked "model-filled, lower quality".
+- **The lead-in coast** (block `coast-ad1`, CC-BY, late): a second 500 m plane in 8-year steps from
+  AD 1 (`leadLevel(year)`), 0 where the 1219 coast decides (codes 153 and up are filled back from
+  the 1219 field by `completeLead`), so the two agree at 1219 and nothing jumps. Control places
+  for north Uppland and Kopli (Tallinn) are in `tools/map/coast-anchors-ad1.json`. `createCoast`
+  reads the lead only for years before 1219 (`coastLead`).
+- **Names of antiquity:** the names data has period lists per region (Livonia, Prussia, Poland,
+  Rus, Sweden; Lithuania keeps today's names), AD 1 to 200 from Mela, Pliny and Tacitus, marked
+  TO CHECK where unsure; Ptolemy's guesses only in the tap panel with "?".
+- **Late blocks and 1219:** `terrain-ad1`, `coast-ad1` and `age-notes` are last in the page as HTML
+  comments (`LATE_KINDS`). `main.js` reads the first two only for a date before 1219
+  (`datedBlocks(beforeFirstGrid)`) and the notes and the optional `ages` block only for a shown
+  age; tests on each branch check it, and a 1219 game's first map was 97.7% of the one before the
+  merge (1586 against 1624 ms, 5 runs in turn, CPU slowed 4x).
+- **Soak:** `npm run soak` also runs the map from AD 1 to 2021 and requires it to meet a 1219
+  game's land and coast exactly at 1219 and to end on today.
+- **For PR 3 (the ages' data):** the `ages` block format is in the header of `src/ui/map/slice.js`
+  and in the section above; it is not in `BLOCK_FILES` yet, and `main.js` reads it optionally.
+
 ## 10. Invariants and soak outputs
 
 Checked every game year in soak runs; tests feed them broken states to prove they catch errors.
