@@ -444,7 +444,7 @@ function showTestYear(year) {
   mapView?.setMapYear(year);
   if (year === null) return;
   if (year < 0) {
-    tell(`Test link: the map shows the ice-age map, ${ageLabel(eraOf(year).year)}. The game's date is not changed.`);
+    tell(`Test link: ice-age map, ${ageLabel(eraOf(year).year)}. The game's date is not changed.`);
     return;
   }
   // The AD 1 data is loaded only when the page opens on a date before 1219: a link changed in
@@ -452,7 +452,7 @@ function showTestYear(year) {
   const asked = Math.max(1, year);
   const shown = Math.max(datedData?.timeline.leadIn ? 1 : FIRST_MAP_YEAR, asked);
   const reload = shown > asked ? ' Open the link again (reload) to see years before 1219.' : '';
-  tell(`Test link: the map shows ${shown}.${reload} The game's date is not changed.`);
+  tell(`Test link: the map shows ${shown < 1219 ? `AD ${shown}` : shown}.${reload} The game's date is not changed.`);
 }
 
 async function speedTest() {
