@@ -129,7 +129,7 @@ describe('the checks of pack-names.mjs each refuse a bad invented case', () => {
   });
 
   it('2: periods sorted, not overlapping, with sources; a today region has none', () => {
-    let h = clone(); h.periods.livonia[1].from = 1280;
+    let h = clone(); h.periods.livonia[2].from = 1280;
     assert.ok(has(/not sorted or they overlap/, problems(h)));
     h = clone(); h.periods.livonia.reverse();
     assert.ok(has(/not sorted or they overlap/, problems(h)));
@@ -137,8 +137,12 @@ describe('the checks of pack-names.mjs each refuse a bad invented case', () => {
     assert.ok(has(/unknown source nobody/, problems(h)));
     h = clone(); h.periods.lithuania = [{ from: 1219, to: 1400, language: 'la', source: 'dusburg', marks: ['TO CHECK'] }];
     assert.ok(has(/'today' region has no periods/, problems(h)));
-    h = clone(); delete h.periods.rus[0].marks;
+    h = clone(); delete h.periods.rus[1].marks;
     assert.ok(has(/1400 is a game choice/, problems(h)));
+    h = clone(); h.periods.livonia[0].sources = ['mela', 'nobody'];
+    assert.ok(has(/lists unknown source nobody/, problems(h)));
+    h = clone(); h.periods.livonia[0].sources = ['pliny'];
+    assert.ok(has(/must be a list that holds its own source/, problems(h)));
   });
 
   it('3: each key matches exactly one feature; stretches exist; a group has one region', () => {

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { dayFromDate } from '../src/sim/calendar.js';
 import { hash01 } from '../src/sim/grid.js';
-import { activeAt, BLOCK_CELLS, createTerrainTimeline, eraOf, FIRST_MAP_YEAR, mapYear, timelineFromBlock } from '../src/sim/map-date.js';
+import { activeAt, BLOCK_CELLS, createTerrainTimeline, eraOf, mapYear, timelineFromBlock } from '../src/sim/map-date.js';
 import { changePlane } from '../tools/map/terrain-time.mjs';
 import { distanceTo } from '../tools/map/terrain-fields.mjs';
 
@@ -22,11 +22,11 @@ describe('mapYear and eraOf', () => {
     assert.equal(mapYear(dayFromDate(-10000, 6, 1)), -10000);
   });
 
-  it('show the 1219 map for every year before 1219, and say when a year has no map of its own', () => {
+  it('show the map of the year itself from AD 1, AD 1 for a BC year (with noData), and refuse year 0', () => {
     assert.deepEqual(eraOf(1550), { id: 'historic', year: 1550, noData: false });
-    assert.deepEqual(eraOf(800), { id: 'historic', year: FIRST_MAP_YEAR, noData: false });
-    assert.deepEqual(eraOf(1), { id: 'historic', year: FIRST_MAP_YEAR, noData: false });
-    assert.deepEqual(eraOf(-1), { id: 'historic', year: FIRST_MAP_YEAR, noData: true });
+    assert.deepEqual(eraOf(800), { id: 'historic', year: 800, noData: false });
+    assert.deepEqual(eraOf(1), { id: 'historic', year: 1, noData: false });
+    assert.deepEqual(eraOf(-1), { id: 'historic', year: 1, noData: true });
     assert.throws(() => eraOf(0), /no year 0/);
     assert.throws(() => eraOf(1.5), /bad year/);
   });

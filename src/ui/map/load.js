@@ -256,13 +256,17 @@ export async function loadNames(block, times) {
  * Unpacks the map over time: the land from 1219 to today (terrain-time), the northern coast
  * (coast) and our own dated facts and shapes (changes). Not needed for the first picture of a new
  * game, so it is unpacked just after it; a save from a later year needs it first.
- * @param {{ terrainTime: PackedBlock, coast: PackedBlock, changes: PackedBlock }} blocks
+ * For a date before 1219 (the test link, #date=1) the lead-in blocks come too: the AD 1 land
+ * (terrain-ad1) and the AD 1 coast (coast-ad1). A game that starts in 1219 never passes them.
+ * @param {{ terrainTime: PackedBlock, coast: PackedBlock, changes: PackedBlock, terrainAd1?: PackedBlock | null, coastAd1?: PackedBlock | null }} blocks
  * @param {Uint8Array} base the 1219 terrain grid (copied: the map may change its own afterwards)
  * @param {LoadTimes} times added to
  * @returns {Promise<DatedData>}
  */
-export async function loadDated({ terrainTime, coast, changes }, base, times) {
-  const [t, c, o] = await unpackBlocks([terrainTime, coast, changes], times);
+export async function loadDated({ terrainTime, coast, changes, terrainAd1 = null, coastAd1 = null }, base, times) {
+  const [t, c, o, ...lead] = await unpackBlocks([terrainTime, coast, changes, ...(terrainAd1 ? [terrainAd1] : []), ...(coastAd1 ? [coastAd1] : [])], times);
+  const leadTerrain = terrainAd1 ? lead[0] : null;
+  const leadCoast = coastAd1 ? lead[terrainAd1 ? 1 : 0] : null;
   // The pieces below take a moment each on a slow phone: let a frame through between them.
   await breathe();
   let t0 = performance.now();
@@ -272,7 +276,8 @@ export async function loadDated({ terrainTime, coast, changes }, base, times) {
   const overrides = (info.overrides ?? []).map((/** @type {any} */ v) => ({
     cells: decodeUints(o(v.cells)), bands: o(v.bands), cls: v.cls, from: v.from, to: v.to, hold: v.hold,
   }));
-  const timeline = timelineFromBlock({ meta: /** @type {any} */ (terrainTime.meta), layers: t.layers, base: base.slice(), overrides });
+  const timeline = timelineFromBlock({ meta: /** @type {any} */ (terrainTime.meta), layers: t.layers, base: base.slice(), overrides,
+    lead: terrainAd1 && leadTerrain ? { meta: /** @type {any} */ (terrainAd1.meta), layers: leadTerrain.layers } : null });
   times.decodeMs += performance.now() - t0;
   await breathe();
   t0 = performance.now();
@@ -290,7 +295,7 @@ export async function loadDated({ terrainTime, coast, changes }, base, times) {
     return shape;
   });
   if (at !== levels.length) throw new Error('the drawn shapes do not add up');
-  const dated = { timeline, coast: createCoast({ box, codes }), entries: info.entries, shapes, cites: info.sources ?? {} };
+  const dated = { timeline, coast: createCoast({ box, codes, lead: coastAd1 && leadCoast ? leadCoast('lead') : null }), entries: info.entries, shapes, cites: info.sources ?? {} };
   times.decodeMs += performance.now() - t0;
   return dated;
 }

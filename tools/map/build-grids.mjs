@@ -35,6 +35,8 @@ export const POLLEN_WINDOWS = Object.freeze({
   'spatiocompo-tw3': Object.freeze({ timeWindow: 3, years: 'about AD 1250-1600 (350-700 BP)' }),
   'spatiocompo-tw2': Object.freeze({ timeWindow: 2, years: 'about AD 1600-1850 (100-350 BP)' }),
   'spatiocompo-tw1': Object.freeze({ timeWindow: 1, years: 'about AD 1850-1950 (0-100 BP)' }),
+  // M3b: the AD 1 map. Windows 5 (1200-1700 BP) and 6 follow the same 500-year steps.
+  'spatiocompo-tw6': Object.freeze({ timeWindow: 6, years: 'about 250 BC to AD 250 (1700-2200 BP)' }),
 });
 
 /**

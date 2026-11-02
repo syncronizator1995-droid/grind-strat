@@ -9,11 +9,12 @@ import { COAST_CODE } from '../../sim/coast-date.js';
 import { tagsOnAt } from './water-tiles.js';
 
 /**
- * The year the map draws for a game day: the calendar year, and 1219 for anything earlier (the
- * ice-age and AD 1 maps come in M3b).
+ * The year the map draws for a game day: the calendar year, and 1219 for anything earlier (a game
+ * starts in 1219; AD 1 to 1219 is shown only by the test link, #date=1, and by the AD 1 lead-in
+ * data it loads).
  * @param {number} day days since 1 January AD 1, as the game stores its date
  */
-export const mapYearOfDay = (day) => eraOf(mapYear(day)).year;
+export const mapYearOfDay = (day) => Math.max(FIRST_MAP_YEAR, eraOf(mapYear(day)).year);
 
 /**
  * The hidden test link: #date=1550 shows the map of 1550, and #date=1550&view=5057,10484,0.12
@@ -88,6 +89,8 @@ export function createDateLayer(data, grid, year = FIRST_MAP_YEAR) {
     get shapeOn() { return shapeOn; },
     /** How many 4-year steps the northern coast has risen (src/sim/coast-date.js coastLevel). */
     get coastLevel() { return coast.level; },
+    /** True while the coast reads its AD 1 to 1219 field (the level is then in that field's 8-year steps). */
+    get coastLead() { return coast.onLead; },
     /**
      * The water's date tags, once the water is unpacked.
      * @param {string[]} next
@@ -128,8 +131,8 @@ export function createDateLayer(data, grid, year = FIRST_MAP_YEAR) {
         tagsMoved = !tagOn || !same(nextTags, tagOn);
         tagOn = nextTags;
       }
-      const level = coast.level;
-      const coastMoved = coast.step(next).level !== level;
+      const key = coast.key;
+      const coastMoved = (coast.step(next), coast.key !== key);
       return { cells, tags: tagsMoved, shapes: shapesMoved, coast: coastMoved };
     },
     /**

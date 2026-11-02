@@ -30,7 +30,7 @@ const MARKS = ['TO CHECK', 'estimate', 'disputed'];
 
 /**
  * @typedef {{ title: string, author: string, written?: number, about?: true, copy?: string, edition?: string, url?: string, seen?: string }} Source
- * @typedef {{ from: number, to: number | null, language: string, source: string, marks?: string[], note?: string }} Period
+ * @typedef {{ from: number, to: number | null, language: string, source: string, sources?: string[], marks?: string[], note?: string }} Period
  * @typedef {{ region?: string, stretches?: string[], from?: number, to?: number, attested?: number, name: string, gloss?: string,
  *   language: string, source: string, where?: string, marks?: string[], map?: false, orig?: string, note?: string }} Entry
  * @typedef {{ kind: 'river' | 'lake', wikidata: string, label?: string, names: Entry[] }} Feature
@@ -121,6 +121,8 @@ export function namesProblems(hand, water) {
     for (const p of list) {
       if (!sourceIds.includes(p.source)) problems.push(`region ${rid}: period from ${p.from} has unknown source ${p.source}`);
       else used.add(p.source);
+      if (p.sources !== undefined && (!Array.isArray(p.sources) || !p.sources.length || !p.sources.includes(p.source))) problems.push(`region ${rid}: period from ${p.from}: its list of sources must be a list that holds its own source`);
+      for (const id of p.sources ?? []) if (!sourceIds.includes(id)) problems.push(`region ${rid}: period from ${p.from} lists unknown source ${id}`);
       if (!langIds.includes(p.language)) problems.push(`region ${rid}: period from ${p.from} has unknown language ${p.language}`);
       if (badYear(p.from) || (p.to !== null && badYear(p.to))) problems.push(`region ${rid}: bad period years ${p.from}, ${p.to}`);
       else if (p.to !== null && p.from >= p.to) problems.push(`region ${rid}: period ${p.from} to ${p.to} runs backwards`);
@@ -255,7 +257,7 @@ export function shippedInfo(hand) {
     languages: hand.languages,
     regions: hand.regions.map((r) => ({ id: r.id, name: r.name, ...(r.rule ? { rule: r.rule } : {}) })),
     periods: Object.fromEntries(Object.entries(hand.periods).map(([rid, list]) => [rid, list.map((p) => ({
-      from: p.from, to: p.to, language: p.language, source: p.source, ...(p.marks?.length ? { marks: p.marks } : {}),
+      from: p.from, to: p.to, language: p.language, source: p.source, ...(p.sources ? { sources: p.sources } : {}), ...(p.marks?.length ? { marks: p.marks } : {}),
     }))])),
     features: hand.features.map((f) => ({ kind: f.kind, wikidata: f.wikidata, names: f.names.map(shippedEntry) })),
     seas: hand.seas.map((s) => ({

@@ -14,8 +14,8 @@
 /**
  * @typedef {{ title: string, author: string, written?: number, about?: true, copy?: string }} NameSource
  *   written may be left out only when every entry citing it has `attested` (an annalistic chronicle).
- * @typedef {{ from: number, to: number | null, language: string, source: string, marks?: string[] }} Period
- *   from inclusive, to exclusive (null: open).
+ * @typedef {{ from: number, to: number | null, language: string, source: string, sources?: string[], marks?: string[] }} Period
+ *   from inclusive, to exclusive (null: open); sources: the only sources whose names the map takes in it (none: any).
  * @typedef {{ region?: string, stretches?: string[], from?: number, to?: number, attested?: number,
  *   name: string, gloss?: string, language: string, source: string, where?: string,
  *   marks?: ('TO CHECK' | 'estimate' | 'disputed')[], map?: false }} NameEntry
@@ -68,7 +68,8 @@ export function namesShapeProblem(info) {
   }
   for (const r of info.regions) if (!isObject(r) || typeof r.id !== 'string') return 'a region does not add up';
   for (const list of Object.values(info.periods)) {
-    if (!Array.isArray(list) || list.some((/** @type {any} */ p) => !isObject(p) || typeof p.from !== 'number' || typeof p.language !== 'string')) return 'a period does not add up';
+    if (!Array.isArray(list) || list.some((/** @type {any} */ p) => !isObject(p) || typeof p.from !== 'number' || typeof p.language !== 'string'
+      || (p.sources !== undefined && (!Array.isArray(p.sources) || p.sources.some((/** @type {any} */ x) => typeof x !== 'string'))))) return 'a period does not add up';
   }
   return null;
 }
@@ -190,7 +191,7 @@ function changeYearsOf(info) {
  * Which name a group shows in a year, and why. Rule: (1) no entry covers the year: today's text
  * (stand-in); (2) the region keeps today's names: today's text (today-rule); (3) the region's
  * period for the year, none: stand-in; (4) the entry the map may show, in the period's language,
- * covering the year: its name (record), none: stand-in. `later`: the name was written more than
+ * covering the year, from one of the period's sources if it lists them: its name (record), none: stand-in. `later`: the name was written more than
  * OF_THE_TIME_YEARS after the year.
  * @param {NameLink} link @param {number} group index into link.groups @param {number} year never 0
  * @returns {{ name: string, entry: NameEntry | null, why: 'record' | 'today-rule' | 'stand-in', later: boolean }}
@@ -205,7 +206,9 @@ export function nameAt(link, group, year) {
   if (region?.rule === 'today') return { ...standIn, why: 'today-rule' };
   const period = (link.info.periods[g.region ?? ''] ?? []).find((p) => year >= p.from && year < (p.to ?? Infinity));
   if (!period) return standIn;
-  const entry = covering.find((e) => e.map !== false && e.language === period.language);
+  // A period may name the only sources it takes (antiquity: Mela, Pliny, Tacitus), so a medieval
+  // Latin record with no start year (Henry of Livonia's "Duna", about 1227) is not a name of AD 1.
+  const entry = covering.find((e) => e.map !== false && e.language === period.language && (!period.sources || period.sources.includes(e.source)));
   if (!entry) return standIn;
   const attested = attestedOf(link.info, entry);
   return { name: entry.name, entry, why: 'record', later: attested !== undefined && year < ofTheTimeFrom(attested) };

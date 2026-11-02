@@ -20,7 +20,7 @@
 // already placed are drawn again as they were; they are placed anew only when a dated river or
 // lake comes or goes, or the old sea moves.
 
-import { eraOf, FIRST_MAP_YEAR } from '../../sim/map-date.js';
+import { eraOf, FIRST_LEAD_YEAR, FIRST_MAP_YEAR } from '../../sim/map-date.js';
 import { createDateLayer, mapYearOfDay } from './dated.js';
 import { simplify } from './geometry.js';
 import { bandShown, BANDS, bandWidth, indexWater, labelFont, placeWaterLabels, riverBand } from './labels.js';
@@ -246,7 +246,9 @@ export function createMapView(canvas, map) {
   let gameYear = FIRST_MAP_YEAR;
   /** @type {number | null} */
   let pinnedYear = null;
-  const wantedYear = () => pinnedYear ?? gameYear;
+  /** The earliest year the map can show: AD 1 when the lead-in data is in, else 1219. */
+  const floorYear = () => (dated?.timeline.leadIn ? FIRST_LEAD_YEAR : FIRST_MAP_YEAR);
+  const wantedYear = () => Math.max(floorYear(), pinnedYear ?? gameYear);
   /** The year the names are for: the map's. */
   const namesYear = () => date?.year ?? FIRST_MAP_YEAR;
 
@@ -594,8 +596,10 @@ export function createMapView(canvas, map) {
 
   /** The coast field at each level's coarseness, made when first needed. @type {(import('./shore.js').ShoreSquares | null)[]} */
   const shoreFields = LEVELS.map(() => null);
+  /** The same for the AD 1 to 1219 field, made only if a date before 1219 is shown. @type {(import('./shore.js').ShoreSquares | null)[]} */
+  const leadShoreFields = LEVELS.map(() => null);
   /** The old sea's paths for the kept frame: rebuilt when the coast moves or the view leaves them. */
-  /** @type {{ index: number, level: number, box: number[], fill: Path2D, line: Path2D } | null} */
+  /** @type {{ index: number, level: number, lead: boolean, box: number[], fill: Path2D, line: Path2D } | null} */
   let oldSea = null;
 
   /**
@@ -607,14 +611,15 @@ export function createMapView(canvas, map) {
   function drawOldSea(c, index, px, x0, y0, x1, y1) {
     const d = /** @type {DateData} */ (dated);
     const level = /** @type {DateLayer} */ (date).coastLevel;
+    const lead = /** @type {DateLayer} */ (date).coastLead;
     const b = d.coast.box;
     if (x1 < b.col0 * b.cell || x0 > (b.col0 + b.cols) * b.cell || y1 < b.row0 * b.cell || y0 > (b.row0 + b.rows) * b.cell) return;
     const box = oldSea?.box;
-    if (!oldSea || oldSea.index !== index || oldSea.level !== level || !box || x0 < box[0] || y0 < box[1] || x1 > box[2] || y1 > box[3]) {
+    if (!oldSea || oldSea.index !== index || oldSea.level !== level || oldSea.lead !== lead || !box || x0 < box[0] || y0 < box[1] || x1 > box[2] || y1 > box[3]) {
       const w = (x1 - x0) / 2;
       const h = (y1 - y0) / 2;
       const within = { x0: x0 - w, y0: y0 - h, x1: x1 + w, y1: y1 + h };
-      const r = shoreAt(shoreField(index), level, { within });
+      const r = shoreAt(shoreField(index, lead), level, { within });
       // No closePath: a fill closes each ring by itself, and Chrome's closePath slows down with
       // every ring already in the path (10,000 rings took over half a second).
       const fill = new Path2D();
@@ -627,7 +632,7 @@ export function createMapView(canvas, map) {
       }
       const line = new Path2D();
       addLines(line, r.lines, false);
-      oldSea = { index, level, box: [within.x0, within.y0, within.x1, within.y1], fill, line };
+      oldSea = { index, level, lead, box: [within.x0, within.y0, within.x1, within.y1], fill, line };
     }
     c.fillStyle = seaFill;
     c.fill(oldSea.fill);
@@ -636,15 +641,17 @@ export function createMapView(canvas, map) {
     c.stroke(oldSea.line);
   }
 
-  /** @param {number} index */
-  function shoreField(index) {
-    const ready = shoreFields[index];
+  /** @param {number} index @param {boolean} [lead] */
+  function shoreField(index, lead = false) {
+    const fields = lead ? leadShoreFields : shoreFields;
+    const ready = fields[index];
     if (ready) return ready;
     const d = /** @type {DateData} */ (dated);
     const f = COAST_FACTOR[index];
-    const g = f === 1 ? d.coast : coarseField(d.coast.box, d.coast.codes, f);
+    const codes = lead ? /** @type {Uint8Array} */ (d.coast.lead) : d.coast.codes;
+    const g = f === 1 ? { box: d.coast.box, codes } : coarseField(d.coast.box, codes, f);
     const built = shoreSquares(g.box, g.codes);
-    shoreFields[index] = built;
+    fields[index] = built;
     return built;
   }
 
