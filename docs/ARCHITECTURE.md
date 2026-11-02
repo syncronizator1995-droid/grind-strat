@@ -585,6 +585,38 @@ by ids from data/sources.md.
   today's name, and a test keeps every river, line, lake and sea name inside the subset's ranges
   (one "№" falls back to the next font).
 
+### The ice-age maps and their notes (M3b, PR 2: the engine; PR 3 fills the data)
+
+- **Ages:** `AGES` in `src/sim/map-date.js`: 10,000, 9,500, 8,500, 7,500 and 5,000 BC (ids
+  `age-10000bc` and so on). `eraOf(year)` gives the age at or before a BC year (9,000 BC shows
+  9,500 BC; earlier than 10,000 BC and 1 BC show the first and last age); AD 1 to 1218 is the era
+  `ad1` (PR 1's lead-in; until it is in it draws 1219); 1219 on is `historic`. `#date=0` and
+  `#date=0BC` are refused; `#date=9500BC` and the other four links parse (`parseTestLink`).
+- **The age block** (kind `ages`, licence CC-BY-SA-4.0, one block for all the ages, a late block: a
+  comment last in the page, read only for a BC date; PR 3 adds it to `BLOCK_FILES` and `LATE_KINDS`).
+  The format is in the header comment of `src/ui/map/slice.js`: `meta.grid` {cols, rows, cell} (the
+  terrain grid, 1 km, row 0 south), `meta.ages` [{id, year, stage}], and per age two layers:
+  `<id>/surface` (1 km: 0 land, 1 water, 2 ice; water and ice never share a cell) and `<id>/cover`
+  (2 km, ceil(cols/2) x ceil(rows/2): 0 no model yet, 1 tundra, 2 birch woodland, 3 pine, 4 mixed
+  forest). An age with no layers shows its note and "map not built yet". `loadAges` (load.js) unpacks
+  it, `unpackAge` checks sizes and values.
+- **`src/ui/map/slice.js`** (pure): `paintAge` (pixels, with optional hill shading), `hatchRects`
+  (the "no model yet" land as merged rectangles), `oldShore` (marching squares from `shore.js` on the
+  water mask, level 0), `surfaceAt`, `ageLabel` and `bannerText` ("Rough preview: about 9,500 BC (about
+  11,500 years ago)": years ago from 2026, nearest 500, never "BP").
+- **The view's age mode** (`view.js`): `followAge(shown, wanted)` and `landYearFor(wanted, parked)` in
+  `dated.js` (pure). While an age shows, `paintMap` paints the age instead of the land, hides today's
+  rivers, lakes, names and the old sea, hatches the no-model land, and draws today's coast faint and
+  dashed. The date layer stays parked at the year it had; leaving the age is the ordinary move of the
+  date layer to the wanted year, so nothing is left to undo. `canvas.dataset.mapAge` names the age.
+  A tap in an age says the water's stage name (`setOnAgeTap`).
+- **The notes** (`tools/map/age-notes.json` by hand, packed by `pack-age-notes.mjs` into
+  `src/data/own/age-notes.json`, kind `age-notes`, a late block): every sentence carries source ids,
+  explained with links in data/sources.md; the block holds authors, years and titles, no links. The
+  banner (a button, 44 px high) opens the FULL note in the sheet style (`src/ui/age-panel.js`).
+  `main.js` reads the notes and the ages only when an age is shown (a test checks that `showMap` and
+  a 1219 game never touch them).
+
 ## 10. Invariants and soak outputs
 
 Checked every game year in soak runs; tests feed them broken states to prove they catch errors.

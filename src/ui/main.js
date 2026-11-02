@@ -9,9 +9,11 @@ import { shouldAutosave } from './autosave.js';
 import { daysForFrame, FASTEST_BUDGET_MS, MAX_DAYS_PER_FRAME } from './clock.js';
 import { setUpInstall } from './install.js';
 import { showCredits } from './credits.js';
-import { FIRST_MAP_YEAR } from '../sim/map-date.js';
+import { eraOf, FIRST_MAP_YEAR } from '../sim/map-date.js';
 import { mapYearOfDay, parseTestLink, yearFromHash } from './map/dated.js';
-import { loadDated, loadMap, loadNames, loadWater, noTimes } from './map/load.js';
+import { loadAgeNotes, loadAges, loadDated, loadMap, loadNames, loadWater, noTimes } from './map/load.js';
+import { ageLabel, bannerText } from './map/slice.js';
+import { noteView, showAgeNote } from './age-panel.js';
 import { panelInfo } from './map/names.js';
 import { showWaterPanel } from './water-panel.js';
 /** @typedef {import('./map/load.js').DatedData} DatedData */
@@ -48,6 +50,12 @@ const speedResults = $('#speedResults', HTMLElement);
 const waterSheet = $('#waterSheet', HTMLElement);
 const waterTitle = $('#waterTitle', HTMLElement);
 const waterBody = $('#waterBody', HTMLElement);
+const ageBanner = $('#ageBanner', HTMLButtonElement);
+const ageBannerText = $('#ageBannerText', HTMLElement);
+const ageBannerMore = $('#ageBannerMore', HTMLElement);
+const ageSheet = $('#ageSheet', HTMLElement);
+const ageTitle = $('#ageTitle', HTMLElement);
+const ageBody = $('#ageBody', HTMLElement);
 
 let state = startingState();
 let speed = 0;
@@ -259,6 +267,71 @@ function lateComment(kind) {
   return null;
 }
 
+/**
+ * Like readBlock, but null when the page has no such block (the ice-age maps' data, until it is built).
+ * @param {string} kind
+ */
+function readOptionalBlock(kind) {
+  return document.getElementById(`gs-${kind}`)?.textContent || lateComment(kind) ? readBlock(kind) : null;
+}
+
+// --- the ice-age maps (M3b): banner, note and data, read only for a BC date -----------------
+/** @type {{ id: string, year: number, hasData: boolean } | null} */
+let shownAge = null;
+/** @type {Promise<import('./map/load.js').AgeNotes | null> | null} */
+let ageNotesLoad = null;
+let agesRequested = false;
+
+/** Reads the age notes once, the first time a BC date asks. A 1219 game never gets here. */
+function ageNotes() {
+  ageNotesLoad ??= loadAgeNotes(readBlock('age-notes'), noTimes()).catch((err) => {
+    tell(`The note could not be read: ${err instanceof Error ? err.message : err}`, true);
+    return null;
+  });
+  return ageNotesLoad;
+}
+
+/** The ice-age map data, if the page has it; the map repaints from it when it comes in. */
+async function loadAgeMaps() {
+  if (agesRequested) return;
+  agesRequested = true;
+  try {
+    const block = readOptionalBlock('ages');
+    if (block) mapView?.setAges(await loadAges(block, noTimes()));
+  } catch (err) {
+    tell(`The ice-age map could not be read: ${err instanceof Error ? err.message : err}`, true);
+  }
+}
+
+/** @param {{ id: string, year: number, hasData: boolean } | null} age */
+function onAgeChange(age) {
+  shownAge = age;
+  ageBanner.hidden = !age;
+  if (!age) { ageSheet.hidden = true; return; }
+  ageBannerText.textContent = bannerText(age.year);
+  ageBannerMore.textContent = age.hasData ? 'Tap for what we know' : 'Map not built yet. Tap for what we know';
+  void loadAgeMaps();
+}
+
+async function openAgeNote() {
+  const age = shownAge;
+  if (!age) return;
+  const notes = await ageNotes();
+  const note = notes?.ages.find((a) => a.id === age.id);
+  if (!notes || !note) return;
+  closeSheets();
+  showAgeNote(ageTitle, ageBody, noteView(note, notes, age.hasData));
+  ageSheet.hidden = false;
+}
+
+/** @param {{ kind: string | null, stage: string | null, hasData: boolean }} hit */
+function onAgeTap(hit) {
+  if (!hit.hasData) tell('Map not built yet. Tap the banner for what we know about this age.');
+  else if (hit.kind === 'water') tell(`${hit.stage}. Tap the banner for the note.`);
+  else if (hit.kind === 'ice') tell('Ice sheet. Tap the banner for the note.');
+  else if (hit.kind === 'none') tell('No model for this land yet.');
+}
+
 /** Shown for the moment before the map is unpacked. */
 function drawLoading() {
   const ctx = canvas.getContext('2d');
@@ -304,6 +377,8 @@ async function showMap() {
     startup.datedMs = performance.now() - t;
   }
   mapView = createMapView(canvas, data);
+  mapView.setOnAge(onAgeChange);
+  mapView.setOnAgeTap(onAgeTap);
   mapView.setDay(state.day);
   if (testYear !== null) showTestYear(testYear);
   if (dated) mapView.setDated(dated, year);
@@ -365,7 +440,7 @@ async function showMap() {
  */
 function showTestYear(year) {
   mapView?.setMapYear(year);
-  if (year !== null) tell(`Test link: the map shows ${Math.max(FIRST_MAP_YEAR, year)}. The game's date is not changed.`);
+  if (year !== null) tell(`Test link: the map shows ${year < 0 ? `the ice-age map, ${ageLabel(eraOf(year).year)}` : eraOf(year).year}. The game's date is not changed.`);
 }
 
 async function speedTest() {
@@ -408,6 +483,7 @@ function closeSheets() {
   speedSheet.hidden = true;
   creditsSheet.hidden = true;
   waterSheet.hidden = true;
+  ageSheet.hidden = true;
   panelHit = null;
 }
 
@@ -479,6 +555,8 @@ darkMode.addEventListener('change', () => mapView?.setDark(darkMode.matches));
 window.addEventListener('hashchange', () => showTestYear(yearFromHash(location.hash)));
 $('[data-act="rerun-speed"]', HTMLButtonElement).addEventListener('click', speedTest);
 $('[data-act="close-water"]', HTMLButtonElement).addEventListener('click', closeSheets);
+$('[data-act="close-age"]', HTMLButtonElement).addEventListener('click', closeSheets);
+ageBanner.addEventListener('click', () => { void openAgeNote(); });
 $('[data-act="close-speed"]', HTMLButtonElement).addEventListener('click', () => { speedSheet.hidden = true; });
 $('[data-act="copy-speed"]', HTMLButtonElement).addEventListener('click', copyResults);
 /** Tells the map where buttons sit over it, so no river or lake name hides under them. */

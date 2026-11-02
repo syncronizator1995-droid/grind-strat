@@ -49,15 +49,44 @@ export function mapYear(day) {
 }
 
 /**
- * Which set of map data a year uses. M3a has one, 'historic' (1219 to today), built for every
- * year from AD 1 on, with years before 1219 showing 1219. M3b adds AD 1 and the ice-age slices,
- * each with its own grids; until then a BC year shows the 1219 map and says so (noData).
+ * The ice-age maps (M3b): five rough ages, each shown from its own year until the next age. A BC
+ * year shows the age at or before it (9,000 BC shows 9,500 BC, 4,000 BC shows 5,000 BC), and
+ * anything earlier than 10,000 BC shows 10,000 BC. Years are negative; there is no year 0.
+ */
+export const AGES = Object.freeze([
+  { id: 'age-10000bc', year: -10000 },
+  { id: 'age-9500bc', year: -9500 },
+  { id: 'age-8500bc', year: -8500 },
+  { id: 'age-7500bc', year: -7500 },
+  { id: 'age-5000bc', year: -5000 },
+]);
+
+/**
+ * The ice-age map a year shows, or null for AD years (and nothing from AD 1 on is an age).
  * @param {number} year never 0
- * @returns {{ id: 'historic', year: number, noData: boolean }} year: the year to draw
+ * @returns {{ id: string, year: number } | null}
+ */
+export function ageOf(year) {
+  checkYear(year);
+  if (year > 0) return null;
+  let found = AGES[0];
+  for (const a of AGES) if (a.year <= year) found = a;
+  return found;
+}
+
+/**
+ * Which set of map data a year uses. 'historic' is 1219 to today, built for every year from AD 1
+ * on (AD 1 to 1218 is the 'ad1' era: M3b's lead-in before the 1219 grid; until it is in, those
+ * years draw 1219). A BC year is one of the five ice-age maps (AGES), each with its own data.
+ * @param {number} year never 0
+ * @returns {{ id: string, year: number, noData: boolean }} year: the year to draw
  */
 export function eraOf(year) {
   checkYear(year);
-  return { id: 'historic', year: Math.max(FIRST_MAP_YEAR, year), noData: year < 1 };
+  const age = ageOf(year);
+  if (age) return { id: age.id, year: age.year, noData: false };
+  if (year < FIRST_MAP_YEAR) return { id: 'ad1', year: FIRST_MAP_YEAR, noData: false };
+  return { id: 'historic', year, noData: false };
 }
 
 /**

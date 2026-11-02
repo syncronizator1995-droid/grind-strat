@@ -7,6 +7,7 @@ import { createCoast } from '../../sim/coast-date.js';
 import { timelineFromBlock } from '../../sim/map-date.js';
 import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleBlocks } from './codec.js';
 import { namesShapeProblem } from './names.js';
+import { unpackAge } from './slice.js';
 
 /**
  * @typedef {object} PackedBlock
@@ -297,3 +298,48 @@ export async function loadDated({ terrainTime, coast, changes }, base, times) {
 
 /** Waits a moment, so the page can draw and answer a tap between pieces of unpacking. */
 const breathe = () => new Promise((done) => setTimeout(done, 0));
+
+/**
+ * @typedef {object} AgeNote one age's note (src/data/own/age-notes.json)
+ * @property {string} id @property {number} year @property {string} title
+ * @property {{ name: string, sources: string[] }} stage the water's name, with its sources
+ * @property {{ text: string, sources: string[], marks?: string[] }[]} sentences
+ * @typedef {{ sources: Record<string, { author: string, year: number, title: string }>, ages: AgeNote[] }} AgeNotes
+ */
+
+/**
+ * Unpacks the notes of the ice-age maps. Read only when the map shows a BC date: a game in 1219
+ * never reads this block.
+ * @param {PackedBlock} block
+ * @param {LoadTimes} times added to
+ * @returns {Promise<AgeNotes>}
+ */
+export async function loadAgeNotes(block, times) {
+  if (block.kind !== 'age-notes') throw new Error(`expected the age notes, got ${block.kind}`);
+  const [n] = await unpackBlocks([block], times);
+  const info = JSON.parse(new TextDecoder().decode(n('info')));
+  if (!Array.isArray(info.ages) || !info.sources) throw new Error('the age notes do not add up');
+  return info;
+}
+
+/**
+ * Unpacks the ice-age maps (the "ages" block, format in src/ui/map/slice.js), one slice per age.
+ * An age with no layers has no data yet (it is left out). Read only for a BC date.
+ * @param {PackedBlock} block
+ * @param {LoadTimes} times added to
+ * @returns {Promise<Map<string, import('./slice.js').AgeSlice>>}
+ */
+export async function loadAges(block, times) {
+  if (block.kind !== 'ages') throw new Error(`expected the ice-age maps, got ${block.kind}`);
+  const [a] = await unpackBlocks([block], times);
+  const t0 = performance.now();
+  const grid = block.meta.grid;
+  /** @type {Map<string, import('./slice.js').AgeSlice>} */
+  const out = new Map();
+  for (const entry of block.meta.ages ?? []) {
+    if (!a.has(`${entry.id}/surface`) || !a.has(`${entry.id}/cover`)) continue;
+    out.set(entry.id, unpackAge(entry, grid, a(`${entry.id}/surface`), a(`${entry.id}/cover`)));
+  }
+  times.decodeMs += performance.now() - t0;
+  return out;
+}

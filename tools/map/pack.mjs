@@ -18,6 +18,8 @@
 //                                     drawn shapes of the map over time (tools/map/pack-changes.mjs)
 //   src/data/own/names.json           our own work: the names of rivers, lakes and seas over time
 //                                     (tools/map/pack-names.mjs; needs the water block above)
+//   src/data/own/age-notes.json       our own work: the five notes of the ice-age maps
+//                                     (tools/map/pack-age-notes.mjs)
 // and records their fingerprints in src/data/fingerprints.json.
 //   node tools/map/pack.mjs     (npm run map:pack also rewrites the credits)
 // Needs the derived grids (npm run map:grids) and the Natural Earth files (node tools/map/fetch.mjs).
@@ -29,6 +31,7 @@ import { ROOT, writeBlock, writeFingerprints } from './block.mjs';
 import { packBase } from './pack-base.mjs';
 import { COAST_BLOCK, packCoast } from './pack-coast.mjs';
 import { CHANGES_BLOCK, packChanges } from './pack-changes.mjs';
+import { AGE_NOTES_BLOCK, packAgeNotes } from './pack-age-notes.mjs';
 import { NAMES_BLOCK, packNames } from './pack-names.mjs';
 import { packTerrain } from './pack-terrain.mjs';
 import { packTerrainTime, TIME_BLOCK } from './pack-terrain-time.mjs';
@@ -51,6 +54,7 @@ async function main() {
   written.push({ path: COAST_BLOCK, text: await writeBlock(COAST_BLOCK, await packCoast()) });
   written.push({ path: CHANGES_BLOCK, text: await writeBlock(CHANGES_BLOCK, await packChanges()) });
   written.push({ path: NAMES_BLOCK, text: await writeBlock(NAMES_BLOCK, await packNames()) });
+  written.push({ path: AGE_NOTES_BLOCK, text: await writeBlock(AGE_NOTES_BLOCK, await packAgeNotes()) });
   await writeFingerprints();
   for (const w of written) {
     const block = JSON.parse(w.text);
