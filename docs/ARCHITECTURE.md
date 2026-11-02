@@ -387,19 +387,12 @@ and holdings, planned with him after 2a. The approved 2a plan is in docs/HANDOFF
 in step 8. One base coast (Natural Earth) is used by every slice, so the coast doesn't jump where
 nothing changed; 1219 and 1 AD add local fixes, each with a source or marked TO CHECK.
 
-**Names per era.** Every named place (river, lake, sea, later province and holding) stores its
-names by era. A proposed shape:
-```json
-{ "names": {
-    "today":  { "name": "Daugava", "sources": ["ne:<feature id>"] },
-    "1219":   { "name": "Daugava", "standIn": true },
-    "1 AD":   { "name": "Daugava", "standIn": true } },
-  "other": { "lt": "…", "lv": "…", "et": "…", "pl": "…", "de": "…", "ru": "…" } }
-```
-- `standIn: true` means today's local name is standing in because no name of the time is sourced.
-  The map shows the name for the game's date. The panel shows every name with its sources.
-- A test checks that every named feature has a name per era, or a marked stand-in, and a source.
-- The values above are an invented example of the shape, not data.
+**Names over time.** Rivers, lakes and seas keep their names in one list, not in the water data
+(built in M3a, PR 2; see "As built in M3a, pull request 2" below). Each feature is named by its kind
+and Wikidata id, and carries every form with years, language and source. Where no name of the time
+is sourced, today's name stands in; the data never stores that, it is worked out when needed.
+- A test checks that every form names a source, and that every listed feature is found in the water.
+- Provinces and holdings (later steps) will follow the same idea.
 
 **Sources and credits:**
 - data/sources.md lists collections (Natural Earth, OpenStreetMap, GEBCO and so on), each with a
@@ -535,7 +528,133 @@ by ids from data/sources.md.
   headless canvas makes slow (M2b's own full redraw of that view takes 0.4 to 0.6 s there too);
   Ignas's phone paints a full frame in 11 ms.
 - **The hidden test link** `#date=1550` pins the map to a year without changing the game's date;
-  `#date=1550&view=x,y,scale` also places the camera, for the screenshots. Later `#10000BC`.
+  `#date=1550&view=x,y,scale` also places the camera, for the screenshots. BC years since M3b: `#date=10000BC`.
+
+**As built in M3a, pull request 2 (the names change; the tap panel):**
+- **The names block** `src/data/own/names.json` (our own work, made by `tools/map/pack-names.mjs`
+  from the hand file `tools/map/names-of-the-time.json`; `npm run map:pack` runs it): one JSON
+  layer with `sources` (title, author, year written, or "about"), `languages`, `regions` (Lithuania
+  has the rule "today's names"), `periods` (per region: from, to, language), `features` (river or
+  lake, Wikidata id, and its forms) and `seas` (with a ring of points for a gulf). A form may
+  name `stretches` (the text one of the river's lines shows today) and carries marks (TO CHECK,
+  estimate, disputed) and `map: false` for a form kept for the panel only. The packer checks that
+  every Wikidata id matches exactly one river or lake of the shipped water, every stretch text is
+  one a line shows today, and no web address or Cyrillic gets in. It is an EARLY block (before the
+  code, next to the water): the page reads it with the water, so the first picture of the water
+  already has its names. A damaged block logs a console warning and the map keeps today's names.
+- **The resolver** `src/ui/map/names.js` (pure, runs in Node): `linkNames` joins the list to the
+  shipped water (a group per lake or river stretch; lines of listed rivers all have a group), and
+  `nameAt(group, year)` gives the name by one rule: a group takes the name its region's records give
+  for the year, in the language that region's period uses; a region with the "today" rule, or no
+  record, or no period keeps today's name. "Of the time" is worked out, never stored: a name counts
+  as of the time when its source was written within 25 years of the year shown
+  (`OF_THE_TIME_YEARS`; Claude's default of 25 October 2026, TO CHECK with Ignas); a source further off is marked "later source".
+  Medieval forms end in 1400 (a game choice, TO CHECK). `changeYears` lists the years when anything
+  changes, so `epochAt` says in one binary search whether the names on the map must be placed
+  again. `namesAt(year)` returns the text for every line and lake.
+- **On the map:** `labels.js` reads the text from that view, so only a real text change places the
+  names anew (`renamed`, a separate path from a full repaint); the map's date pass calls it. It
+  cost a median 12 ms, worst 18 ms in headless desktop Chrome, and a median 101 ms with the
+  processor slowed 4x (two changes in the time run). The soak follows the names too: every year
+  from 1219 to 2021, 13 changes of the names on the map, none blank, today's names in 2021.
+- **Tap** `src/ui/map/hit.js` (pure): `createTapTracker` counts a touch as a tap when it is one
+  primary pointer, up within 600 ms and 10 px (it holds the pan until 10 px, then releases it by
+  the whole distance). `hitWater` decides in order: a placed name (circles along the label), the
+  old sea, a lake (unless a river runs within 6 px), a river within 20 px, then today's sea. A gulf
+  ring (Riga, Finland) covers the land around it, so a sea is picked only where the point is open
+  sea first, and then the ring decides which sea. Our drawn land (Ruden) still taps as the Baltic Sea.
+- **The panel** `src/ui/water-panel.js` shows `panelInfo` (names.js): the title (today's name), the
+  kind, "Name now" with its source and marks, "Names over time" (name, years, language, source,
+  marks; `stretches` lists the other stretches of the river that share a name), "Today" (today's
+  name, how it is written in the data, other names) and the dated facts. It reuses the Credits
+  sheet's style. A tap on empty land closes it; it is written again when the names change.
+- **Start-up fix:** the three late blocks (terrain-time, coast, changes, 0.8 MB) now sit after the
+  code as HTML comments, `<!--gs:<kind>` then the JSON with "<" and ">" written as `\u003c` and
+  `\u003e`, not as script elements; the game reads them back (`lateComment` in main.js) when it needs
+  them. A comment ends only at "-->" or "--!>", and with no ">" inside neither can appear; a test
+  reads every shipped late block back from its comment unchanged. A missing or damaged block stops
+  the map with a plain message ("missing its coast data", "data is damaged"), as before.
+  The licence guard and every block test still run on the block texts. Measured in headless
+  Chrome slowed 4x, 16 runs in turn, first map median 1464 ms against 1501 ms with script elements
+  (a 2 to 3% gain). Against M2b (2.0 MB, 1393 ms) the first map was 106 to 107% in two runs and
+  98% in a third (the machine's noise is about 5%). What remains is the code: 102 KB against 53 KB
+  in M2b, so the page's code starts about 50 ms later (scriptStartMs 570 against 520).
+- **Fonts:** the map's names are drawn in the phone's own serif font (`labelFont` in labels.js),
+  which the browser fills letter by letter, so old letters such as ǫ, Â, ê and æ show. The panel's
+  title uses our display font (Grenze Gotisch, subset to Latin Extended); the title is always
+  today's name, and a test keeps every river, line, lake and sea name inside the subset's ranges
+  (one "№" falls back to the next font).
+
+### The ice-age maps and their notes (M3b, PR 2: the engine; PR 3 fills the data)
+
+- **Ages:** `AGES` in `src/sim/map-date.js`: 10,000, 9,500, 8,500, 7,500 and 5,000 BC (ids
+  `age-10000bc` and so on). `eraOf(year)` gives the age at or before a BC year (9,000 BC shows
+  9,500 BC; earlier than 10,000 BC and 1 BC show the first and last age); AD 1 to 1218 is the era
+  `ad1` (PR 1's lead-in; until it is in it draws 1219); 1219 on is `historic`. `#date=0` and
+  `#date=0BC` are refused; `#date=9500BC` and the other four links parse (`parseTestLink`).
+- **The age block** (kind `ages`, licence CC-BY-SA-4.0, one block for all the ages, a late block: a
+  comment last in the page, read only for a BC date; PR 3 adds it to `BLOCK_FILES` and `LATE_KINDS`).
+  The format is in the header comment of `src/ui/map/slice.js`: `meta.grid` {cols, rows, cell} (the
+  terrain grid, 1 km, row 0 south), `meta.ages` [{id, year, stage}], and per age two layers:
+  `<id>/surface` (1 km: 0 land, 1 water, 2 ice; water and ice never share a cell) and `<id>/cover`
+  (2 km, ceil(cols/2) x ceil(rows/2): 0 no model yet, 1 tundra, 2 birch woodland, 3 pine, 4 mixed
+  forest). An age with no layers shows its note and "map not built yet". `loadAges` (load.js) unpacks
+  it, `unpackAge` checks sizes and values.
+- **`src/ui/map/slice.js`** (pure): `paintAge` (pixels, with optional hill shading), `hatchRects`
+  (the "no model yet" land as merged rectangles), `oldShore` (marching squares from `shore.js` on the
+  water mask, level 0), `surfaceAt`, `ageLabel` and `bannerText` ("Rough preview: about 9,500 BC (about
+  11,500 years ago)": years ago from 2026, nearest 500, never "BP").
+- **The view's age mode** (`view.js`): `followAge(shown, wanted)` and `landYearFor(wanted, parked)` in
+  `dated.js` (pure). While an age shows, `paintMap` paints the age instead of the land, hides today's
+  rivers, lakes, names and the old sea, hatches the no-model land, and draws today's coast faint and
+  dashed. The date layer stays parked at the year it had; leaving the age is the ordinary move of the
+  date layer to the wanted year, so nothing is left to undo. `canvas.dataset.mapAge` names the age.
+  A tap in an age says the water's stage name (`setOnAgeTap`).
+- **Cost of an age** (measured in Node on a made-up full-size age, 1573 x 1328 cells, water with many
+  small lakes, 2 November 2026): `oldShore` about 150-175 ms, `paintAge` 40-70 ms, `hatchRects`
+  30-40 ms on the development computer, once each time an age is first shown (the picture is
+  dropped on leaving it). On a mid-range phone that may be a pause of about a second: PR 3 times it
+  on the real data, and if it is too slow ships the shore lines in the block or builds them in pieces.
+- **The notes** (`tools/map/age-notes.json` by hand, packed by `pack-age-notes.mjs` into
+  `src/data/own/age-notes.json`, kind `age-notes`, a late block): every sentence carries source ids,
+  explained with links in data/sources.md; the block holds authors, years and titles, no links. The
+  banner (a button, 44 px high) opens the FULL note in the sheet style (`src/ui/age-panel.js`).
+  `main.js` reads the notes and the ages only when an age is shown (a test checks that `showMap` and
+  a 1219 game never touch them).
+
+### As built in M3b: AD 1, the lead-in and the ages (merged 2 November 2026)
+
+- **One era rule** (`eraOf`, `src/sim/map-date.js`): a BC year is an ice-age map (the age at or
+  before it); AD 1 to 1218 is the era `ad1`, drawn from the lead-in at its real year (floor 1) when
+  the lead-in is loaded, else the view floors it at 1219; 1219 on is `historic`. `mapYearOfDay`
+  keeps game days AD below 1219 at 1219 and lets BC days through as the age year.
+- **The lead-in land** (block `terrain-ad1`, CC-BY-SA, late): a plane before the 1219 grid. Per 1 km
+  cell it keeps `(band << 3) | the AD 1 class` (0: same as 1219); the cell shows that class until
+  its switch year (the 1219 rule's bands, blocks and hash over AD 2 to 1219, seed offset
+  `LEAD_SEED_OFFSET`), then the 1219 grid's. At AD 1 the map is the AD 1 cut (pollen window about
+  250 BC to AD 250, same repository as 1219); from 1219 on it is exactly the old map, and each
+  cell changes once in between. Squares east of 28E are marked "model-filled, lower quality".
+- **The lead-in coast** (block `coast-ad1`, CC-BY, late): a second 500 m plane in 8-year steps from
+  AD 1 (`leadLevel(year)`), 0 where the 1219 coast decides (codes 153 and up are filled back from
+  the 1219 field by `completeLead`), so the two agree at 1219 and nothing jumps. Control places
+  for north Uppland and Kopli (Tallinn) are in `tools/map/coast-anchors-ad1.json`. `createCoast`
+  reads the lead only for years before 1219 (`coastLead`).
+- **Names of antiquity:** the names data has period lists per region (Livonia, Prussia, Poland,
+  Rus, Sweden; Lithuania keeps today's names), AD 1 to 200 from Mela, Pliny and Tacitus, marked
+  TO CHECK where unsure; Ptolemy's guesses only in the tap panel with "?".
+- **Late blocks and 1219:** `terrain-ad1`, `coast-ad1` and `age-notes` are last in the page as HTML
+  comments (`LATE_KINDS`). `main.js` reads the first two only for a date before 1219
+  (`datedBlocks(beforeFirstGrid)`) and the notes and the optional `ages` block only for a shown
+  age; tests on each branch check it, and a 1219 game's first map was 97.7% of the one before the
+  merge (1586 against 1624 ms, 5 runs in turn, CPU slowed 4x; rechecked by the final review:
+  100.0%, 1649 against 1651 ms, 7 runs, and a 1219 game's map pixel for pixel the same as before
+  the merge). A page opened on a BC date loads the lead-in too (BC is before 1219), so the link
+  can go on to AD 1 in place; a page opened on 1219 or later shows 1219 for `#date=1` and asks for
+  a reload, and leaving the link says the map follows the game's date again.
+- **Soak:** `npm run soak` also runs the map from AD 1 to 2021 and requires it to meet a 1219
+  game's land and coast exactly at 1219 and to end on today.
+- **For PR 3 (the ages' data):** the `ages` block format is in the header of `src/ui/map/slice.js`
+  and in the section above; it is not in `BLOCK_FILES` yet, and `main.js` reads it optionally.
 
 ## 10. Invariants and soak outputs
 

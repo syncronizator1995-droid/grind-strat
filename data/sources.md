@@ -111,7 +111,7 @@ Still to choose (at M2, licence first): the peat and wetland map for the 1219 ma
 | The lagoon mouths in 1219 and 1 AD | The 1219 and 1 AD slices |
 | Which lakes are modern reservoirs (Kaunas, Pļaviņas, Ķegums, Riga, Narva) | The 1219 and 1 AD slices |
 | Land-rise rates for the north Estonian coast | The 1219 and 1 AD slices |
-| Name forms of 1219 and 1 AD for rivers, lakes and seas (for example Düna for the Daugava) | Names of the time on the map; today's name stands in until each is sourced |
+| Name forms of 1219 and 1 AD for rivers, lakes and seas (for example Düna for the Daugava) | Names of the time on the map; today's name stands in until each is sourced. PARTLY DONE in M3a PR 2 (see "Map data used in M3a: names of the time" below): 1219 forms for 25 rivers and lakes and the Baltic Sea; the AD 1 forms are panel only; the rest still stand in |
 | Shore heights and dates for each ice-age stage | The rough ice-age previews in 2a |
 
 (1) Read Henry of Livonia's chronicle (chapter to find). The step 2 research saw this only in a
@@ -469,3 +469,154 @@ New TO CHECK items:
   Elbląg, Bydgoszcz, Klaipėda, the Masurian Canal), the Daugava's old mouth, lake lowerings
   (Hjälmaren, Lubāns, Engure, Võrtsjärv, Tåkern, Hornborgasjön, Søborg Sø), the Vuoksi and Lake
   Suvanto, the Oder's new channel, the Volkhov and Svir dams, and Hel.
+
+## Map data used in M3a: names of the time (25 October 2026)
+
+Outside Lithuania, rivers and lakes show the name written in the records of the game's date where
+we have sourced it; Lithuania keeps today's Lithuanian names all game; tapping shows all the forms.
+The forms are in `tools/map/names-of-the-time.json` (by hand, with the place in the text for each),
+checked and packed by `tools/map/pack-names.mjs` into `src/data/own/names.json` (our own work, under
+the game's own terms, not yet chosen). The block carries titles, authors, years and the place in the
+text, never web addresses. A source counts as "of the time" when it was written within 25 years of
+the year shown; otherwise the game says "later source". TOROT = the Tromsø Old Russian and OCS
+Treebank, https://github.com/torottreebank/treebank-releases (CC BY-NC-SA 3.0; only facts are used,
+none of its text is shipped).
+
+| Id | Source | Link | Status | Used for |
+| --- | --- | --- | --- | --- |
+| `henry` | Henry of Livonia, Chronicon Livoniae (written about 1227), ed. L. Arbusow and A. Bauer, MGH SS rer. Germ. 31, 2nd ed. 1955 (Latin, with a German index of places) | https://archive.org/details/heinrici-chronicon-livoniae-1955 | Read (OCR text) | Duna (I 2, "per Dune flumen"; the index reads "Duna, die Düna"), Coiwa (X 10), Missa (XXIII 4), Winda (X 14), Mater Aquarum (XV 7, XXIV 1), Narva (XXV 6), Worcegerwe (XV 7, XXIX 3), Astigerwe (XII 6) |
+| `rhymed` | Livländische Reimchronik (about 1290, anonymous), ed. L. Meyer 1876 (Middle High German, with a register) | https://archive.org/details/livlndischereim00reimgoog | Read (OCR text) | Dune (v. 139), Ostersê (v. 137, as the list of misprints corrects it), Semegaller Â (v. 7400), Mimele (v. 3847, the river passage; panel only) |
+| `dusburg` | Peter of Dusburg, Chronicon terrae Prussiae (1326), in Scriptores rerum Prussicarum 1 (1861) | https://archive.org/details/bub_gb_YX8OAAAAYAAJ | Read (OCR text) | Wisela, Memela and mare salsum (III 2), Recens mare (III 15), Nare (III 250), Prigora (III 103, written "Prigore"; the nominative TO CHECK) |
+| `adam` | Adam of Bremen, Gesta Hammaburgensis ecclesiae pontificum (about 1075), ed. G. Waitz, MGH SS rer. Germ. 2 (1876) | https://archive.org/details/gestahammaburgen00adamuoft | Read (poor OCR) | Oddara (II 19 here), Oddora (scholium 15), Mare Balticum (I 62; scholium 115), Mare Barbarum and Pelagus Scithicum (IV 10) |
+| `npl-synodal` | Novgorod First Chronicle, older version, Synodal manuscript, ed. A. N. Nasonov 1950; and TOROT `nov-sin.xml` | https://archive.org/details/novhorodskyj_litopys ; https://raw.githubusercontent.com/torottreebank/treebank-releases/master/nov-sin.xml | Read | Ladozskoye ozero (1228), Omovyzha (1234), Neva (1240), Chudskoye ozero (1242, f. 129), Narova (1253) |
+| `pvl-laurentian` | Primary Chronicle (about 1113), Laurentian Codex (1377), TOROT `lav.xml` | https://raw.githubusercontent.com/torottreebank/treebank-releases/master/lav.xml | Read; the citation numbers are read as PSRL 1 column.line: TO CHECK | Dvina, Dnepr, Pripet, Visla, Lovot, Ilmer, Bug, Volkhov (col. 4 l. 1, nominative; the Synodal Novgorod chronicle's accusative "волхово" points to a neuter Volkhovo there), More Varyazhskoye |
+| `pvl-hypatian` | Primary Chronicle, Hypatian Codex: PSRL 2, Ipat'evskaya letopis', issue 1, 3rd ed., Petrograd 1923 | https://archive.org/details/Complete_Collection_of_Russian_Chronicles_1923_Vol_2_Hypatian_Chronicle | Read (OCR text, address found 25 October 2026; the file is the same size as our copy) | Nevo (col. 6, "v ozero velikoe Nevo"; the Laurentian copy reads Novo) |
+| `treaty-1229` | Treaty of Smolensk with Riga and Gotland, 1229, version A, TOROT `riga-goth.xml` (after Sumnikova and Lopatin 1963) | https://raw.githubusercontent.com/torottreebank/treebank-releases/master/riga-goth.xml | Read | Dvina (livonia, panel only) |
+| `heimskringla` | Snorri Sturluson, Heimskringla (about 1230), ed. Finnur Jónsson 1911 (Old Norse) | https://archive.org/details/heimskringlanreg00snor | Read (OCR text) | Vænir (Ynglinga saga 29, p. 23), Lǫgrinn (Óláfs saga helga 7, p. 184), Eystrasalt (Óláfs saga Tryggvasonar 21, p. 119) |
+| `tacitus` | Tacitus, Germania 45 (AD 98), Perseus canonical-latinLit | https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/master/data/phi1351/phi002/phi1351.phi002.perseus-lat1.xml | Read | Suebicum mare ("Suebici maris litore") |
+| `mela` | Pomponius Mela, De chorographia (about AD 43), The Latin Library | https://www.thelatinlibrary.com/pomponius3.html ; https://www.thelatinlibrary.com/pomponius2.html | Read; 3.33 (§ 28 there) and 2.6 are the standard numbers, as Mayhoff's notes to Pliny 4.97 and 4.82 cite them | Vistula (3.33), Borysthenes (2.6) |
+| `pliny` | Pliny the Elder, Naturalis historia (AD 77), Perseus canonical-latinLit (ed. Mayhoff) | https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/master/data/phi0978/phi001/phi0978.phi001.perseus-lat2.xml | Read | Vistla (4.97), Borysthenes (4.82) |
+| `ptolemy` | Ptolemy, Geography 3.5 (about AD 150), Stevenson's translation on LacusCurtius (which its host calls poor) | https://penelope.uchicago.edu/Thayer/E/Gazetteer/Periods/Roman/_Texts/Ptolemy/3/5*.html | Read | Chronos, Rhoubon, Tourountos, Chesinos: all disputed and panel only |
+| blazek-2017 (not a source id in the data) | V. Blažek, "An attempt at an etymological analysis of Ptolemy's hydronyms of Eastern Balticum", Acta Linguistica Lithuanica 76 (2017) | https://journals.lki.lt/actalinguisticalithuanica/article/download/856/947 | Read | The Greek forms and the two matchings of Ptolemy's four rivers (Mannert 1820; Blažek's own) |
+| `iho-1953` (the sea outlines) | IHO, Limits of Oceans and Seas, Special Publication 23, 3rd edition 1953 | https://epic.awi.de/id/eprint/29772/1/IHO1953a.pdf | Read | The mouths of the Gulf of Riga (Lyser Ort, Saaremaa, Pammerort, Hiiumaa, Tahkuna, Spithami) and the Gulf of Finland (Spithami, Osmussaar, Hanko Head) |
+
+Periods (which language and source the map follows, per region; `from` to `to`, the later year not
+included):
+
+| Region | Years | Language | Source | Mark |
+| --- | --- | --- | --- | --- |
+| Lithuania | all | today's Lithuanian names (rule, no period) | none | Decided by Ignas: today's names all game; older forms only in the tap panel |
+| Livonia (Latvia, Estonia) | 1219 to 1290 | Latin | `henry` | |
+| Livonia | 1290 to 1400 | Middle High German | `rhymed` | TO CHECK: 1400 |
+| Prussia | 1219 to 1400 | Latin | `dusburg` | TO CHECK: 1400; Dusburg (1326) is a later source before about 1300 |
+| Poland | 1219 to 1400 | Latin | `dusburg` | TO CHECK: 1400; Polish records were Latin but no Polish source has been read yet |
+| Rus (Belarus, Ukraine, Russia) | 1219 to 1400 | Old East Slavic | `npl-synodal` | TO CHECK: 1400 |
+| Sweden | 1219 to 1400 | Old Norse | `heimskringla` | TO CHECK: 1400; written in Iceland about 1230, no Swedish record read yet |
+
+The end year 1400 is a game choice (the end of what our medieval sources cover). From 1400, today's
+names stand in until later records are researched. Old East Slavic names are written in Latin
+letters by the BGN/PCGN Russian table (Chudskoye ozero, Ladozskoye ozero) after plain spelling
+changes (the old letters ѣ, ѧ, ѹ and the like, and the hard and soft signs dropped); the checks in
+`pack-names.mjs` refuse a name that is not that romanisation of the form as read.
+
+TO CHECK, from this section:
+
+- The end year 1400 of every medieval period (a game choice).
+- Poland has no Polish source yet; Sweden no Swedish one.
+- Henry's chapter and section numbers were read off the 1955 edition's running heads and section
+  numbers (OCR text), and each checked against the edition's index of places (page and line). Three
+  differ from the first research: Coiwa first appears in X 10 (not X 8), the Mater Aquarum "apud
+  Tarbeten" is XXIV 1 (not XXIII 11), and Worcegerwe is XV 7 and XXIX 3 (not XXIX 2). Winda is X 14.
+  The Mater Aquarum of XXII 2 is the southern Embach and that of XXX 2 the Pärnu river (the
+  editor's footnotes); XIX 3, XIX 4 and XXIV 5 are not cited.
+- Dusburg: Nare is III 250 (the editor: the Vilia); the "Naram" of III 241, beside the Licka, is
+  the Narew. Dusburg's Pregel is "Prigore" (III 103, twice, a genitive); the nominative Prigora is
+  from the Sambian canon's Epitome in the same volume: TO CHECK. "Pregor" is Pulkava's (printed in
+  the same volume's appendix) and Jeroschin's, so it is not used.
+- TOROT citation numbers (col. and line) taken as PSRL 1 columns and lines. The Hypatian Nevo is in
+  PSRL 2 col. 6 (counted on the OCR page of cols. 5 and 6).
+- The outlines of the Gulf of Riga and the Gulf of Finland: rough, drawn by eye over the land after
+  the IHO mouths; no old names found for either.
+- Not sourced, left out: Salaca (no Wikidata id), Onega, Lubāns, the Curonian Lagoon, the Velikaya
+  (earliest find 1367), the old names of the gulfs; search-snippet forms (Düna, Embach, Pregel and
+  the like) are not used.
+- Kadłubek's "Vandalus" for the Vistula, Old Norse "Dýna" for the Daugava: snippets only, not used.
+
+## Map data used in M3b: AD 1 (2 November 2026)
+
+PR 1 of M3b: the land, the coast and the names for AD 1 (`#date=1`). All numbers are estimates made by the rules in `tools/map/terrain-ad1.mjs` and `tools/map/coast-ad1.mjs`; SGU's shore model is blocked (resource.sgu.se), so Sweden's AD 1 shore is the estimate, as in 1219.
+
+**Land (block `terrain-ad1`, CC BY-SA 4.0, source id `spatiocompo-tw6`)**
+- Pollen window 6, `Land_Cover_2000.csv`: 1700-2200 years BP = 250 BC to AD 250. Same repository and commit (894d44d58f66bb5c273491d98c3ec23a35e6a796) as the other windows: https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_2000.csv . Fetched through the manifest, recorded in `tools/map/sources.json`. Licence as for the others: CC BY-SA 4.0 (README; the GPL-3.0 LICENSE file question stays open, TO CHECK).
+- Window list and the quality warning: Githumbi, E., Pirzamanbein, B., et al. (2022), Frontiers in Ecology and Evolution 10:795794, doi:10.3389/fevo.2022.795794, https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2022.795794/full : the 25 file names match the 25 windows (present-100, 100-350, 350-700, 700-1200, then 500-year steps), so `Land_Cover_1000` is AD 750-1250 (this also settles the 1219 window's TO CHECK) and `Land_Cover_2000` is 250 BC-AD 250. The window-to-file match rests on the count and the names, not a per-file statement (TO CHECK, as for the others).
+- Eastern squares: what the paper says (section 4.1): its map of "the remote areas in north-eastern and south-eastern Europe where we have no REVEALS data" is "of considerably lower quality than the rest of Europe", and "the grid cells where the CR > 9 were omitted" (CR: the area of the confidence region, its Figure 3A, shown for the latest window only); section 5.1 names north-eastern Europe and the area south-east of the Caspian as left out. Every land square of our map is in the CSV (the 21 squares missing over the map are all sea), so none of ours was left out: the eastern ones passed the paper's own cut but stand far from pollen records. The CSV has no per-square flag, so OUR line is every 1 degree square whose centre is at or east of 28E (Belarus east of Minsk, Pskov, Novgorod, Ukraine east of 28E): `LOW_QUALITY_FROM_LON` in `tools/map/terrain-ad1.mjs`; they carry the words "model-filled, lower quality" in the block's meta. The precise rule would be "no REVEALS estimate in this square in window 6": the per-window square quality is in `GC_quality_by_TW.xlsx` of Fyfe, R. M. et al. (2021), A full Holocene record of transient gridded vegetation cover in Europe, PANGAEA, https://doi.org/10.1594/PANGAEA.937075 (CC BY 4.0; read 2 November 2026: three classes, high quality, low quality, no data), but its files are on download.pangaea.de (blocked here, and an account is needed). TO CHECK: replace the 28E line with that file's "no data" squares; the 1219 window has the same weakness and says nothing yet.
+- Results: Lithuania box (21-27E, 54-56N) 70.6% forest at AD 1 against 64.3% in 1219 (research: about 71% against 64%); worst 1 degree square 1.9 points from the pollen share (forest), 1.5 (conifer), 44 squares capped (too much marsh to reach the share, as in 1219); 122,845 cells change between AD 1 and 1219 (99,510 cleared, 1,331 grow forest, 21,939 conifer/mixed swaps). The 1219 rule is used unchanged (Ignas, 2 November 2026, "AD 1 uses the same clearing rule as 1219"): today's farmland pulls the clearings, which is a rule, not evidence.
+
+**Coast (block `coast-ad1`, CC BY 4.0)**
+- Same inputs as the 1219 coast (NKG_RF17vel `nkg-rf17vel`, GEBCO `gebco-2026`, Natural Earth `ne-land`, `ne-lakes`); nothing from OpenStreetMap, no SGU.
+- North Uppland: Hedenström, A. and Risberg, J. (2003), Shore displacement in northern Uppland during the last 6500 calendar years, SKB Technical Report TR-03-17, https://skb.com/publication/20970/TR-03-17.pdf : Landholmssjön isolated at 16.0 m (2200 cal BP = 251 BC), Södra Åsjön at 10.8 m (1400 cal BP = AD 550), Eckarfjärden 5.5 m (850 cal BP = AD 1100, only compared). Heights are the report's isolation thresholds in RH70 (its Table 4-1); the places are the report's own (Table 4-1: Landholmssjön 60°26'N 17°51'E, Södra Åsjön 60°23'N 18°03'E, Eckarfjärden 60°22'N 18°12'E). Fitted k = 1.049; sea 14.2 m above today's at AD 1 (research: about 14-15 m; the plain formula gives about 12 m). Eckarfjärden is 1 m off at 1100 (6.5 m against 5.5 m): the model's straight line in time is not a measured curve.
+- Kopli (Tallinn): Saarse, L. and Vassiljev, J. (2010), Holocene shore displacement in the surroundings of Tallinn, North Estonia, Estonian Journal of Earth Sciences 59(3), 207-215, doi:10.3176/earth.2010.3.03, https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2010/issue_3/earth-2010-3-207-215.pdf : Kakumäe joined the mainland about 2800 cal BP, Kopli about 1000 years later (so about 1800 cal BP, AD 150; our arithmetic on the text's "about"). The paper's Fig. 8 (about 2000 cal BP) still shows Kopli as an island and Fig. 9 (about 1000 cal BP) joined. GEBCO (450 m) cannot show Kopli's narrow neck, so Kopli is a HAND-DRAWN CUT (a line about 59.4465N from 24.655E to 24.725E, carried to the sea on both sides), sea until AD 150: reconstructed. In Fig. 8 the strait lies at about 59.448-59.455N, 24.690-24.697E (our reading of the figure against its latitude and longitude ticks), so the cut crosses near its southern mouth, within about 300 m; TO CHECK against a better map. Two more checks from the same figures (our readings, compared, not fitted): Tallinn about 5.3 m at about 2000 cal BP (between Fig. 8's 5.25 m and 5.5 m isobases; model 5.2 m) and about 2.75 m at about 1000 cal BP (Fig. 9's isobase; model 2.7 m).
+- Käsmu 4.73 m at 1840 cal BP (AD 110), Rosentau, A. et al. (2021), A Holocene relative sea-level database for the Baltic Sea, Quaternary Science Reviews 266, 107071; data doi:10.5880/GFZ.1.3.2020.003 (CC BY 4.0): compared, not fitted (model 4.5 m; Käsmu's coordinates about 59.58N 25.92E, TO CHECK). Salme on Saaremaa about 3.5 m at AD 1 (our interpolation of Nirgi et al. 2022, The Holocene 32(4), doi:10.1177/09596836211066596, abstract only, TO CHECK) against the model's 2.5 m: Saaremaa, Hiiumaa and the Estonian mainland use the 1219 k (fitted to Salme 1.0 m at 1219), so they may be about 1 m low at AD 1.
+- Not used: Lohja 6.23 m at 2240 cal BP (its place in the database is not yet read, TO CHECK); Prassi on Hiiumaa (a limiting point). Stockholm's AD 1 height (5.6 m) has no AD 1 control point of its own (1219's Söderlund 2 m fit carries it; Söderlund's 4 m about AD 1000 is only a check there, TO CHECK).
+- The block stores 0 in the cells the 1219 field still has under the sea in 1219 (their AD 1 codes follow from it; `completeLead` in `src/sim/coast-date.js` puts them back, and the packer checks they match): 93 KB instead of 117 KB.
+- Spits, lagoons, Żuławy: as in 1219 (the dated entries by year); Vistula Spit's open middle before the late 13th century and the Vistula's and Lielupe's old mouths are NOT drawn at AD 1 (TO CHECK, see the 1219 notes). Ladoga at today's level, TO CHECK (the Neva has existed since about 1400-1250 BC).
+
+**Names (block `names`, our own)**
+- An "antiquity" period (AD 1 to 200, Latin) per region except Lithuania (which keeps today's names): Mela, De chorographia (written about 43), The Latin Library, https://www.thelatinlibrary.com/pomponius3.html (Vistula 3.33 = the Library's section 28; Codanus sinus 3.31 = section 26) and https://www.thelatinlibrary.com/pomponius2.html (Borysthenes 2.6 = section 6, "Tum Borysthenes gentem sui nominis adluit", read 2 November 2026); Pliny the Elder, Natural History (77), Perseus canonical-latinLit (Vistula 4.97, Borysthenes 4.82, Codanus sinus 4.96); Tacitus, Germania 45 (98), Perseus: Suebicum mare. On the map: Vistula, Borysthenes (rivers; the Baltic's sea names are not drawn on the map, only shown when the sea is tapped: Suebicum mare). Panel only, marked "?": Codanus sinus (probably the western Baltic and the Danish straits, disputed) and Ptolemy's four rivers (Chronos, Rhoubon, Tourountes, Chesinos; disputed matchings, Blažek 2017, https://journals.lki.lt/actalinguisticalithuanica/article/download/856/947). The end year 200 is a game choice (after Ptolemy, about 150); until 1219 today's names stand in. At AD 1 these names show "later source" under the 25-year rule (Mela 43, Pliny 77, Tacitus 98 are more than 25 years after AD 1): honest, TO CHECK with Ignas.
+- Dusburg's Wisela now carries `from: 1219` (the packer wants Latin forms of one river not to share years); nothing changes for 1219 or later.
+- The antiquity periods list the only writers they take (`"sources": ["mela", "pliny", "tacitus"]`, read by `nameAt` in `src/ui/map/names.js`): without this, AD 1 to 200 showed the medieval Latin forms whose entries have no start year (Henry of Livonia's Duna, Coiwa, Missa, Mater Aquarum, Narva, Worcegerwe, Astigerwe; Dusburg's Prigora and Recens mare; Adam of Bremen's Oddara). Checked: every name from 1219 on is unchanged.
+
+## Map data used in M3b: the age engine and notes (2 November 2026)
+
+The five ice-age maps (about 10,000, 9,500, 8,500, 7,500 and 5,000 BC) each have a note, shown in full when the
+banner is tapped. The notes are our own work (`tools/map/age-notes.json`, packed by `tools/map/pack-age-notes.mjs`
+into `src/data/own/age-notes.json`, under the game's own terms, not yet chosen); every sentence names the source ids
+below. The block carries authors, years and titles, never web addresses. Written from the notes research of
+2 November 2026 with all its sceptic corrections. Rules of wording: heights read "now found N m up" (where an old
+shore is found today, not how high the water stood); dates we converted from radiocarbon years say "converted by
+us (IntCal20)"; dates from human bone or food crusts say "may read too old (the reservoir effect)"; no "BP";
+Narva pottery is "first pottery, made by people who still hunted and fished" (Ignas, 2 November 2026). Neighbours
+inside the map are included (Ahrensburgian hunters on Rügen, Usedom, Wolin and Bornholm; Linear Pottery farmers in
+Kuyavia from about 5,300 BC); Zealand is left out (no checked source). The mammoth line is marked "not yet
+confirmed". The banner counts "years ago" from 2026, rounded to the nearest 500.
+
+| Id | Source | Link | Status | Used in |
+| --- | --- | --- | --- | --- |
+| `vassiljev-saarse-2013` | Vassiljev, J. and Saarse, L. (2013), Timing of the Baltic Ice Lake in the eastern Baltic. Bulletin of the Geological Society of Finland 85: 9-18 | https://www.geologinenseura.fi/sites/geologinenseura.fi/files/bulletin_vol85_1_2013_vassiljev_saarse.pdf | read | 10,000 BC, 9,500 BC |
+| `saarse-vassiljev-2010` | Saarse, L. and Vassiljev, J. (2010), Holocene shore displacement in the surroundings of Tallinn, North Estonia. Estonian Journal of Earth Sciences 59(3): 207-215 | https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2010/issue_3/earth-2010-3-207-215.pdf | read | 10,000 BC, 9,500 BC, 8,500 BC, 7,500 BC, 5,000 BC |
+| `lunkka-2019` | Lunkka, J.P., Nikarmaa, T. and Putkinen, N. (2019), Baltic Ice Lake levels and a LiDAR/DEM-based estimate of the glacio-isostatic uplift gradient of the Salpausselkä zone, SE Finland. Bulletin of the Geological Society of Finland 91: 119-137 | https://www.geologinenseura.fi/sites/geologinenseura.fi/files/bulletin_vol91_1_119-137_2019_lunkka_et_al.pdf | read (abstract) | 10,000 BC, 9,500 BC |
+| `stromberg-1989` | Strömberg, B. (1989), Late Weichselian deglaciation and clay varve chronology in East-Central Sweden. SGU Series Ca 73 | https://resource.sgu.se/dokument/publikation/ca/ca73rapport/ca73-rapport.pdf | read (abstract); TO CHECK: The Swedish varve scale lacks several hundred years against the Greenland ice cores, so the true age of the ice edge near Stockholm is probably older; compare with the DATED-1 ice margins. | 10,000 BC, 9,500 BC |
+| `stancikaite-2006` | Stančikaitė, M. (2006), Late Glacial environmental history in Lithuania. Archaeologia Baltica 7 | https://e-journals.ku.lt/journal/AB/article/1395/file/pdf | read; TO CHECK: The issue year (believed 2006; the paper says it was received in 2005). | 10,000 BC, 9,500 BC |
+| `ukkonen-2006` | Ukkonen, P., Lõugas, L., Zagorska, I., Lukševica, L., Lukševičs, E., Daugnora, L. and Jungner, H. (2006), History of the reindeer (Rangifer tarandus) in the eastern Baltic region. Boreas 35(2): 222-230 | https://lup.lub.lu.se/record/408429 | read (abstract) | 10,000 BC, 9,500 BC |
+| `krivokorin-2025-err` | ERR News on Krivokorin et al. (2025), Rapid landscape afforestation spelled doom for Estonia's woolly mammoths (the paper is Land 14(1): 178) | https://news.err.ee/1609756647/rapid-landscape-afforestation-spelled-doom-for-estonia-s-woolly-mammoths | read (the news article); the paper itself (mdpi.com) was not reachable; TO CHECK: Whether the Puurmani mammoth ages are calibrated; read the paper before this line is shown as fact. | 10,000 BC (the mammoths), 9,500 BC (Pulli as Estonia's first known camp) |
+| `berg-hansen-2019` | Berg-Hansen, I.M., Damlien, H. and Zagorska, I. (2019), The northern fringe of the Swiderian technological tradition: Salaspils Laukskola revisited. Archaeologia Baltica 26 | https://e-journals.ku.lt/journal/AB/article/785/file/pdf | read | 10,000 BC, 9,500 BC |
+| `riede-ivanovaite-2018` | Riede, F. and Ivanovaitė, L. (2018), The Final Palaeolithic hunter-gatherer colonisation of Lithuania in light of recent palaeoenvironmental research. Open Quaternary 4: 4 | https://openquaternary.com/articles/10.5334/oq.39 | read | 10,000 BC, 9,500 BC |
+| `adamczyk-2021` | Adamczyk, M. (2021), On the edge of the Lowland: the Ahrensburgian of Rügen, Usedom, Wolin and Bornholm Islands. Materiały Zachodniopomorskie, Nowa Seria 17: 37-68 | https://mzp.muzeum.szczecin.pl/images/pdf/ns/arch/2022/2_MZP-nr-17-tom-1-Adamczyk-37_68.pdf | read (the journal's own PDF, 2 November 2026): Ahrensburgian sites and finds on all four islands, joined then by a land bridge, Bornholm the tip of a large peninsula; the culture about 10,800 to 9,000 cal BC; many reindeer remains, the Dziwna valley perhaps a reindeer migration route | 10,000 BC |
+| `vle-kunda` | Visuotinė lietuvių enciklopedija, Kundos kultūra (Kunda culture) | https://www.vle.lt/straipsnis/kundos-kultura/ | read; TO CHECK: Its own dates (7th to 4th millennium BC) are much later than the calibrated Pulli dates: not used for dates. | 8,500 BC, 7,500 BC |
+| `liiva-loze-1993` | Liiva, A. and Loze, I. (1993), Mesolithic and Neolithic habitation of the eastern Baltic. Radiocarbon 35(3): 503-506 | https://resolve.cambridge.org/core/services/aop-cambridge-core/content/view/FCAE65123B85160C3D16EFE11068008F/S0033822200060537a.pdf/mesolithic-and-neolithic-habitation-of-the-eastern-baltic.pdf | read | 8,500 BC |
+| `osipowicz-2025` | Osipowicz, G., Lõugas, L. and Luik, H. (2025), Bevel-ended bone artefacts from Pulli, Estonia: Early Mesolithic debarking tools? (preprint for Archaeological and Anthropological Sciences) | https://repozytorium.umk.pl/bitstream/handle/item/7177/Preprint%20Osipowicz%20et%20al%20Pulli.pdf?sequence=1 | read; TO CHECK: The year of the journal paper (a preprint was read). | 9,500 BC, 8,500 BC |
+| `veski-1998` | Veski, S. (1998), Early Holocene vegetation history and shoreline displacement of the Baltic Sea at the Mustjärve Bog, Northwest Estonia. Proceedings of the Estonian Academy of Sciences, Geology 47(1): 20-30 | https://kirj.ee/wp-content/plugins/kirj/pub/geol-1-1998-20-30_20211027201125.pdf | read | 9,500 BC, 8,500 BC |
+| `niinemets-2002` | Niinemets, E., Saarse, L. and Poska, A. (2002), Vegetation history and human impact in the Parika area, Central Estonia. Proceedings of the Estonian Academy of Sciences, Geology 51(4): 241-258 | https://kirj.ee/wp-content/plugins/kirj/pub/geol-4-2002-241-258_20211024094533.pdf | read | 9,500 BC |
+| `saarse-veski-2001` | Saarse, L. and Veski, S. (2001), Spread of broad-leaved trees in Estonia. Proceedings of the Estonian Academy of Sciences, Geology 50(1): 51-65 | https://kirj.ee/public/va_ge/g50-1-5.pdf | read | 5,000 BC |
+| `zagorska-sea-hunting` | Zagorska, I., Sea hunting strategy in the eastern Baltic. Lietuvos archeologija, pp. 275-286 | https://lad.lt/data/com_ladlibrary/358/275-286.pdf | read; TO CHECK: The paper's year and volume, and whether its 'about 8,500 years' for the Kunda Lammasmägi ringed seal is radiocarbon years (very likely) or calendar years. | 7,500 BC |
+| `david-2003` | David, É. (2003), The Mesolithic Zvejnieki site (Latvia) in its European context. Estonian Journal of Archaeology 7(2): 99-122 | https://kirj.ee/wp-content/plugins/kirj/pub/arch-2-2003-99-122_20230130182721.pdf | read | 7,500 BC |
+| `macane-nordqvist-2021` | Macāne, A. and Nordqvist, K. (2021), More than just Zvejnieki: an overview of Latvian Stone Age burials. European Journal of Archaeology 24(3): 299-323 | https://doi.org/10.1017/eaa.2020.64 | read | 7,500 BC |
+| `zagorska-1997` | Zagorska, I. (1997), The first radiocarbon datings from Zvejnieki Stone Age burial ground, Latvia. Iskos 11 | https://journal.fi/iskos/article/view/110431 | read (abstract) | 7,500 BC |
+| `zagorska-2018` | Zagorska, I., Meadows, J. and Iršėnas, M. (2018), New dates from Zvejnieki burial ground graves with anthropomorphic and zoomorphic figurines. Archaeologia Baltica 25 | https://e-journals.ku.lt/journal/AB/article/778/file/pdf | read | 5,000 BC |
+| `kriiska-2017` | Kriiska, A., Oras, E., Lõugas, L., Meadows, J., Lucquin, A. and Craig, O.E. (2017), Late Mesolithic Narva stage in Estonia: pottery, settlement types and chronology. Estonian Journal of Archaeology 21(1): 52-86 | https://kirj.ee/public/Archaeology_pdf/2017/issue_1/arch-2017-1-52-86.pdf | read | 5,000 BC |
+| `pyzel-2021` | Pyzel, J. (2021), On the Bandkeramik on the Lower Vistula River. Sprawozdania Archeologiczne 73/1: 203-219 | https://journals.iaepan.pl/sa/article/download/2545/2751/10443 | read | 5,000 BC |
+| `taavitsainen-1994` | Taavitsainen, J.-P., Ikonen, L. and Saksa, A. (1994), On early agriculture in the archipelago of Lake Ladoga. Fennoscandia archaeologica XI | https://journal.fi/fennoscandiaarchaeologica/article/download/126648/76466/265810 | read | 7,500 BC |
+| `passe-daniels-2015` | Påsse, T. and Daniels, J. (2015), Past shore-level and sea-level displacements. SGU Rapporter och Meddelanden 137 (the model behind SGU's shore-displacement maps) | https://resource.sgu.se/dokument/publikation/rm/rm137rapport/rm137-rapport.pdf | read | 9,500 BC (the land pressed down by the ice), 8,500 BC, 7,500 BC |
+| `reimer-2020` | Reimer, P.J. and others (2020), The IntCal20 Northern Hemisphere radiocarbon age calibration curve (0-55 cal kBP). Radiocarbon 62(4) | https://raw.githubusercontent.com/Maarten14C/rintcal/master/inst/extdata/3Col_intcal20.14C | read (the curve file, used by us to convert radiocarbon years; checked against the published Pulli and reindeer ranges; every conversion in the notes checked again on 2 November 2026, assuming errors of 50 to 100 radiocarbon years where a paper gives none) | 9,500 BC, 8,500 BC, 7,500 BC |
+
+TO CHECK, from this section:
+
+- Mammoths near Puurmani (`krivokorin-2025-err`): whether the ages are calibrated; "not yet confirmed" in the note.
+- Stockholm under the ice at 10,000 and 9,500 BC (`stromberg-1989`): the Swedish varve scale lacks several hundred years; compare with the ice margins of the ice-age data (PR 3).
+- The Kunda Lammasmägi ringed seal, about 7,550 BC (`zagorska-sea-hunting`): radiocarbon or calendar years, and the paper's year.
+- The 7,500 BC water: Påsse and Daniels 2015 (read) have the sea come into the Baltic only about 8,900 years ago (about 6,950 BC), so SGU's model still shows the Ancylus Lake; the note says the sources disagree. The SGU table for that age has not been read yet (resource.sgu.se is blocked).
+- Pulli's journal year (`osipowicz-2025` is a preprint); the issue year of `stancikaite-2006`.
+- The 5,850 to 5,650 BC date of the Littorina peak near Tallinn is a model date (the paper says the exact age there is unknown); Saaremaa's, 5,850 to 5,750 BC, is firmer.
+- Linear Pottery farmers elsewhere on the map (Lesser Poland, Volhynia): not researched; only Kuyavia is in the note.
+- Hazel at 5,000 BC: left out of that note (the plan listed it), as neither paper used there (`saarse-veski-2001` on broad-leaved trees, `kriiska-2017`) names it for that time.
+- The Tallinn islands at 9,500 BC: the paper maps them at the very start of the Yoldia Sea (about 9,650 BC); 150 years later they were a little larger.

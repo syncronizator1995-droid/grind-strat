@@ -9,7 +9,18 @@
 //   1 to 201   was sea, and is land (or lake) from the year 1219 + 4 x code
 //   254        sea all game
 // Codes run in steps of four years, so a cell with code k is sea up to 1219 + 4k - 1 and land
-// from 1219 + 4k on. Years before 1219 read as 1219: older slices (M3b) bring their own fields.
+// from 1219 + 4k on. Years before 1219 read as 1219 unless a lead-in field is given (M3b, below).
+//
+// The lead-in (M3b, the AD 1 coast): a second field over the same box, read only for years before
+// 1219 (the game loads it only for those dates). One byte per cell, in steps of 8 years from AD 1:
+//   0          land at AD 1 (or a stable shore)
+//   1 to 253   was sea, and is land from the year 1 + 8 x code (codes 153 and up: after 1219, the
+//              same cells as the 1219 field's codes 1 to 201, so the two fields agree at 1219)
+//   254        sea all game
+// Before 1219 a cell is sea when its lead code is above leadLevel(year); from 1219 on the 1219
+// field above is used, so nothing jumps at the hand-over: the sea cells are the same set.
+// The codes 153 and up follow from the 1219 field (leadFromMain), so the shipped block stores 0
+// in those cells to save space, and createCoast puts them back (completeLead).
 //
 // Cells of today's sea within two cells of the land carry the code of the land beside them
 // (the smallest one), so the old shore drawn from this field never leaves a sliver of old sea on
@@ -18,6 +29,8 @@
 
 export const COAST_BASE_YEAR = 1219;
 export const COAST_STEP = 4;
+/** The lead-in field (AD 1 to 1219): its first year, step and the year the 1219 field takes over. */
+export const LEAD = Object.freeze({ baseYear: 1, step: 8, last: 253, handOver: COAST_BASE_YEAR });
 /** The codes of the field. */
 export const COAST_CODE = Object.freeze({ land: 0, first: 1, last: 201, sea: 254 });
 
@@ -39,6 +52,16 @@ export function coastLevel(year) {
 }
 
 /**
+ * How many 8-year steps of the lead-in field have passed by a year before 1219: a cell with lead
+ * code k is land in that year when k <= leadLevel(year). 0 up to AD 8, 152 in 1218.
+ * @param {number} year
+ */
+export function leadLevel(year) {
+  const steps = Math.floor((year - LEAD.baseYear) / LEAD.step);
+  return Math.max(0, Math.min(Math.floor((LEAD.handOver - 1 - LEAD.baseYear) / LEAD.step), steps));
+}
+
+/**
  * The first year a cell is no longer sea: -Infinity for land before 1219, Infinity for sea all game.
  * @param {number} code
  */
@@ -56,11 +79,58 @@ export function emergedYearOf(code) {
 export const seaAtLevel = (code, level) => code > level;
 
 /**
- * @param {{ box: CoastBox, codes: Uint8Array }} field
+ * Cells sorted by code (a counting sort): start[k] is where the cells of code k begin in the order.
+ * @param {Uint8Array} codes @param {number} last the highest code that changes
  */
-export function createCoast({ box, codes }) {
+function sortedByCode(codes, last) {
+  const count = new Int32Array(256);
+  for (let i = 0; i < codes.length; i++) count[codes[i]]++;
+  for (let k = last + 1; k < 256; k++) if (count[k] && k !== COAST_CODE.sea) throw new Error(`coast field: unknown code ${k}`);
+  const start = new Int32Array(last + 2);
+  for (let k = 1; k <= last; k++) start[k + 1] = count[k];
+  for (let k = 1; k <= last + 1; k++) start[k] += start[k - 1];
+  const order = new Int32Array(start[last + 1]);
+  const fill = start.slice();
+  for (let i = 0; i < codes.length; i++) {
+    const k = codes[i];
+    if (k >= 1 && k <= last) order[fill[k]++] = i;
+  }
+  return { start, order };
+}
+
+/**
+ * The lead code of a cell the 1219 field still has under the sea in 1219 (code k, 1 to 201): the
+ * same year, land from 1219 + 4k, in the lead-in's 8-year steps (153 to 253).
+ * @param {number} k
+ */
+export const leadFromMain = (k) => Math.min(LEAD.last, Math.ceil((COAST_BASE_YEAR + COAST_STEP * k - LEAD.baseYear) / LEAD.step));
+
+/**
+ * The full lead-in field from the stored one: every cell the 1219 field has as sea in 1219 takes
+ * its lead code from it (the block leaves those cells 0). A new array.
+ * @param {Uint8Array} stored @param {Uint8Array} codes the 1219 field
+ */
+export function completeLead(stored, codes) {
+  const lead = stored.slice();
+  for (let i = 0; i < lead.length; i++) {
+    const k = codes[i];
+    if (k >= COAST_CODE.first && k <= COAST_CODE.last) lead[i] = leadFromMain(k);
+  }
+  return lead;
+}
+
+/**
+ * @param {{ box: CoastBox, codes: Uint8Array, lead?: Uint8Array | null }} field lead: the AD 1 to 1219
+ *   field over the same box as stored (see the top of the file), or null
+ */
+export function createCoast({ box, codes, lead: stored = null }) {
   const { col0, row0, cols, rows, cell } = box;
   if (codes.length !== cols * rows) throw new Error(`coast field: ${codes.length} cells for a box of ${cols} x ${rows}`);
+  if (stored && stored.length !== codes.length) throw new Error(`coast lead-in field: ${stored.length} cells for a box of ${cols} x ${rows}`);
+  const lead = stored ? completeLead(stored, codes) : null;
+  const leadSorted = lead ? sortedByCode(lead, LEAD.last) : null;
+  /** Is a year before the hand-over, with a lead-in field to answer for it? @param {number} year */
+  const inLead = (year) => Boolean(lead) && year < LEAD.handOver;
 
   // The cells that change, sorted by code (a counting sort), so the cells that change between two
   // years are one stretch of this list: start[k] is where the cells of code k begin.
@@ -77,6 +147,7 @@ export function createCoast({ box, codes }) {
     if (k >= COAST_CODE.first && k <= COAST_CODE.last) order[fill[k]++] = i;
   }
   let level = 0;
+  let onLead = false;
 
   /** The cell index under a point in game units, or -1 outside the box. @param {number} x @param {number} y */
   const cellAt = (x, y) => {
@@ -88,6 +159,8 @@ export function createCoast({ box, codes }) {
   return {
     box,
     codes,
+    /** The lead-in field (AD 1 to 1219), or null. */
+    lead,
     cellAt,
     /** The year a cell stops being sea (see emergedYearOf). @param {number} i cell index */
     emergedYear: (i) => emergedYearOf(codes[i]),
@@ -97,20 +170,35 @@ export function createCoast({ box, codes }) {
      */
     seaAt(x, y, year) {
       const i = cellAt(x, y);
-      return i >= 0 && seaAtLevel(codes[i], coastLevel(year));
+      return i >= 0 && (inLead(year) ? seaAtLevel(/** @type {Uint8Array} */ (lead)[i], leadLevel(year)) : seaAtLevel(codes[i], coastLevel(year)));
     },
     /** The same for a cell index. @param {number} i @param {number} year */
-    seaAtCell: (i, year) => seaAtLevel(codes[i], coastLevel(year)),
-    /** The level the coast was last stepped to. */
+    seaAtCell: (i, year) => (inLead(year) ? seaAtLevel(/** @type {Uint8Array} */ (lead)[i], leadLevel(year)) : seaAtLevel(codes[i], coastLevel(year))),
+    /** The level the coast was last stepped to (in the lead-in field's steps while `onLead`). */
     get level() { return level; },
+    /** True while the coast stands at a year before 1219 and so reads the lead-in field. */
+    get onLead() { return onLead; },
+    /** Changes whenever the picture of the coast changes: the level, told apart by field. */
+    get key() { return onLead ? -1 - level : level; },
+    /** The field the old shore is drawn from at the current step. */
+    get field() { return onLead ? /** @type {Uint8Array} */ (lead) : codes; },
     /**
      * Moves the coast to a year and returns the cells that changed since the last step: from sea to
      * land going forward in time, from land to sea going back. The list is a view into a shared
-     * array: read it before the next step.
+     * array: read it before the next step. Across the hand-over at 1219 (a different field takes
+     * over) no cells are listed: the whole picture changes together, and the two fields agree.
      * @param {number} year
      * @returns {{ cells: Int32Array, toLand: boolean, level: number }}
      */
     step(year) {
+      if (inLead(year) || onLead) {
+        const was = onLead; const wasLevel = level;
+        onLead = inLead(year);
+        level = onLead ? leadLevel(year) : coastLevel(year);
+        if (was !== onLead || !leadSorted) return { cells: new Int32Array(0), toLand: level >= wasLevel, level };
+        const lo = Math.min(wasLevel, level); const hi = Math.max(wasLevel, level);
+        return { cells: leadSorted.order.subarray(leadSorted.start[lo + 1], leadSorted.start[hi + 1]), toLand: level >= wasLevel, level };
+      }
       const next = coastLevel(year);
       const lo = Math.min(level, next);
       const hi = Math.max(level, next);

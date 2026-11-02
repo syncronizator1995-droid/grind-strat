@@ -30,9 +30,14 @@ export const BLOCK_FILES = Object.freeze({
   base: ['src/data/map/base.json'],
   terrain: ['src/data/by-sa/terrain-1219.json'],
   water: ['src/data/odbl/water.json', 'src/data/map/water-ne.json'],
+  names: ['src/data/own/names.json'],
   'terrain-time': ['src/data/by-sa/terrain-time.json'],
   coast: ['src/data/by/coast.json'],
   changes: ['src/data/own/changes.json'],
+  // M3b: read only for dates before 1219 (late blocks, last in the page).
+  'terrain-ad1': ['src/data/by-sa/terrain-ad1.json'],
+  'coast-ad1': ['src/data/by/coast-ad1.json'],
+  'age-notes': ['src/data/own/age-notes.json'],
 });
 
 /**

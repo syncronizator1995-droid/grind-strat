@@ -351,12 +351,13 @@ polished, error-free Lithuanian playthrough that holds together however the play
   the years pass. Lithuania keeps today's Lithuanian names all game; elsewhere a river or lake
   shows the form in the records of that date (Henry of Livonia's Latin in 1219, Dusburg in
   Prussia, the chronicles for Rus' lands). Where no name of the time is sourced, today's name
-  stands in, marked so. Tap a place for all its names and sources (the tap panel is M3a part 2).
+  stands in, marked so. Tap a place for all its names and sources (the tap panel, built in M3a part 2).
+  Medieval forms end in 1400; from 1400 today's names stand in (TO CHECK).
 - Terrain: one 1 km terrain map covers every province. Battle maps (step 6) and town maps (step 7)
   are made finer from it later.
 - Time slices: the map data for every age is prepared now, so nothing is redone later. M3a (1219
   to today) is shown while playing. M3b (AD 1 and the five ice-age slices) is built as data, ready
-  for step 8, and checked with the hidden test link (#10000BC and so on). The ice-age slices are
+  for step 8, and checked with the hidden test link (`#date=1`, `#date=10000BC` and so on). The ice-age slices are
   played properly in step 8, with the hunters.
 - Credits: a Credits screen lists every data owner, the licence and what we changed. It opens
   from a Credits button and from a small credit line in a corner of the map. It starts with
@@ -366,8 +367,8 @@ polished, error-free Lithuanian playthrough that holds together however the play
   peat-soil and wetland maps. Heights and sea depths are today's. Under modern reservoirs the land
   shows flat, at today's water level, because no height data from before the dams exists.
 - The map follows the date (M3a, from 11 October 2026). There is no slider: the map shows the
-  land, water and names of the game's own date. A hidden test link (`#date=1550`, later
-  `#10000BC`) shows any year, for checking only.
+  land, water and names of the game's own date. A hidden test link (`#date=1550`; since M3b
+  also `#date=1` and `#date=10000BC`) shows any year, for checking only.
   - Forest: the 1219 grid is held to 1250. Anchors follow at 1425, 1725, 1900 and 2021. Between
     two anchors each 1 km square has its own clearing year, so the forest thins bit by bit.
     Clearings spread out from open land.
@@ -384,6 +385,12 @@ polished, error-free Lithuanian playthrough that holds together however the play
     the form in the records of the date (part 2 of M3a).
   - M3a comes as two pull requests: "the land changes", then "the names change". M3b (AD 1 and
     the ice-age data) follows, planned with Ignas.
+  - M3b as built (2 November 2026), seen only through the test link: AD 1 in full like 1219
+    (more forest, a higher northern sea, no reservoirs), blending into 1219 square by square;
+    on the map the only Roman names are the Vistula and the Borysthenes (Mela), with Ptolemy's
+    guesses in the tap panel only, marked "?". Each ice-age date shows a banner ("Rough preview:
+    about 10,000 BC (about 12,000 years ago)") that opens the full sourced note; until the age
+    maps' data is in (PR 3) the map is hatched and says "map not built yet".
 
 The Baltic basin changed shape after the ice:
 
@@ -543,15 +550,24 @@ Step 2 split down are his step 2 answers, later the same day.
 | Letters on the map | Latin letters everywhere: today's local names, with Cyrillic ones romanised by the BGN/PCGN systems (Russian, Belarusian, Ukrainian), soft and hard signs left out. Original spellings stay in the data for the info panel (Ignas, 11 October 2026) |
 | Lake names on the map | Just the name, without the word for "lake": Ilmen, Narach, Plateliai. Where the plain form can't be found reliably, the full name stays, spelled out (Ignas, 11 October 2026) |
 | Time slider | None: the map follows the game's date. Land, water and names are those of the game's own date (Ignas, 11 October 2026: "Yes, the map follows the game") |
-| Hidden test link | `#date=1550` (later `#10000BC`) shows the map of any year, for checking only; the game's own date doesn't change |
+| Hidden test link | `#date=1550` (since M3b also `#date=1` and `#date=10000BC`) shows the map of any year, for checking only; the game's own date doesn't change |
 | Build order | Keep the plan: the 1219 dynasties first, the ice-age hunters in step 8; map data for every age is still prepared now (Ignas, 11 October 2026: "Keep the plan (Recommended)") |
 | M3 parts | Two parts. M3a: 1219 to today, seen while playing, in two pull requests ("the land changes", then "the names change"). M3b: AD 1 and the ice-age data, ready for step 8, planned with Ignas after M3a (Ignas, 12 October 2026: "Two parts (Recommended)") |
 | Forest over time | Changes gradually: the 1219 grid is held to 1250, then anchors at 1425, 1725, 1900 and 2021, and each 1 km square gets its own clearing year between anchors (Ignas, 12 October 2026: "Gradually (Recommended)") |
 | Lithuania's names | Today's Lithuanian names all game; the old written forms show when you tap. Elsewhere the forms in the records of the date (Ignas, 12 October 2026: "Lithuanian names (Recommended)") |
 | North coast | Estimated from land rise and fitted to local studies, and marked "estimate" (Ignas, 12 October 2026: "Estimate it (Recommended)"). Needs resource.sgu.se for Sweden and Mälaren |
+| Ice-age east | Hatched "no model yet" until 5,000 BC, where a rough estimate stands (Ignas, 2 November 2026: "Hatch it (Recommended)") |
+| Ice-age notes | The full note (4 to 6 sentences, each with its sources), with neighbours inside the map, mammoths marked "not yet confirmed", and our converted dates tagged "converted by us" (Ignas, 2 November 2026: "Full note"; "Neighbours on the map, Mammoths (TO CHECK), Our converted dates") |
+| Age label | "about 10,000 BC (about 12,000 years ago)", never "BP" (Ignas, 2 November 2026) |
+| M3b defaults (approved with the plan) | SGU's shore model is the main source for the ice-age water; SGU's small modelled lakes are left out; Narva written as "first pottery, made by people who still hunted and fished"; AD 1 uses the same clearing rule as 1219; the ice-age maps switch at each age, AD 1 blends into 1219. Hazel is dropped from the 5,000 BC note (no source for that time). 4,999 BC to 1 BC show the 5,000 BC map, then AD 1 |
 | Our own map data | Same terms as the game; Ignas chooses them later (Ignas, 12 October 2026: "Same as the game (Recommended)") |
 | Reservoirs | The 12 big ones get researched, sourced filling years. The small ones too: each appears in the year OpenStreetMap gives, marked "year from OpenStreetMap"; ones with no year stay hidden (Ignas, 12 October 2026: "Small ones too") |
 | Lake names (M3) | Keep as is: just the name (Ignas, 11 October 2026: "Keep as is") |
+| "Of the time" (M3a, names) | A name counts as of the time when its source was written within 25 years of the year shown; only a source further off is marked "later source". So Henry of Livonia (about 1227) is of the time for 1219; Dusburg (1326) is a later source for the 13th century. Claude's default while Ignas slept (25 October 2026): TO CHECK with Ignas |
+| Where medieval forms stop (M3a, names) | At 1400: from 1400 today's names stand in. A game choice, not a fact: TO CHECK with Ignas |
+| Lake Peipus (M3a, names) | "Chudskoye ozero", as BGN/PCGN gives it, not "Chudskoe"; the same rule gives the other Russian forms (TO CHECK with Ignas) |
+| Names panel details (M3a) | Claude's defaults, TO CHECK with Ignas: the Venta's "Winda" is shown in the panel only (a name shared across the Lithuanian border cannot be split without geometry); Ladoga shows the 1228 Novgorod form from 1219, and "Nevo" is panel-only |
+| Model strategy (working method) | Sonnet at medium effort builds the heavy parts; Opus 5.5 at high effort plans and checks (Ignas, 25 October 2026: "same old token strategy sonnet for heavy lifting on meadiun and opus 5.5 on high for planning") |
 | Helper agents (working method) | Opus at high effort for hard code and for the sceptics, Sonnet at medium for routine jobs, at most two at once (Ignas, 20 October 2026) |
 | First map speed (M3a) | 6 to 10% slower than M2b in a slowed-down test is accepted; Ignas's phone decides (Ignas, 21 October 2026: "Accept it (Recommended)") |
 | Speed test (M3a) | One button: the usual test plus a time run from 1219 to today at speed 5, about 3 minutes (Ignas, 21 October 2026: "Keep it in one") |

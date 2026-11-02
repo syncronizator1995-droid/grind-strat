@@ -20,7 +20,8 @@ import { coastLevel } from '../src/sim/coast-date.js';
 import { timelineFromBlock } from '../src/sim/map-date.js';
 import { unbundleBlocks } from '../src/ui/map/codec.js';
 import { createDateLayer } from '../src/ui/map/dated.js';
-import { loadDated, loadMap, loadWater, noTimes } from '../src/ui/map/load.js';
+import { loadDated, loadMap, loadNames, loadWater, noTimes } from '../src/ui/map/load.js';
+import { epochAt, linkNames, namesAt } from '../src/ui/map/names.js';
 import { inflateSync } from 'node:zlib';
 
 /**
@@ -86,28 +87,56 @@ export function runSoak({ seeds = 100, toYear = 1569, firstSeed = 1 } = {}) {
 
 /**
  * One map run from 1219 to 2021, a year at a time, with everything the view moves: the land (with
- * the Żuławy overrides), the dated rivers and lakes, our shapes and the northern coast.
- * @returns {Promise<{ errors: string[], years: number, msPerYear: number, cells: number }>}
+ * the Żuławy overrides), the dated rivers and lakes, our shapes, the northern coast and the names.
+ * @returns {Promise<{ errors: string[], years: number, msPerYear: number, cells: number, renames: number }>}
  */
-export async function runMapSoak() {
+export async function runMapSoak(fromAd1 = false) {
   const root = new URL('..', import.meta.url).pathname;
   const read = (/** @type {string} */ p) => JSON.parse(readFileSync(root + p, 'utf8'));
   const { map } = await loadMap(read('src/data/map/base.json'), read('src/data/by-sa/terrain-1219.json'));
   const water = await loadWater(read('src/data/odbl/water.json'), noTimes());
   const timeBlock = read('src/data/by-sa/terrain-time.json');
-  const data = await loadDated({ terrainTime: timeBlock, coast: read('src/data/by/coast.json'), changes: read('src/data/own/changes.json') }, map.terrain.data, noTimes());
+  const blocks = { terrainTime: timeBlock, coast: read('src/data/by/coast.json'), changes: read('src/data/own/changes.json') };
+  // The plain 1219 game's grid and coast: what a run from AD 1 must be again when it reaches 1219.
+  const plainData = await loadDated(blocks, map.terrain.data, noTimes());
+  const plainGrid = map.terrain.data.slice();
+  const plain = createDateLayer(plainData, plainGrid, 1219);
+  plain.setTags(/** @type {string[]} */ (water.tags));
+  plain.sync(() => {});
+  const data = fromAd1
+    ? await loadDated({ ...blocks, terrainAd1: read('src/data/by-sa/terrain-ad1.json'), coastAd1: read('src/data/by/coast-ad1.json') }, map.terrain.data, noTimes())
+    : plainData;
   const grid = map.terrain.data.slice();
-  const layer = createDateLayer(data, grid, 1219);
+  const first = fromAd1 ? 1 : 1219;
+  const layer = createDateLayer(data, grid, first);
   layer.setTags(/** @type {string[]} */ (water.tags));
   layer.sync(() => {});
+  // The names of the time, followed the same way: a text for every line and lake, every year.
+  const link = linkNames(await loadNames(read('src/data/own/names.json'), noTimes()), water);
+  let nameView = namesAt(link, first);
+  let renames = 0;
   /** @type {string[]} */
   const errors = [];
   let cells = 0;
   const t0 = performance.now();
-  for (let y = 1220; y <= 2021; y++) {
+  for (let y = first + 1; y <= 2021; y++) {
     cells += layer.goTo(y, () => {}).cells;
+    if (fromAd1 && y === 1219) {
+      const apart = grid.reduce((n, v, i) => n + (v === plainGrid[i] ? 0 : 1), 0);
+      if (apart) errors.push(`the run from AD 1 reaches 1219 ${apart} cells away from a 1219 game's map`);
+      if (layer.coastLead) errors.push('the AD 1 coast is still the lead-in at 1219');
+      if (layer.coastLevel !== plain.coastLevel) errors.push(`the coast at 1219 is level ${layer.coastLevel} from AD 1, ${plain.coastLevel} in a 1219 game`);
+    }
+    if (epochAt(link, y) !== nameView.epoch) {
+      nameView = namesAt(link, y);
+      renames++;
+      if (nameView.line.length !== link.todayLine.length || nameView.lake.length !== link.todayLake.length) errors.push(`names in ${y}: wrong count`);
+      if (nameView.line.some((t, i) => !t && link.todayLine[i]) || nameView.lake.some((t, k) => !t && link.todayLake[k])) errors.push(`names in ${y}: a name went blank`);
+    }
   }
   const ms = performance.now() - t0;
+  if (nameView.line.some((t, i) => t !== link.todayLine[i]) || nameView.lake.some((t, k) => t !== link.todayLake[k])) errors.push('the names in 2021 are not today\'s');
+  if (renames === 0) errors.push('the names never changed from 1219 to 2021');
   if (grid.some((v) => v > 6 || v === 1)) errors.push('a cell of a class the map does not know');
   // Today's anchor: the land over time without our overrides (they hold only until 1650), in 2021.
   const layers = unbundleBlocks(new Uint8Array(inflateSync(Buffer.from(timeBlock.bundle, 'base64'))));
@@ -118,7 +147,7 @@ export async function runMapSoak() {
   const on = /** @type {Uint8Array} */ (layer.tagOn);
   const off = /** @type {string[]} */ (water.tags).filter((t, k) => t && !on[k]);
   if (off.length) errors.push(`dated water still off in 2021: ${off.join(', ')}`);
-  return { errors, years: 2021 - 1219, msPerYear: ms / (2021 - 1219), cells };
+  return { errors, years: 2021 - first, msPerYear: ms / (2021 - first), cells, renames };
 }
 
 /** @param {SoakReport} r */
@@ -159,12 +188,19 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const report = runSoak({ seeds: num('--seeds', 100), toYear });
   console.log(formatReport(report));
   const mapRun = await runMapSoak();
+  const leadRun = await runMapSoak(true);
   console.log([
     `Map run: 1219 to 2021, a year at a time`,
     `  errors:            ${mapRun.errors.length}`,
     ...mapRun.errors.map((e) => `    ${e}`),
     `  cells changed:     ${mapRun.cells}`,
+    `  name changes:      ${mapRun.renames}`,
     `  time per map year: ${mapRun.msPerYear.toFixed(3)} ms`,
+    `Map run: AD 1 to 2021, a year at a time (the AD 1 lead-in, then 1219's map)`,
+    `  errors:            ${leadRun.errors.length}`,
+    ...leadRun.errors.map((e) => `    ${e}`),
+    `  cells changed:     ${leadRun.cells}`,
+    `  time per map year: ${leadRun.msPerYear.toFixed(3)} ms`,
   ].join('\n'));
-  if (report.errors.length || mapRun.errors.length) process.exit(1);
+  if (report.errors.length || mapRun.errors.length || leadRun.errors.length) process.exit(1);
 }

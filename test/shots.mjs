@@ -9,6 +9,8 @@
 //     The map at its date (M3a): the hidden #date= link at 1219, 1550, 1900 and 2021 over Lithuania,
 //     Stockholm, Turku and the Vistula Lagoon, in light and dark (no reservoir named in 1219), and a
 //     late save that opens at its own year from its very first picture.
+//     The names panel (M3a PR 2): a save at 1 June 1350; tap a river name, a Lithuanian lake and the
+//     open sea, a drag opens nothing, empty land closes the panel; light and dark.
 //  2. Served like the website (under /grind-strat/, as GitHub Pages does): the manifest loads, the
 //     service worker takes over, and the game still opens with the server switched off, with a
 //     signal too weak to answer, after another app on the same address wipes the caches, and
@@ -101,6 +103,8 @@ function layoutProblems(page) {
     for (const el of document.querySelectorAll('.brand, .date, .speed button, .btn, .status, .chip, .map-credit span, .credits h3')) {
       if (!(el instanceof HTMLElement) || el.closest('[hidden]')) continue;
       if (el.scrollWidth > el.clientWidth + 1) problems.push(`text does not fit in ${el.className || el.tagName}: "${el.innerText}"`);
+      // The status line shows two lines and cuts off the rest.
+      if (el.classList.contains('status') && el.scrollHeight > el.clientHeight + 1) problems.push(`the status line is cut off: "${el.innerText}"`);
       const r = el.getBoundingClientRect();
       if (r.right > window.innerWidth + 0.5 || r.left < -0.5) problems.push(`${el.className || el.tagName} sticks out of the screen`);
     }
@@ -347,7 +351,7 @@ async function slowPhoneNames(browser) {
     failures.push(`${label}: the names on the starting map were never finished`);
   }
   const shown = String(await page.locator('#map').getAttribute('data-name-list')).split('|');
-  for (const must of ['Daugava', 'Neris', 'Nemunas']) check(shown.includes(must), `${label}: "${must}" is not named on the starting map (named: ${shown.join(', ')})`);
+  for (const must of ['Duna', 'Neris', 'Nemunas']) check(shown.includes(must), `${label}: "${must}" is not named on the starting map (named: ${shown.join(', ')})`);
   await page.screenshot({ path: join(SHOTS, 'slow-phone-start.png') });
   await context.close();
 }
@@ -411,6 +415,225 @@ async function datedMaps(browser, scheme) {
   const first = await page.evaluate(() => document.documentElement.dataset.mapYearAtFirstPaint);
   check(first === '1700', `${label}: a save from 1700 first showed the map of ${first}`);
   await page.screenshot({ path: join(SHOTS, `${scheme}-date-late-save-1700.png`) });
+  await page.evaluate(() => localStorage.clear());
+  await context.close();
+}
+
+/** AD 1 views (the hidden link, #date=1): Stockholm, Tallinn (Kopli) and Lithuania. */
+const AD1_VIEWS = [
+  { name: 'stockholm', view: '4800,10500,0.1' },
+  { name: 'tallinn', view: '8855,10518,0.12' },
+  { name: 'lithuania', view: '8434,5899,0.075' },
+  { name: 'vistula', view: '5852,4994,0.12' },
+  { name: 'dnipro', view: '12500,3800,0.08' },
+];
+
+/**
+ * M3b: the map of AD 1 (Roman names only where sourced), and the ice-age maps without data: the
+ * banner, "map not built yet", and the age's note sheet open.
+ * @param {import('playwright').Browser} browser @param {'light' | 'dark'} scheme
+ */
+async function earlyMaps(browser, scheme) {
+  const label = `early/${scheme}`;
+  const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: scheme });
+  await blockOutside(context, label, (url) => url.protocol === 'file:' || url.protocol === 'data:');
+  const page = await context.newPage();
+  watch(page, label);
+  const fileUrl = pathToFileURL(join(DIST, 'grind-strat.html')).href;
+  for (const v of AD1_VIEWS) {
+    const at = `${label} AD 1 ${v.name}`;
+    await page.goto(`${fileUrl}#date=1&view=${v.view}`);
+    await page.evaluate(() => document.fonts.ready);
+    try {
+      await page.waitForFunction(() => document.documentElement.dataset.datedOnScreenMs, undefined, { timeout: 30000 });
+    } catch {
+      failures.push(`${at}: the map over time did not appear`);
+    }
+    await settle(page);
+    check(await page.locator('#map').getAttribute('data-map-year') === '1', `${at}: the map shows ${await page.locator('#map').getAttribute('data-map-year')}`);
+    check((await dateText(page)) === '1 January 1219', `${at}: the test link changed the game's date`);
+    check(await page.locator('#ageBanner').isHidden(), `${at}: the ice-age banner shows at AD 1`);
+    for (const p of await layoutProblems(page)) failures.push(`${at}: ${p}`);
+    const names = ((await page.locator('#map').getAttribute('data-name-list')) ?? '').split('|').filter(Boolean);
+    if (v.name === 'stockholm') check(!names.includes('Mälaren'), `${at}: Mälaren is named at AD 1`);
+    await page.screenshot({ path: join(SHOTS, `${scheme}-ad1-${v.name}.png`) });
+    await latinNames(page, at);
+    await page.goto('about:blank');
+  }
+  // The link changed in place, from a game in 1219 (no AD 1 data loaded): 1219 with a note to
+  // reload, then an ice age, then back to 1550 with nothing of the age left over.
+  {
+    const at = `${label} link changed in place`;
+    await page.goto(fileUrl);
+    await mapShown(page, at);
+    await page.waitForFunction(() => document.documentElement.dataset.datedOnScreenMs, undefined, { timeout: 30000 });
+    const mapAttr = (/** @type {string} */ name) => page.locator('#map').getAttribute(name);
+    await page.evaluate(() => { location.hash = '#date=1'; });
+    await settle(page);
+    check(await mapAttr('data-map-year') === '1219', `${at}: #date=1 without the AD 1 data shows ${await mapAttr('data-map-year')}`);
+    check(/Reload the page/.test(await statusText(page)), `${at}: no note to reload ("${await statusText(page)}")`);
+    for (const p of await layoutProblems(page)) failures.push(`${at} #date=1: ${p}`);
+    await page.evaluate(() => { location.hash = '#date=10000BC'; });
+    await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-age') === 'age-10000bc', undefined, { timeout: 30000 }).catch(() => failures.push(`${at}: no ice-age map`));
+    check(await page.locator('#ageBanner').isVisible(), `${at}: no banner at 10,000 BC`);
+    await page.evaluate(() => { location.hash = '#date=1550'; });
+    await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-year') === '1550', undefined, { timeout: 30000 }).catch(() => failures.push(`${at}: 1550 did not come`));
+    await settle(page);
+    check(await mapAttr('data-map-age') === null, `${at}: the age is left over at 1550`);
+    check(await page.locator('#ageBanner').isHidden(), `${at}: the banner is left over at 1550`);
+    check(Number(await mapAttr('data-names')) > 0, `${at}: no names at 1550 after the ice age`);
+    await page.evaluate(() => { location.hash = ''; });
+    await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-year') === '1219', undefined, { timeout: 30000 }).catch(() => {});
+    check(await mapAttr('data-map-year') === '1219', `${at}: leaving the link shows ${await mapAttr('data-map-year')}, not the game's 1219`);
+    check(/^Test link off/.test(await statusText(page)), `${at}: the old test link message stays ("${await statusText(page)}")`);
+    for (const p of await layoutProblems(page)) failures.push(`${at} link off: ${p}`);
+    await page.goto('about:blank');
+  }
+  for (const year of ['10000BC', '9500BC', '8500BC', '7500BC', '5000BC']) {
+    const at = `${label} ${year}`;
+    await page.goto(`${fileUrl}#date=${year}&view=8434,5899,0.05`);
+    await page.evaluate(() => document.fonts.ready);
+    try {
+      await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-age'), undefined, { timeout: 30000 });
+    } catch {
+      failures.push(`${at}: no ice-age map appeared`);
+    }
+    await settle(page);
+    check(await page.locator('#ageBanner').isVisible(), `${at}: no banner`);
+    const banner = await page.locator('#ageBanner').innerText();
+    check(/Rough preview: about/.test(banner) && /years ago/.test(banner) && !/\bBP\b/.test(banner), `${at}: the banner reads "${banner}"`);
+    check(/Map not built yet/.test(banner), `${at}: the banner does not say the map is not built yet ("${banner}")`);
+    check((await dateText(page)) === '1 January 1219', `${at}: the test link changed the game's date`);
+    for (const p of await layoutProblems(page)) failures.push(`${at}: ${p}`);
+    await page.screenshot({ path: join(SHOTS, `${scheme}-age-${year}.png`) });
+    await page.locator('#ageBanner').click();
+    await page.waitForTimeout(400);
+    check(await page.locator('#ageSheet').evaluate((e) => !(/** @type {HTMLElement} */ (e)).hidden), `${at}: the banner did not open the note`);
+    const wide = await page.locator('#ageBody').evaluate((e) => e.scrollWidth > e.clientWidth + 1);
+    check(!wide, `${at}: the note spills sideways`);
+    const box = await page.locator('#ageSheet').boundingBox();
+    check(Boolean(box && box.x >= -0.5 && box.x + box.width <= PHONE.width + 0.5 && box.y + box.height <= PHONE.height + 0.5), `${at}: the note sheet is cut off by the screen`);
+    const note = await page.locator('#ageBody').innerText();
+    check(note.length > 300, `${at}: the note is short (${note.length} characters)`);
+    for (const p of await layoutProblems(page)) failures.push(`${at} note: ${p}`);
+    await page.screenshot({ path: join(SHOTS, `${scheme}-age-${year}-note.png`) });
+    await page.goto('about:blank');
+  }
+  await context.close();
+}
+
+/** Views for the names panel, at a late save of 1350: game units and CSS px per unit. */
+const PANEL_VIEWS = {
+  livonia: '8500,7300,0.1',
+  lakes: '10000,6200,0.3',
+  sea: '5736,7842,0.1',
+  land: '9300,5700,0.5', // inland Lithuania: the centre has no river or lake within a finger's width, and a river lies 170 px left and 60 px up (checked on the data)
+};
+
+/**
+ * The tap panel for a river, a lake and the sea, at a save of 1 June 1350 (M3a PR 2): tap a placed
+ * name, tap a Lithuanian lake (its title is today's name), tap open sea, tap empty land (the
+ * panel closes), and a drag opens nothing.
+ * @param {import('playwright').Browser} browser @param {'light' | 'dark'} scheme
+ */
+async function namesPanel(browser, scheme) {
+  const label = `panel/${scheme}`;
+  const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: scheme });
+  await blockOutside(context, label, (url) => url.protocol === 'file:' || url.protocol === 'data:');
+  const page = await context.newPage();
+  watch(page, label);
+  const fileUrl = pathToFileURL(join(DIST, 'grind-strat.html')).href;
+  const save = toSave({ ...newGame(7), day: dayFromDate(1350, 6, 1) });
+  await page.goto(fileUrl);
+  await page.evaluate((text) => localStorage.setItem('grind-strat/autosave', text), save);
+  /** @param {string} view */
+  const open = async (view) => {
+    await page.goto('about:blank');
+    await page.goto(`${fileUrl}#view=${view}`);
+    await page.evaluate(() => document.fonts.ready);
+    await mapShown(page, label);
+    await settle(page);
+  };
+  const sheetOpen = () => page.locator('#waterSheet').evaluate((e) => !(/** @type {HTMLElement} */ (e)).hidden);
+  const panelText = () => page.locator('#waterSheet').innerText();
+  /** @param {string} what */
+  const panelProblems = async (what) => {
+    for (const p of await layoutProblems(page)) failures.push(`${label} ${what}: ${p}`);
+    const wide = await page.locator('#waterBody').evaluate((e) => e.scrollWidth > e.clientWidth + 1);
+    check(!wide, `${label} ${what}: the panel's text spills sideways`);
+    const box = await page.locator('#waterSheet').boundingBox();
+    check(Boolean(box && box.x >= -0.5 && box.x + box.width <= PHONE.width + 0.5 && box.y + box.height <= PHONE.height + 0.5), `${label} ${what}: the panel is cut off by the screen`);
+  };
+  /** @returns {Promise<{ text: string, x: number, y: number, kind: string }[]>} */
+  const boxes = async () => JSON.parse((await page.locator('#map').getAttribute('data-name-boxes')) ?? '[]');
+  const closeAndWait = async () => { await page.locator('[data-act="close-water"]').click(); await page.waitForTimeout(150); };
+
+  // A river's name on the map: the panel gives the name now and the names over time.
+  await open(PANEL_VIEWS.livonia);
+  const rivers = (await boxes()).filter((b) => b.kind === 'river');
+  check(rivers.length > 0, `${label}: no river name placed over Livonia`);
+  // In 1350 Livonia's records are the Rhymed Chronicle's: the Daugava is "Dune" on the map.
+  const tapped = rivers.find((b) => b.text === 'Dune') ?? rivers[0];
+  check(tapped?.text === 'Dune', `${label}: the Daugava is not named "Dune" in 1350 (rivers: ${rivers.map((b) => b.text).join(', ')})`);
+  const canvasBox = await page.locator('#map').boundingBox();
+  if (!canvasBox || !tapped) throw new Error(`${label}: nothing to tap`);
+  await page.touchscreen.tap(canvasBox.x + tapped.x, canvasBox.y + tapped.y);
+  await page.waitForTimeout(400);
+  check(await sheetOpen(), `${label}: tapping the name "${tapped.text}" did not open the panel`);
+  const text = await panelText();
+  check(/Names over time/.test(text) && /Today/.test(text), `${label}: the river panel lacks its sections:\n${text}`);
+  if (tapped.text === 'Dune') check(text.includes('Name now: Dune') && text.startsWith('Daugava'), `${label}: the Daugava's panel does not give "Dune" as the name now, under today's name:\n${text}`);
+  await panelProblems('river panel');
+  await page.screenshot({ path: join(SHOTS, `${scheme}-7-water-names.png`) });
+  await closeAndWait();
+
+  // A drag opens nothing.
+  const dragFrom = { x: canvasBox.x + tapped.x, y: canvasBox.y + tapped.y };
+  await page.mouse.move(dragFrom.x, dragFrom.y);
+  await page.mouse.down();
+  await page.mouse.move(dragFrom.x + 50, dragFrom.y, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  check(!(await sheetOpen()), `${label}: a 50 px drag opened the panel`);
+
+  // A Lithuanian lake: the title is today's name, whatever the map calls it in 1350.
+  await open(PANEL_VIEWS.lakes);
+  const lakes = (await boxes()).filter((b) => b.kind === 'lake');
+  check(lakes.length > 0, `${label}: no lake name placed over the Lithuanian lakes`);
+  if (lakes.length) {
+    const lake = lakes.find((b) => b.text === 'Drūkšiai') ?? lakes[0]; // Drūkšiai is a Lithuanian lake
+    await page.touchscreen.tap(canvasBox.x + lake.x, canvasBox.y + lake.y);
+    await page.waitForTimeout(400);
+    check(await sheetOpen(), `${label}: tapping the lake "${lake.text}" did not open the panel`);
+    const title = await page.locator('#waterTitle').innerText();
+    check(title === lake.text, `${label}: the lake panel is titled "${title}", the map says "${lake.text}" (Lithuania keeps today's names)`);
+    await panelProblems('lake panel');
+    await page.screenshot({ path: join(SHOTS, `${scheme}-7a-water-lake.png`) });
+    await closeAndWait();
+  }
+
+  // Open sea: the Baltic Sea and its names over time.
+  await open(PANEL_VIEWS.sea);
+  await page.touchscreen.tap(canvasBox.x + canvasBox.width / 2, canvasBox.y + canvasBox.height / 2);
+  await page.waitForTimeout(400);
+  check(await sheetOpen(), `${label}: tapping the open sea did not open the panel`);
+  const sea = await panelText();
+  for (const must of ['Baltic Sea', 'Mare Balticum', 'Ostersê', 'More Varyazhskoye']) check(sea.includes(must), `${label}: the sea panel lacks "${must}":\n${sea}`);
+  await panelProblems('sea panel');
+  await page.screenshot({ path: join(SHOTS, `${scheme}-7b-water-sea.png`) });
+
+  // Empty land closes the panel: inland Lithuania, a river a finger's width up and to the left (found in
+  // the data), and a spot of the same view with no water under a finger.
+  await closeAndWait();
+  await open(PANEL_VIEWS.land);
+  const midX = canvasBox.x + canvasBox.width / 2;
+  const midY = canvasBox.y + canvasBox.height / 2;
+  await page.touchscreen.tap(midX - 170, midY - 60);
+  await page.waitForTimeout(400);
+  check(await sheetOpen(), `${label}: the river in the Lithuanian view did not open a panel`);
+  await page.touchscreen.tap(midX, midY);
+  await page.waitForTimeout(400);
+  check(!(await sheetOpen()), `${label}: tapping empty land did not close the panel`);
   await page.evaluate(() => localStorage.clear());
   await context.close();
 }
@@ -620,16 +843,31 @@ try {
 }
 const browser = await chromium.launch();
 try {
-  await playAsFile(browser, 'light');
-  await playAsFile(browser, 'dark');
-  await datedMaps(browser, 'light');
-  await datedMaps(browser, 'dark');
-  await slowPhoneNames(browser);
-  await playAsWebsite(browser);
+  if (process.argv.includes('--panel-only')) {
+    // Just the names panel, for working on it.
+    await namesPanel(browser, 'light');
+    await namesPanel(browser, 'dark');
+  } else {
+    await runAll(browser);
+  }
 } catch (err) {
   failures.push(`the run crashed: ${err instanceof Error ? err.stack : err}`);
 } finally {
   await browser.close();
+}
+
+/** Every check, in order. @param {import('playwright').Browser} browser */
+async function runAll(browser) {
+  await playAsFile(browser, 'light');
+  await playAsFile(browser, 'dark');
+  await datedMaps(browser, 'light');
+  await datedMaps(browser, 'dark');
+  await earlyMaps(browser, 'light');
+  await earlyMaps(browser, 'dark');
+  await namesPanel(browser, 'light');
+  await namesPanel(browser, 'dark');
+  await slowPhoneNames(browser);
+  await playAsWebsite(browser);
 }
 
 if (failures.length) {

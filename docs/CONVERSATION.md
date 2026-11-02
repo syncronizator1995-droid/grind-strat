@@ -318,6 +318,31 @@ Sonnet at medium effort for routine jobs, and at most two at once.
 - The speed test now also runs the map from 1219 to today at top speed, about 3 minutes in all:
   "Keep it in one". One button, all numbers together.
 
+**25 October.** After the phone numbers of PR 1 (first map 0.66 s, up from 0.40 s in M2b) he went to
+sleep, leaving the work running:
+
+> "Just build what you can im going to sleep"
+
+So the start-up fix went into PR 2. On which models to use, he kept the same method:
+
+> "Alright lets continue same old token strategy sonnet for heavy lifting on meadiun and opus 5.5 on high for planning"
+
+Sonnet at medium effort builds; Opus at high effort plans and checks. While he slept, Claude took
+safe defaults for him to confirm, not his decisions: a source counts as "of the time" when written
+within 25 years of the year shown; medieval forms stop at 1400; BGN/PCGN spelling ("Chudskoye
+ozero"). They are listed in PR 2 and in DESIGN as TO CHECK with Ignas.
+
+## M3b: the ice-age maps (2 November 2026)
+
+Ignas answered the plan's four questions and approved it:
+
+- The east, where no model exists for 10,000 to 7,500 BC: "Hatch it (Recommended)".
+- Notes: "Full note".
+- What the notes cover: "Neighbours on the map, Mammoths (TO CHECK), Our converted dates".
+- The age label: "“about 12,000 years ago” (Recommended)", no "BP".
+
+He then approved the plan with the defaults listed in DESIGN (SGU as the main source, and so on).
+
 ## How to work with Ignas
 
 - Plan together first, and build only what he has agreed to.

@@ -28,6 +28,10 @@ const USES = /** @type {Record<string, string>} */ ({
   'terrain-time': 'how the land changes from 1250 to today: forest cleared and grown back',
   coast: 'the northern coast over time (where the sea stood higher in the game\'s year)',
   changes: 'the dated facts and drawn shapes of the map over time: reservoirs, cuts and outlets, and the Vistula delta',
+  names: 'the names of rivers, lakes and seas over time, with their sources',
+  'terrain-ad1': 'the land around AD 1, and how it changes to 1219: forest shares from pollen, with the eastern squares marked lower quality',
+  'coast-ad1': 'the northern coast around AD 1, in steps of 8 years to 1219 (where the sea stood higher)',
+  'age-notes': 'the notes of the ice-age maps, each sentence with its sources',
 });
 
 /** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
@@ -47,6 +51,8 @@ const COAST_NOTES = 'the notes that come with the coast data in the game\'s sour
 const BLOCK_CHANGES = /** @type {Record<string, string>} */ ({
   terrain: `Terrain grid: combined with the other terrain sources into one class per 1 km cell by a rule (${TERRAIN_NOTES} say how).`,
   'terrain-time': `Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (${TERRAIN_NOTES} say how).`,
+  'terrain-ad1': `Land around AD 1: forest and conifer shares from the AD 1 pollen window (about 250 BC to AD 250), cut by the same rule as 1219 and nested with it, so each cell changes once between AD 1 and 1219 (${TERRAIN_NOTES} say how).`,
+  'coast-ad1': `Coast around AD 1: combined with the other coast sources into one code per 500 m cell, the year the sea left it, in steps of 8 years from AD 1 to 1219, by a rule fitted to dated lake isolations in north Uppland and to Kopli (${COAST_NOTES} say how). An estimate.`,
   coast: `Coast over time: combined with the other coast sources into one code per 500 m cell, the year the sea left it, by a rule fitted to dated shores (${COAST_NOTES} say how). An estimate.`,
 });
 
@@ -60,6 +66,10 @@ const ABOUT = [
 /** What the northern coast is, when the coast block ships. */
 const ABOUT_COAST = [
   'The northern coast (Sweden, Åland, Finland, Estonia) follows the game\'s year: since 1219 the land there has risen out of the sea. Where the sea stood is an estimate from today\'s land uplift, fitted to dated shores from local studies; Lake Mälaren is a bay of the sea until about 1300.',
+];
+/** What the names are, when the names block ships. */
+const ABOUT_NAMES = [
+  'Outside Lithuania, rivers and lakes show the names written in the records of the game\'s date where we have sourced them (Duna for the Daugava in Henry of Livonia\'s chronicle); Lithuania keeps today\'s Lithuanian names. Tap a river, lake or sea for all its names and sources.',
 ];
 /** What the rivers and lakes are, by where the shipped water comes from. */
 const ABOUT_WATER = {
@@ -84,7 +94,7 @@ const FOLDERS = [
   ['src/data/by-sa/', 'Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0): the 1219 terrain grid and how it changes up to today (see its LICENSE.md and README.md).'],
   ['src/data/by/', 'Creative Commons Attribution 4.0 (CC BY 4.0): the northern coast over time (see its LICENSE.md and README.md). Nothing share-alike or from OpenStreetMap is mixed into it.'],
   ['src/data/map/', 'Public domain data: Natural Earth (land and coast; and the rivers and lakes until the OpenStreetMap ones ship) and GEBCO (GEBCO asks to be credited; not for navigation).'],
-  ['src/data/own/', 'Grind Strat\'s own work under the game\'s own terms (not yet chosen): the dated facts and drawn shapes of the map over time (see its LICENSE.md and README.md).'],
+  ['src/data/own/', 'Grind Strat\'s own work under the game\'s own terms (not yet chosen): the dated facts and drawn shapes of the map over time, and the names of rivers, lakes and seas over time (see its LICENSE.md and README.md).'],
   ['src/ui/fonts/', 'SIL Open Font License 1.1: the Grenze Gotisch font (see OFL.txt there).'],
   // Raw bytes of Overture's OpenStreetMap water data, kept to test the Parquet reader: ODbL too,
   // whether or not the game ships OpenStreetMap data.
@@ -179,7 +189,7 @@ export function makeAttribution({ sources, blocks, ofl }) {
   const osmWater = Boolean(water?.block.sources.some((/** @type {string} */ id) => sources.find((s) => s.id === id)?.collection === 'osm'));
   /** @type {Credits} */
   const credits = {
-    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : []), ...(blocks.some((b) => b.kind === 'coast') ? ABOUT_COAST : [])],
+    about: [...ABOUT, ...(water ? ABOUT_WATER[osmWater ? 'osm' : 'ne'] : []), ...(blocks.some((b) => b.kind === 'coast') ? ABOUT_COAST : []), ...(blocks.some((b) => b.kind === 'names') ? ABOUT_NAMES : [])],
     interim: blocks.filter((b) => b.block.interim).map((b) => INTERIM[b.kind] ?? `Interim: the ${b.kind} data is a stand-in.`),
     mapLine: [...onMap.map(short), 'more'].join(' · '),
     datasets: all.map((d) => d.entry),

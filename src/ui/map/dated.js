@@ -4,30 +4,61 @@
 // it runs in Node for tests; the view draws what it says. Nothing here is saved: the map for a
 // date is always worked out again from the shipped data (src/sim/map-date.js, coast-date.js).
 
-import { activeAt, eraOf, FIRST_MAP_YEAR, mapYear } from '../../sim/map-date.js';
+import { activeAt, ageOf, eraOf, FIRST_MAP_YEAR, mapYear } from '../../sim/map-date.js';
 import { COAST_CODE } from '../../sim/coast-date.js';
 import { tagsOnAt } from './water-tiles.js';
 
 /**
- * The year the map draws for a game day: the calendar year, and 1219 for anything earlier (the
- * ice-age and AD 1 maps come in M3b).
+ * The year the map draws for a game day: the calendar year from 1219 on, one of the five ice-age
+ * years (-10000, -9500, -8500, -7500, -5000) for a BC day, and 1219 for AD 1 to 1218 (AD 1 to 1218
+ * is shown only by the test link, #date=1, and by the AD 1 lead-in data it loads).
  * @param {number} day days since 1 January AD 1, as the game stores its date
  */
-export const mapYearOfDay = (day) => eraOf(mapYear(day)).year;
+export const mapYearOfDay = (day) => {
+  const year = eraOf(mapYear(day)).year;
+  return year < 0 ? year : Math.max(FIRST_MAP_YEAR, year);
+};
+
+/**
+ * Does the map show an ice-age map for the year it is wanted at? The view keeps the age it shows
+ * (null: the normal map); this says what it should show now and whether that changed. Pure, so
+ * "going back to 1219 leaves nothing behind" is tested in Node.
+ * @param {{ id: string, year: number } | null} shown
+ * @param {number} wanted the year the map is wanted at (never 0)
+ * @returns {{ age: { id: string, year: number } | null, changed: boolean }}
+ */
+export function followAge(shown, wanted) {
+  const age = ageOf(wanted);
+  return { age, changed: (age?.id ?? null) !== (shown?.id ?? null) };
+}
+
+/**
+ * The year the land (the date layer: terrain, dated water, coast) should stand at when the map is
+ * wanted at a year. An ice-age map leaves the land parked where it was (so the way back to 1219 or
+ * later is the ordinary move of the date layer, with nothing to undo).
+ * @param {number} wanted @param {number} parked the year the date layer shows now
+ */
+export const landYearFor = (wanted, parked) => (ageOf(wanted) ? parked : wanted);
 
 /**
  * The hidden test link: #date=1550 shows the map of 1550, and #date=1550&view=5057,10484,0.12
- * also puts the camera there (game units, CSS px per unit), for the screenshot checks. AD years
- * only for now. Null when the link asks for neither.
+ * also puts the camera there (game units, CSS px per unit), for the screenshot checks. BC years
+ * are written with BC (#date=9500BC, the ice-age maps); #date=0 and #date=0BC are refused, as
+ * there is no year 0. #view=5057,10484,0.12 alone puts the camera there and leaves the year (the shots).
+ * Null when the link asks for neither.
  * @param {string} hash location.hash
- * @returns {{ year: number, view: { cx: number, cy: number, scale: number } | null } | null}
+ * @returns {{ year: number | null, view: { cx: number, cy: number, scale: number } | null } | null}
  */
 export function parseTestLink(hash) {
-  const m = /^#date=(\d{1,4})(?:&view=(\d+(?:\.\d+)?),(\d+(?:\.\d+)?),(\d+(?:\.\d+)?))?$/.exec(hash);
+  const num = '(\\d+(?:\\.\\d+)?)';
+  const m = new RegExp(`^(?:#date=(\\d{1,5})(BC)?(?:&view=${num},${num},${num})?|#view=${num},${num},${num})$`).exec(hash);
   if (!m) return null;
-  const year = Number(m[1]);
-  if (year < 1) return null;
-  const view = m[2] ? { cx: Number(m[2]), cy: Number(m[3]), scale: Number(m[4]) } : null;
+  const digits = m[1] === undefined ? null : Number(m[1]);
+  // AD years have up to 4 digits; a BC year up to 5 (earlier than 10,000 BC shows 10,000 BC).
+  if (digits !== null && (digits < 1 || (!m[2] && digits > 9999))) return null;
+  const year = digits === null ? null : m[2] ? -digits : digits;
+  const v = m[3] ? m.slice(3, 6) : m[6] ? m.slice(6, 9) : null;
+  const view = v ? { cx: Number(v[0]), cy: Number(v[1]), scale: Number(v[2]) } : null;
   return { year, view: view && view.scale > 0 ? view : null };
 }
 
@@ -85,6 +116,8 @@ export function createDateLayer(data, grid, year = FIRST_MAP_YEAR) {
     get shapeOn() { return shapeOn; },
     /** How many 4-year steps the northern coast has risen (src/sim/coast-date.js coastLevel). */
     get coastLevel() { return coast.level; },
+    /** True while the coast reads its AD 1 to 1219 field (the level is then in that field's 8-year steps). */
+    get coastLead() { return coast.onLead; },
     /**
      * The water's date tags, once the water is unpacked.
      * @param {string[]} next
@@ -125,8 +158,8 @@ export function createDateLayer(data, grid, year = FIRST_MAP_YEAR) {
         tagsMoved = !tagOn || !same(nextTags, tagOn);
         tagOn = nextTags;
       }
-      const level = coast.level;
-      const coastMoved = coast.step(next).level !== level;
+      const key = coast.key;
+      const coastMoved = (coast.step(next), coast.key !== key);
       return { cells, tags: tagsMoved, shapes: shapesMoved, coast: coastMoved };
     },
     /**

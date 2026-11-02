@@ -20,12 +20,15 @@
 // already placed are drawn again as they were; they are placed anew only when a dated river or
 // lake comes or goes, or the old sea moves.
 
-import { eraOf, FIRST_MAP_YEAR } from '../../sim/map-date.js';
-import { createDateLayer, mapYearOfDay } from './dated.js';
+import { eraOf, FIRST_LEAD_YEAR, FIRST_MAP_YEAR } from '../../sim/map-date.js';
+import { createDateLayer, followAge, landYearFor, mapYearOfDay } from './dated.js';
 import { simplify } from './geometry.js';
 import { bandShown, BANDS, bandWidth, indexWater, labelFont, placeWaterLabels, riverBand } from './labels.js';
+import { createTapTracker, hitWater, pointInRings } from './hit.js';
+import { epochAt, linkNames, NO_NAMES, namesAt } from './names.js';
 import { coarseField, shoreAt, shoreSquares } from './shore.js';
-import { paintSea, paintTerrain, TERRAIN, TERRAIN_COLOURS } from './terrain.js';
+import { hatchRects, oldShore, paintAge, surfaceAt } from './slice.js';
+import { paintSea, paintTerrain, shading, TERRAIN, TERRAIN_COLOURS } from './terrain.js';
 import { cutDated, cutWater, tileInView } from './water-tiles.js';
 
 /** @typedef {import('./load.js').WaterData} WaterData */
@@ -175,6 +178,13 @@ function coastPath(rings, levels, level, width, height) {
   return p;
 }
 
+/** Do two lists of names read the same? @param {string[]} a @param {string[]} b */
+function sameTexts(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 /**
  * @param {HTMLCanvasElement} canvas
  * @param {import('./load.js').MapData} map
@@ -212,6 +222,22 @@ export function createMapView(canvas, map) {
   /** The names on the kept frame, to draw again as they are after the frame is painted again. @type {Label[]} */
   let placedLabels = [];
 
+  // The names of the time (src/ui/map/names.js): linked to the water once both are in.
+  /** @type {import('./names.js').NamesInfo | null} */
+  let namesInfo = null;
+  /** @type {import('./names.js').NameLink | null} */
+  let link = null;
+  /** The text the map shows for each line and lake in the current epoch. @type {import('./names.js').NameView | null} */
+  let nameView = null;
+  /** The names changed since they were last placed (only the names, not the land). */
+  let renamed = false;
+  /** @type {((hit: import('./hit.js').WaterHit | null, sx: number, sy: number) => void) | null} */
+  let onTap = null;
+  /** @type {(() => void) | null} */
+  let onNames = null;
+  /** How long each rename took, ms (for the speed test). @type {number[]} */
+  let renameMs = [];
+  
   // The map's date: the data once unpacked (null before), and what it shows now.
   /** @type {DateData | null} */
   let dated = null;
@@ -221,7 +247,85 @@ export function createMapView(canvas, map) {
   let gameYear = FIRST_MAP_YEAR;
   /** @type {number | null} */
   let pinnedYear = null;
-  const wantedYear = () => pinnedYear ?? gameYear;
+  /** The earliest year the map can show: AD 1 when the lead-in data is in, else 1219. */
+  const floorYear = () => (dated?.timeline.leadIn ? FIRST_LEAD_YEAR : FIRST_MAP_YEAR);
+  // A BC year is an ice-age map, never floored; an AD year is floored at the earliest data in.
+  const wantedYear = () => {
+    const y = pinnedYear ?? gameYear;
+    return y < 0 ? y : Math.max(floorYear(), y);
+  };
+
+  // The ice-age maps (M3b): while the wanted year is BC the view paints the whole map from the age
+  // (src/ui/map/slice.js) and leaves the land layer parked where it was; going back to 1219 or
+  // later is then just the date layer's ordinary move. Nothing of the age is kept in the land.
+  /** The age shown now, or null for the normal map. @type {{ id: string, year: number } | null} */
+  let age = null;
+  /** The unpacked ages that have data, by id (set once the ages block is in). @type {Map<string, import('./slice.js').AgeSlice>} */
+  let ageSlices = new Map();
+  /** The picture of the age shown, made when first painted. @type {{ id: string, canvas: HTMLCanvasElement, shore: Path2D, hatch: Path2D, slice: import('./slice.js').AgeSlice } | null} */
+  let agePicture = null;
+  /** @type {((a: { id: string, year: number, hasData: boolean } | null) => void) | null} */
+  let onAge = null;
+  /** @type {((hit: { kind: 'water' | 'ice' | 'land' | 'none' | null, stage: string | null, hasData: boolean }) => void) | null} */
+  let onAgeTap = null;
+  /** The year the land layer should stand at for the wanted year. */
+  const landYear = () => landYearFor(wantedYear(), date?.year ?? FIRST_MAP_YEAR);
+  /** Hill shading for the ages' land, made once (heights are today's). @type {Float32Array | null | undefined} */
+  let ageShade;
+  /** Hatching lines, one pattern for all ages. @type {CanvasPattern | null} */
+  let hatchFill = null;
+
+  /** Tells the page which year the canvas shows (for the shots). */
+  function markYear() {
+    canvas.dataset.mapYear = String(age ? age.year : date?.year ?? FIRST_MAP_YEAR);
+    if (age) canvas.dataset.mapAge = age.id; else delete canvas.dataset.mapAge;
+  }
+
+  /** Enters, changes or leaves an ice-age map when the wanted year says so. Returns whether it changed. */
+  function followAges() {
+    const next = followAge(age, wantedYear());
+    if (!next.changed) return false;
+    age = next.age;
+    agePicture = null;
+    kept = null;
+    markYear();
+    onAge?.(age ? { ...age, hasData: ageSlices.has(age.id) } : null);
+    requestRender();
+    if (date && date.year !== landYear()) scheduleDate();
+    return true;
+  }
+  /** The year the names are for: the map's. */
+  const namesYear = () => date?.year ?? FIRST_MAP_YEAR;
+
+  /**
+   * Links the names to the water (if both are in) and works out what the map shows now. Names
+   * that do not add up are dropped with a warning: the map then keeps today's names.
+   */
+  function relink() {
+    if (!map.water) return;
+    try {
+      link = linkNames(namesInfo ?? NO_NAMES, map.water);
+      nameView = namesAt(link, namesYear());
+    } catch (err) {
+      console.warn('The names of the time do not fit the water; today\'s names show.', err);
+      namesInfo = null;
+      link = linkNames(NO_NAMES, map.water);
+      nameView = namesAt(link, namesYear());
+    }
+    renamed = true;
+    onNames?.();
+  }
+  /**
+   * Moves to the names of the map's year when the year crossed a change. The names are placed
+   * again only when some text changed (many change years only move the panel's marks).
+   */
+  function updateNames() {
+    if (!link || !nameView || epochAt(link, namesYear()) === nameView.epoch) return;
+    const next = namesAt(link, namesYear());
+    if (!sameTexts(next.line, nameView.line) || !sameTexts(next.lake, nameView.lake)) renamed = true;
+    nameView = next;
+    onNames?.();
+  }
 
   /**
    * The outlines at one level of detail, built the first time that level is needed.
@@ -428,6 +532,7 @@ export function createMapView(canvas, map) {
     const y0 = k.cy - fh / 2 / s;
     const y1 = k.cy + fh / 2 / s;
 
+    if (age) { drawAge(c, s, px, L); return; }
     c.fillStyle = SEA;
     c.fillRect(0, 0, map.width, map.height);
     c.imageSmoothingEnabled = s * map.terrain.cell > 1.5;
@@ -497,6 +602,84 @@ export function createMapView(canvas, map) {
     if (s > 0.06 && map.points.length) drawPoints(c, ox, oy, s, fw, fh);
   }
 
+  // --- the ice-age maps ----------------------------------------------------------------------
+  /** The age's picture: pixels, the old shore and the hatching, made once per age. @param {import('./slice.js').AgeSlice} slice */
+  function makeAgePicture(slice) {
+    if (ageShade === undefined) {
+      const sh = shading(map.heights);
+      // The shading has one value per cover cell only when the grids line up (they do on the shipped map).
+      ageShade = sh.length === slice.coverCols * slice.coverRows ? sh : null;
+    }
+    const pic = document.createElement('canvas');
+    pic.width = slice.cols;
+    pic.height = slice.rows;
+    const words = paintAge(slice, ageShade);
+    const img = new ImageData(slice.cols, slice.rows);
+    new Uint32Array(img.data.buffer).set(words);
+    pic.getContext('2d')?.putImageData(img, 0, 0);
+    const shore = new Path2D();
+    addLines(shore, oldShore(slice), false);
+    const hatch = new Path2D();
+    for (const r of hatchRects(slice)) hatch.rect(r.x, r.y, r.w, r.h);
+    return { id: slice.id, canvas: pic, shore, hatch, slice };
+  }
+
+  /** The hatching pattern: thin diagonal lines, a fixed size on screen. */
+  function hatching() {
+    if (hatchFill) return hatchFill;
+    const size = Math.round(8 * dpr);
+    const tile = document.createElement('canvas');
+    tile.width = size;
+    tile.height = size;
+    const t = /** @type {CanvasRenderingContext2D} */ (tile.getContext('2d'));
+    t.strokeStyle = 'rgba(52, 50, 44, 0.6)';
+    t.lineWidth = 1.4 * dpr;
+    t.beginPath();
+    t.moveTo(-1, size + 1);
+    t.lineTo(size + 1, -1);
+    t.moveTo(-1, 1);
+    t.lineTo(1, -1);
+    t.moveTo(size - 1, size + 1);
+    t.lineTo(size + 1, size - 1);
+    t.stroke();
+    hatchFill = /** @type {CanvasPattern} */ (fctx.createPattern(tile, 'repeat'));
+    return hatchFill;
+  }
+
+  /**
+   * Paints the whole map from the age: land cover, water, ice and the old shore, the "no model yet"
+   * land hatched, and today's coast faint and dashed to find the way by. Today's rivers, lakes
+   * and names are not drawn. With no data for the age the whole map is hatched.
+   * @param {CanvasRenderingContext2D} c @param {number} s @param {number} px @param {Level} L
+   */
+  function drawAge(c, s, px, L) {
+    const a = /** @type {{ id: string, year: number }} */ (age);
+    const slice = ageSlices.get(a.id);
+    const fill = hatching();
+    fill.setTransform(new DOMMatrix([px / dpr, 0, 0, -px / dpr, 0, 0]));
+    if (!slice) {
+      c.fillStyle = 'rgb(150, 148, 140)';
+      c.fillRect(0, 0, map.width, map.height);
+      c.fillStyle = fill;
+      c.fillRect(0, 0, map.width, map.height);
+    } else {
+      if (!agePicture || agePicture.id !== a.id) agePicture = makeAgePicture(slice);
+      c.imageSmoothingEnabled = s * slice.cell > 1.5;
+      c.drawImage(agePicture.canvas, 0, 0, slice.cols * slice.cell, slice.rows * slice.cell);
+      c.fillStyle = fill;
+      c.fill(agePicture.hatch);
+      c.strokeStyle = 'rgba(20, 35, 45, 0.6)';
+      c.lineWidth = 1 * px;
+      c.lineJoin = 'round';
+      c.stroke(agePicture.shore);
+    }
+    c.strokeStyle = 'rgba(20, 35, 45, 0.4)';
+    c.lineWidth = 1 * px;
+    c.setLineDash([5 * px, 4 * px]);
+    c.stroke(L.coast);
+    c.setLineDash([]);
+  }
+
   // --- the map's date: our drawn shapes and the old sea ------------------------------------
   /** Our drawn shapes' outlines at each level, built when first drawn. @type {(Path2D[] | null)[]} */
   const shapeLevels = LEVELS.map(() => null);
@@ -537,8 +720,10 @@ export function createMapView(canvas, map) {
 
   /** The coast field at each level's coarseness, made when first needed. @type {(import('./shore.js').ShoreSquares | null)[]} */
   const shoreFields = LEVELS.map(() => null);
+  /** The same for the AD 1 to 1219 field, made only if a date before 1219 is shown. @type {(import('./shore.js').ShoreSquares | null)[]} */
+  const leadShoreFields = LEVELS.map(() => null);
   /** The old sea's paths for the kept frame: rebuilt when the coast moves or the view leaves them. */
-  /** @type {{ index: number, level: number, box: number[], fill: Path2D, line: Path2D } | null} */
+  /** @type {{ index: number, level: number, lead: boolean, box: number[], fill: Path2D, line: Path2D } | null} */
   let oldSea = null;
 
   /**
@@ -550,14 +735,15 @@ export function createMapView(canvas, map) {
   function drawOldSea(c, index, px, x0, y0, x1, y1) {
     const d = /** @type {DateData} */ (dated);
     const level = /** @type {DateLayer} */ (date).coastLevel;
+    const lead = /** @type {DateLayer} */ (date).coastLead;
     const b = d.coast.box;
     if (x1 < b.col0 * b.cell || x0 > (b.col0 + b.cols) * b.cell || y1 < b.row0 * b.cell || y0 > (b.row0 + b.rows) * b.cell) return;
     const box = oldSea?.box;
-    if (!oldSea || oldSea.index !== index || oldSea.level !== level || !box || x0 < box[0] || y0 < box[1] || x1 > box[2] || y1 > box[3]) {
+    if (!oldSea || oldSea.index !== index || oldSea.level !== level || oldSea.lead !== lead || !box || x0 < box[0] || y0 < box[1] || x1 > box[2] || y1 > box[3]) {
       const w = (x1 - x0) / 2;
       const h = (y1 - y0) / 2;
       const within = { x0: x0 - w, y0: y0 - h, x1: x1 + w, y1: y1 + h };
-      const r = shoreAt(shoreField(index), level, { within });
+      const r = shoreAt(shoreField(index, lead), level, { within });
       // No closePath: a fill closes each ring by itself, and Chrome's closePath slows down with
       // every ring already in the path (10,000 rings took over half a second).
       const fill = new Path2D();
@@ -570,7 +756,7 @@ export function createMapView(canvas, map) {
       }
       const line = new Path2D();
       addLines(line, r.lines, false);
-      oldSea = { index, level, box: [within.x0, within.y0, within.x1, within.y1], fill, line };
+      oldSea = { index, level, lead, box: [within.x0, within.y0, within.x1, within.y1], fill, line };
     }
     c.fillStyle = seaFill;
     c.fill(oldSea.fill);
@@ -579,15 +765,17 @@ export function createMapView(canvas, map) {
     c.stroke(oldSea.line);
   }
 
-  /** @param {number} index */
-  function shoreField(index) {
-    const ready = shoreFields[index];
+  /** @param {number} index @param {boolean} [lead] */
+  function shoreField(index, lead = false) {
+    const fields = lead ? leadShoreFields : shoreFields;
+    const ready = fields[index];
     if (ready) return ready;
     const d = /** @type {DateData} */ (dated);
     const f = COAST_FACTOR[index];
-    const g = f === 1 ? d.coast : coarseField(d.coast.box, d.coast.codes, f);
+    const codes = lead ? /** @type {Uint8Array} */ (d.coast.lead) : d.coast.codes;
+    const g = f === 1 ? { box: d.coast.box, codes } : coarseField(d.coast.box, codes, f);
     const built = shoreSquares(g.box, g.codes);
-    shoreFields[index] = built;
+    fields[index] = built;
     return built;
   }
 
@@ -601,6 +789,19 @@ export function createMapView(canvas, map) {
    */
   function drawNames(budgetMs) {
     const k = /** @type {Camera} */ (kept);
+    if (age) {
+      // An ice-age map has no names (today's rivers, lakes and seas are hidden): nothing to place.
+      drawn = [];
+      placedLabels = [];
+      named = { cx: cam.cx, cy: cam.cy, complete: true };
+      renamed = false;
+      // And say so to the shots: no names left over from the map before.
+      canvas.dataset.names = '0';
+      canvas.dataset.nameList = '';
+      canvas.dataset.namesComplete = 'true';
+      canvas.dataset.nameBoxes = '[]';
+      return 0;
+    }
     if (drawn.length) {
       const under = new Path2D();
       for (const d of drawn) addBox(under, d);
@@ -627,6 +828,7 @@ export function createMapView(canvas, map) {
   function drawLabels(c, index, ox, oy, s, fw, fh, budgetMs) {
     const k = /** @type {Camera} */ (kept);
     named = { cx: cam.cx, cy: cam.cy, complete: true };
+    renamed = false;
     if (!map.water || !waterIndex) return NaN;
     const start = performance.now();
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -656,7 +858,7 @@ export function createMapView(canvas, map) {
     const labels = placeWaterLabels({
       water: map.water, index: waterIndex, level: index, scale: s, ox, oy, width: fw, height: fh, measure, keepOut: covered,
       screen, budgetMs, now: () => performance.now() - measuring, previous: anchors, result,
-      tagOn: date?.tagOn ?? null, under: date ? date.seaAt : undefined,
+      tagOn: date?.tagOn ?? null, under: date ? date.seaAt : undefined, names: nameView ?? undefined,
     });
     named.complete = result.complete;
     anchors = new Map();
@@ -667,6 +869,7 @@ export function createMapView(canvas, map) {
       anchors.set(l.river, list);
     }
     showNamesForChecks(labels, screen, result.complete);
+    publishNameBoxes(labels);
     for (const l of labels) drawn.push({ x: l.x, y: l.y, angle: l.angle, w: measure(l.text, l.size), h: l.size });
     placedLabels = labels;
     paintLabels(c, labels);
@@ -719,6 +922,24 @@ export function createMapView(canvas, map) {
     canvas.dataset.names = String(shown.length);
     canvas.dataset.nameList = [...new Set(shown.map((l) => l.text))].join('|');
     canvas.dataset.namesComplete = String(complete);
+  }
+
+  /**
+   * Marks the canvas with where the names on screen are (CSS px from its top left), for the
+   * screenshot checks: they tap a name by its box.
+   * @param {Label[]} labels
+   */
+  function publishNameBoxes(labels) {
+    const k = kept;
+    if (!k) return;
+    const fw = cssW * (1 + 2 * MARGIN);
+    const fh = cssH * (1 + 2 * MARGIN);
+    const ratio = cam.scale / k.scale;
+    const left = cssW / 2 - (cam.cx - k.cx) * cam.scale - (fw / 2) * ratio;
+    const top = cssH / 2 + (cam.cy - k.cy) * cam.scale - (fh / 2) * ratio;
+    const boxes = labels.map((l) => ({ text: l.text, x: Math.round(left + l.x * ratio), y: Math.round(top + l.y * ratio), kind: l.lake === undefined ? 'river' : 'lake' }))
+      .filter((b) => b.x >= 0 && b.x <= cssW && b.y >= 0 && b.y <= cssH);
+    canvas.dataset.nameBoxes = JSON.stringify(boxes);
   }
 
   const POINT_COLOURS = ['#f4ecd8', '#d4a72c', '#e8e2d0', '#c9c2ad'];
@@ -813,7 +1034,7 @@ export function createMapView(canvas, map) {
       requestRender();
       return;
     }
-    if (named && named.complete && named.cx === cam.cx && named.cy === cam.cy) return;
+    if (named && named.complete && named.cx === cam.cx && named.cy === cam.cy) { publishNameBoxes(placedLabels); return; }
     drawNames(Infinity);
     blit();
   }
@@ -847,26 +1068,38 @@ export function createMapView(canvas, map) {
     const layer = date;
     if (!layer) return;
     const start = performance.now();
-    if (layer.year !== wantedYear()) applyYear(wantedYear());
+    followAges();
+    if (layer.year !== landYear()) applyYear(landYear());
     if (picture.dirtyTiles() && picture.flush(inKept, start + DATE_BUDGET_MS) > 0) frameStale = true;
     const busy = pointers.size > 0 || (kept !== null && kept.scale !== cam.scale);
-    if (kept && !busy && (frameStale || relabel) && start - lastRefresh >= Math.max(REFRESH_MS, REFRESH_SHARE * paintCostMs)) {
+    const due = start - lastRefresh >= Math.max(REFRESH_MS, REFRESH_SHARE * paintCostMs);
+    if (kept && !busy && (frameStale || relabel) && due) {
       const t = performance.now();
       refreshFrame();
       blit();
       paintCostMs = performance.now() - t;
+    } else if (kept && !busy && renamed && due) {
+      // Only the names changed: paint the map again under the old names and place the new ones,
+      // never the whole map (and never through settleNow).
+      const t = performance.now();
+      labelMs = drawNames(RELABEL_BUDGET_MS);
+      blit();
+      lastRefresh = performance.now();
+      renameMs.push(lastRefresh - t);
+      if (named && !named.complete) settleSoon();
     }
     const left = layer.prepare(start + DATE_BUDGET_MS);
     dateMs.push(performance.now() - start);
     if (dateMs.length > 4000) dateMs = dateMs.slice(-2000);
-    if (left || layer.year !== wantedYear() || picture.dirtyTiles() || frameStale || relabel) scheduleDate();
+    if (left || layer.year !== landYear() || picture.dirtyTiles() || frameStale || relabel || renamed) scheduleDate();
   }
 
   /** Moves the map's date and notes what must be painted again. @param {number} year */
   function applyYear(year) {
     const layer = /** @type {DateLayer} */ (date);
     const changes = layer.goTo(year, picture.setCell);
-    canvas.dataset.mapYear = String(layer.year);
+    markYear();
+    updateNames();
     if (changes.tags || changes.shapes) frameStale = true;
     if (changes.tags) relabel = true;
     if (changes.coast) {
@@ -902,13 +1135,16 @@ export function createMapView(canvas, map) {
    */
   function refreshFrame() {
     if (picture.dirtyTiles()) picture.flush(() => true, Infinity);
-    const names = relabel;
+    const renameWanted = renamed;
+    const names = relabel || renamed;
+    const t0 = performance.now();
     frameStale = false;
     relabel = false;
     paintMap();
     if (names) {
       drawn = [];
       labelMs = drawNames(RELABEL_BUDGET_MS);
+      if (renameWanted) renameMs.push(performance.now() - t0);
       if (named && !named.complete) settleSoon();
     } else {
       paintLabels(fctx, placedLabels);
@@ -939,9 +1175,14 @@ export function createMapView(canvas, map) {
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
+  const tap = createTapTracker();
+  /** The pointer as the tap tracker reads it. @param {PointerEvent} e */
+  const tapEvent = (e) => ({ pointerId: e.pointerId, ...local(e), time: e.timeStamp, button: e.button, isPrimary: e.isPrimary });
+
   canvas.addEventListener('pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, local(e));
+    tap.down(tapEvent(e), pointers.size);
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), cx: cam.cx, cy: cam.cy, scale: cam.scale, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
@@ -950,6 +1191,9 @@ export function createMapView(canvas, map) {
   canvas.addEventListener('pointermove', (e) => {
     const prev = pointers.get(e.pointerId);
     if (!prev) return;
+    // A touch that hardly moves is a tap, not a pan: the map holds still until it moves 10 px,
+    // then pans by the whole distance from where it went down (prev is still that point).
+    if (pointers.size === 1 && tap.move(tapEvent(e)) === 'hold') return;
     const now = local(e);
     pointers.set(e.pointerId, now);
     if (pointers.size === 1) {
@@ -979,10 +1223,53 @@ export function createMapView(canvas, map) {
     // The last finger is off: settle now rather than after the timer, unless a frame is pending.
     if (pointers.size === 0 && !pending) settleNow();
   };
-  canvas.addEventListener('pointerup', lift);
-  canvas.addEventListener('pointercancel', lift);
+  canvas.addEventListener('pointerup', (e) => {
+    const wasTap = pointers.has(e.pointerId) && tap.up(tapEvent(e));
+    lift(e);
+    if (wasTap) {
+      const p = local(e);
+      if (age) {
+        const slice = ageSlices.get(age.id);
+        const x = cam.cx + (p.x - cssW / 2) / cam.scale;
+        const y = cam.cy - (p.y - cssH / 2) / cam.scale;
+        onAgeTap?.({ kind: slice ? surfaceAt(slice, x, y) : null, stage: slice?.stage ?? null, hasData: Boolean(slice) });
+      } else {
+        onTap?.(hitAt(p.x, p.y), p.x, p.y);
+      }
+    }
+  });
+  canvas.addEventListener('pointercancel', (e) => { tap.cancel(); lift(e); });
   // A pointer lost without a pointerup must not count as still down (the date's repaint waits for it).
-  canvas.addEventListener('lostpointercapture', (e) => { if (pointers.has(e.pointerId)) lift(e); });
+  canvas.addEventListener('lostpointercapture', (e) => { if (pointers.has(e.pointerId)) { tap.cancel(); lift(e); } });
+
+  /**
+   * What lies under a point of the screen (CSS px from the canvas's top left): a name, lake,
+   * river or sea, or null.
+   * @param {number} sx @param {number} sy
+   * @returns {import('./hit.js').WaterHit | null}
+   */
+  function hitAt(sx, sy) {
+    const water = map.water;
+    if (!water || !waterIndex) return null;
+    const x = cam.cx + (sx - cssW / 2) / cam.scale;
+    const y = cam.cy - (sy - cssH / 2) / cam.scale;
+    const k = kept;
+    const fw = cssW * (1 + 2 * MARGIN);
+    const fh = cssH * (1 + 2 * MARGIN);
+    // The names sit on the kept frame: find the tap there (null while a zoom is under way).
+    const labels = k && k.scale === cam.scale ? placedLabels : null;
+    const fx = k ? fw / 2 + (x - k.cx) * k.scale : 0;
+    const fy = k ? fh / 2 - (y - k.cy) * k.scale : 0;
+    const on = date?.tagOn;
+    const shownTag = (/** @type {number | undefined} */ t) => !t || Boolean(on?.[t]);
+    return hitWater({
+      x, y, scale: cam.scale, level: LEVELS.findIndex((l) => cam.scale < l.below), water, index: waterIndex, labels, fx, fy,
+      lineShown: (i) => shownTag(water.lineTag?.[i]), lakeShown: (k2) => shownTag(water.lakeTag?.[k2]),
+      oldSea: date ? date.seaAt : undefined,
+      sea: (px, py) => px >= 0 && py >= 0 && px <= map.width && py <= map.height && !pointInRings(px, py, map.land),
+      seas: (link?.info.seas ?? []).map((s) => ({ id: s.id, ring: s.ring })),
+    });
+  }
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const p = local(e);
@@ -999,6 +1286,7 @@ export function createMapView(canvas, map) {
     setWater(water) {
       map.water = water;
       waterIndex = indexWater(water);
+      relink();
       waterLevels.fill(null);
       datedLevels.fill(null);
       if (date && water.tags) date.setTags(water.tags);
@@ -1017,9 +1305,9 @@ export function createMapView(canvas, map) {
       date = createDateLayer(data, map.terrain.data, gridYear);
       if (map.water?.tags) date.setTags(map.water.tags);
       date.sync(picture.setCell);
-      applyYear(wantedYear());
+      applyYear(landYear());
       picture.flush(() => true, Infinity);
-      canvas.dataset.mapYear = String(date.year);
+      markYear();
       oldSea = null;
       kept = null;
       requestRender();
@@ -1031,7 +1319,8 @@ export function createMapView(canvas, map) {
      */
     setDay(day) {
       gameYear = mapYearOfDay(day);
-      if (date && date.year !== wantedYear()) scheduleDate();
+      followAges();
+      if (date && date.year !== landYear()) scheduleDate();
     },
     /**
      * Pins the map to a year (the hidden #date= link and the speed test's time run), or with
@@ -1040,10 +1329,45 @@ export function createMapView(canvas, map) {
      */
     setMapYear(year) {
       pinnedYear = year === null ? null : eraOf(year).year;
-      if (date && date.year !== wantedYear()) scheduleDate();
+      followAges();
+      if (date && date.year !== landYear()) scheduleDate();
     },
+    /**
+     * The names of rivers, lakes and seas over time (src/ui/map/load.js loadNames). Linked to the
+     * water as soon as both are in; call it before setWater so the first picture has them.
+     * @param {import('./names.js').NamesInfo | null} info
+     */
+    setNames(info) {
+      namesInfo = info;
+      relink();
+      // Given after the water's first picture: put the new names on it now.
+      if (kept && map.water) { drawNames(Infinity); blit(); }
+    },
+    /** A tap on the map (short, hardly moving): what is under it (null: nothing), and where. @param {typeof onTap} fn */
+    setOnTap(fn) { onTap = fn; },
+    /** The names changed (a new year crossed a change, or the data came in). @param {typeof onNames} fn */
+    setOnNames(fn) { onNames = fn; },
+    /** The names linked to the water, or null before the water is in. */
+    nameLink: () => link,
+    hitAt,
+    /** How long each rename took since the last call, ms (for the speed test). */
+    takeRenameMs() { const out = renameMs; renameMs = []; return out; },
     /** The year the map shows now, and whether its date data is in. */
-    mapYear: () => ({ year: date?.year ?? FIRST_MAP_YEAR, dated: Boolean(date), wanted: wantedYear(), pinned: pinnedYear }),
+    mapYear: () => ({ year: age ? age.year : date?.year ?? FIRST_MAP_YEAR, dated: Boolean(date), wanted: wantedYear(), pinned: pinnedYear, age: age?.id ?? null }),
+    /**
+     * The unpacked ice-age maps that have data (src/ui/map/load.js loadAges); call it again when
+     * more arrive. The age shown is painted from them at once.
+     * @param {Map<string, import('./slice.js').AgeSlice>} slices
+     */
+    setAges(slices) {
+      ageSlices = slices;
+      agePicture = null;
+      if (age) { kept = null; onAge?.({ ...age, hasData: slices.has(age.id) }); requestRender(); }
+    },
+    /** The map entered, changed or left an ice-age map (null: the normal map); also told at once if one is shown. @param {typeof onAge} fn */
+    setOnAge(fn) { onAge = fn; if (age) fn?.({ ...age, hasData: ageSlices.has(age.id) }); },
+    /** A tap on an ice-age map: what is under it. @param {typeof onAgeTap} fn */
+    setOnAgeTap(fn) { onAgeTap = fn; },
     /** How long each frame's date work took since the last call, ms. */
     takeDateMs() { const out = dateMs; dateMs = []; return out; },
     /** @param {boolean} dark the phone is in dark mode */
