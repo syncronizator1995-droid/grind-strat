@@ -217,7 +217,7 @@ export function lateElements(blocks) {
 }
 
 /** The blocks that go after the code: needed only after the first picture of a new game. */
-export const LATE_KINDS = Object.freeze(['terrain-time', 'coast', 'changes', 'terrain-ad1', 'coast-ad1', 'age-notes']);
+export const LATE_KINDS = Object.freeze(['terrain-time', 'coast', 'changes', 'terrain-ad1', 'coast-ad1', 'age-notes', 'ages']);
 
 /**
  * The blocks the game ships, read from disk, in build order.

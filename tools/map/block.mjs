@@ -38,6 +38,8 @@ export const BLOCK_FILES = Object.freeze({
   'terrain-ad1': ['src/data/by-sa/terrain-ad1.json'],
   'coast-ad1': ['src/data/by/coast-ad1.json'],
   'age-notes': ['src/data/own/age-notes.json'],
+  // M3b PR 3: the five ice-age maps, read only when an age shows (a late block).
+  ages: ['src/data/by-sa/ages.json'],
 });
 
 /**

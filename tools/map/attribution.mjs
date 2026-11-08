@@ -32,6 +32,7 @@ const USES = /** @type {Record<string, string>} */ ({
   'terrain-ad1': 'the land around AD 1, and how it changes to 1219: forest shares from pollen, with the eastern squares marked lower quality',
   'coast-ad1': 'the northern coast around AD 1, in steps of 8 years to 1219 (where the sea stood higher)',
   'age-notes': 'the notes of the ice-age maps, each sentence with its sources',
+  ages: 'the five ice-age maps: where the water and the ice stood, and the land cover, about 10,000 to 5,000 BC',
 });
 
 /** "Used for: ..." text: the uses joined, the first letter capitalised. @param {string[]} uses */
@@ -46,6 +47,8 @@ export const usedFor = (uses) => {
  */
 /** In the game, where the terrain rule is written up; ATTRIBUTION.md names the file instead. */
 const TERRAIN_NOTES = 'the notes that come with the terrain data in the game\'s source code';
+/** In the game, where the ice-age rules are written up; ATTRIBUTION.md names the file instead. */
+const AGES_NOTES = 'the notes that come with the ice-age data in the game\'s source code';
 /** In the game, where the coast rule is written up; ATTRIBUTION.md names the file instead. */
 const COAST_NOTES = 'the notes that come with the coast data in the game\'s source code';
 const BLOCK_CHANGES = /** @type {Record<string, string>} */ ({
@@ -53,6 +56,7 @@ const BLOCK_CHANGES = /** @type {Record<string, string>} */ ({
   'terrain-time': `Land over time: the forest and conifer shares of each later time (pollen for about 1425, 1725 and 1900, WorldCover for 2021) are met 1 km cell by cell from the 1219 grid by a rule, and each cell that changes gets a year of its own (${TERRAIN_NOTES} say how).`,
   'terrain-ad1': `Land around AD 1: forest and conifer shares from the AD 1 pollen window (about 250 BC to AD 250), cut by the same rule as 1219 and nested with it, so each cell changes once between AD 1 and 1219 (${TERRAIN_NOTES} say how).`,
   'coast-ad1': `Coast around AD 1: combined with the other coast sources into one code per 500 m cell, the year the sea left it, in steps of 8 years from AD 1 to 1219, by a rule fitted to dated lake isolations in north Uppland and to Kopli (${COAST_NOTES} say how). An estimate.`,
+  ages: `Ice-age maps: SGU's shore-model polygons and DATED-1's ice margin moved onto 1 km cells as water and ice, the pollen shares turned into four land-cover classes by a rule, and the east hatched "no model yet" where SGU's model ends (${AGES_NOTES} say how). Rough previews, not measurements.`,
   coast: `Coast over time: combined with the other coast sources into one code per 500 m cell, the year the sea left it, by a rule fitted to dated shores (${COAST_NOTES} say how). An estimate.`,
 });
 
@@ -275,7 +279,7 @@ function markdownOf(credits, all, blocks) {
  * @param {string[]} changes
  */
 function changesList(changes) {
-  changes = changes.map((c) => c.replace(`${TERRAIN_NOTES} say how`, '`src/data/by-sa/README.md` says how')
+  changes = changes.map((c) => c.replace(`${TERRAIN_NOTES} say how`, '`src/data/by-sa/README.md` says how').replace(`${AGES_NOTES} say how`, '`src/data/by-sa/README.md` says how')
     .replace(`${COAST_NOTES} say how`, '`src/data/by/README.md` says how'));
   return changes.length === 1 ? [`- Changes we made: ${changes[0]}`] : ['- Changes we made:', ...changes.map((c) => `  - ${c}`)];
 }

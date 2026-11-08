@@ -17,6 +17,8 @@
 //   src/data/by-sa/terrain-ad1.json   CC BY-SA 4.0: the land of AD 1 and how it changes to 1219 (M3b), from
 //                                     the plane npm run map:terrain-ad1 builds; late, read before 1219 only
 //   src/data/by/coast-ad1.json        CC BY 4.0: the AD 1 coast (M3b), from npm run map:coast-ad1; late
+//   src/data/by-sa/ages.json          CC BY-SA 4.0: the five ice-age maps (M3b), from the layers npm run map:ages
+//                                     builds; late, read only when an age shows
 //   src/data/own/changes.json         our own work, under the game's own terms: the dated facts and
 //                                     drawn shapes of the map over time (tools/map/pack-changes.mjs)
 //   src/data/own/names.json           our own work: the names of rivers, lakes and seas over time
@@ -36,6 +38,7 @@ import { COAST_BLOCK, packCoast } from './pack-coast.mjs';
 import { CHANGES_BLOCK, packChanges } from './pack-changes.mjs';
 import { COAST_AD1_BLOCK, packCoastAd1 } from './pack-coast-ad1.mjs';
 import { AGE_NOTES_BLOCK, packAgeNotes } from './pack-age-notes.mjs';
+import { AGES_BLOCK, packAges } from './pack-ages.mjs';
 import { NAMES_BLOCK, packNames } from './pack-names.mjs';
 import { packTerrain } from './pack-terrain.mjs';
 import { AD1_BLOCK, packTerrainAd1 } from './pack-terrain-ad1.mjs';
@@ -59,6 +62,8 @@ async function main() {
   // M3b's AD 1 lead-in blocks: left as they are where their fields were never built.
   const ad1 = await packTerrainAd1();
   if (ad1) written.push({ path: AD1_BLOCK, text: await writeBlock(AD1_BLOCK, ad1) });
+  const ages = await packAges();
+  if (ages) written.push({ path: AGES_BLOCK, text: await writeBlock(AGES_BLOCK, ages) });
   const coastAd1 = await packCoastAd1();
   if (coastAd1) written.push({ path: COAST_AD1_BLOCK, text: await writeBlock(COAST_AD1_BLOCK, coastAd1) });
   written.push({ path: COAST_BLOCK, text: await writeBlock(COAST_BLOCK, await packCoast()) });
