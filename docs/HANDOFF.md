@@ -392,13 +392,17 @@ every id.
   built** (8 November 2026, not yet reviewed by Ignas): water from SGU's shore model, ice from
   DATED-1 (10,000 BC) and SGU, land cover from four older pollen windows (10,000 BC painted as
   tundra), the east hatched "no model yet" for the four oldest ages, a rough estimate of the
-  eastern sea at 5,000 BC; one late block `ages` (125 KB). To try: `#date=10000BC`, `9500BC`,
+  eastern sea at 5,000 BC; one late block `ages` (127 KB). To try: `#date=10000BC`, `9500BC`,
   `8500BC`, `7500BC`, `5000BC` (the banner opens the note; tap water, ice or the hatching for
   what it is). What the data showed against the notes is in data/sources.md (section "Map data
   used in M3b: the ice-age maps"): the Tallinn sentences at 9,500 and 8,500 BC and the Bornholm
   strait at 10,000 BC now say the map differs from the local studies; the plan's "Oresund dry
   until 7,500 BC" is not what SGU shows (the Kattegat sea reaches the northern Oresund at 7,500 BC).
-  Missing: pine appears in no age (the pollen windows never reach a 60% conifer share); lakes in
+  Review fixes (same day): the cover rule now lets the larger part win (pine where conifers are
+  half the forest: much of the south at 9,500 BC, a little at 8,500 BC); 7,500 and 5,000 BC are
+  both nearly all mixed forest, as the pollen map has broadleaved trees leading in both; the
+  eastern sea at 5,000 BC uses 10 m from the Narva-Luga study instead of 19 m read off the map.
+  Missing: a broad-leaved forest class to tell 7,500 from 5,000 BC (Ignas to choose); lakes in
   the east at 5,000 BC; the strip between DATED-1's ice edge and SGU's lake at 10,000 BC is land;
   Sweden's AD 1 coast from SGU (PR 1's TO CHECK) is still the estimate. Every TO CHECK of PR 3 is
   listed at the end of that section of data/sources.md.

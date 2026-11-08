@@ -659,7 +659,7 @@ by ids from data/sources.md.
 - **Soak:** `npm run soak` also runs the map from AD 1 to 2021 and requires it to meet a 1219
   game's land and coast exactly at 1219 and to end on today.
 - **The ages' data (PR 3, 8 November 2026):** the block `ages` (`src/data/by-sa/ages.json`, CC BY-SA
-  4.0, 125.5 KB, late) is made by `npm run map:ages` (`tools/map/build-ages.mjs`, rules in
+  4.0, 127.3 KB, late) is made by `npm run map:ages` (`tools/map/build-ages.mjs`, rules in
   `tools/map/ages.mjs`, packed by `tools/map/pack-ages.mjs`; `npm run map:pack` repacks it from the
   derived layers when they are here) in exactly the format `slice.js` reads. `main.js` still reads
   it only through `loadAgeMaps`, called from `onAgeChange`; a test checks that and that `showMap`
@@ -670,9 +670,10 @@ by ids from data/sources.md.
   windows 25, 23, 21 and 16 blended smoothly and classed by `coverClass` (10,000 BC: painted
   tundra). Hatched = cover 0 = land east of SGU's model rectangle (`SGU_DOMAIN`, `eastOfModel`; the
   build checks every polygon vertex against it to 1 m) for the four oldest ages: 189,360 cover cells,
-  36% of the map. At 5,000 BC `floodEast` carries the Gulf of Finland east (level 19 m from the
-  Estonian shore, within 150 km), a rough estimate. Inputs are fetched with their SHA-256 into
-  `data/raw/manifest.json` (SGU's four GeoPackages 221 to 506 MB each, DATED-1's zip, four CSVs);
+  36% of the map. At 5,000 BC `floodEast` carries the Gulf of Finland east (level 10 m,
+  `AGES_PARAMS.eastSeaLevelM`, from the Narva-Luga study; within 150 km), a rough estimate; the
+  Estonian shore's median height (19 m on the 2 km heights) is only reported as a check. Inputs
+  are fetched with their SHA-256 into `data/raw/manifest.json` (SGU's four GeoPackages 221 to 506 MB each, DATED-1's zip, four CSVs);
   DATED-1's zip and the three files read from it are pinned in `build-ages.mjs`, and the
   third-party copy on GitHub was found byte-identical. New readers: `tools/map/shp.mjs` (polygon
   shapefiles and their table), `tools/map/zip.mjs` (stored and deflated entries),
