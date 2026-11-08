@@ -76,13 +76,14 @@
     {
       "title": "SpatioCompo",
       "owner": "Behnaz Pirzamanbein",
-      "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time windows 4, 3, 2 and 1 (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950)",
+      "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time windows 4, 3, 2 and 1 (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950), 6 (about 250 BC to AD 250) and, for the ice-age maps, 25, 23, 21 and 16 (about 9,500, 8,500, 7,500 and 5,000 BC)",
       "uses": [
         "the land around 1219: forest, open land, marsh and heath",
         "how the land changes from 1250 to today: forest cleared and grown back",
-        "the land around AD 1, and how it changes to 1219: forest shares from pollen, with the eastern squares marked lower quality"
+        "the land around AD 1, and how it changes to 1219: forest shares from pollen, with the eastern squares marked lower quality",
+        "the five ice-age maps: where the water and the ice stood, and the land cover, about 10,000 to 5,000 BC"
       ],
-      "line": "Forest around 1219 and how it changes after 1250: pollen-based land-cover maps of four time windows (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950) by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+      "line": "Forest around 1219 and how it changes after 1250: pollen-based land-cover maps of four time windows (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950) by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022). The AD 1 map and the ice-age maps use older windows of the same maps.",
       "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
       "changes": [
         "Time window 4 (about AD 750-1250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are.",
@@ -92,7 +93,12 @@
         "Time window 2 (about AD 1600-1850) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of one forest anchor; which 1 km cells change, and in which year, is a rule (see the terrain-time block).",
         "Time window 1 (about AD 1850-1950) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of one forest anchor; which 1 km cells change, and in which year, is a rule (see the terrain-time block).",
         "Land around AD 1: forest and conifer shares from the AD 1 pollen window (about 250 BC to AD 250), cut by the same rule as 1219 and nested with it, so each cell changes once between AD 1 and 1219 (the notes that come with the terrain data in the game's source code say how).",
-        "Time window 6 (about 250 BC to AD 250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of the AD 1 forest; which 1 km cells are forest, and in which year before 1219 they change, is a rule (see the terrain-ad1 block). The eastern squares are model-filled and of lower quality, as the paper says."
+        "Time window 6 (about 250 BC to AD 250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of the AD 1 forest; which 1 km cells are forest, and in which year before 1219 they change, is a rule (see the terrain-ad1 block). The eastern squares are model-filled and of lower quality, as the paper says.",
+        "Time window 25 (about 9,750 to 9,250 BC (11200-11700 years BP)) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Turned into the four land-cover classes of the ice-age maps (tundra, birch woodland, pine, mixed forest) by a rule of ours.",
+        "Ice-age maps: SGU's shore-model polygons and DATED-1's ice margin moved onto 1 km cells as water and ice, the pollen shares turned into four land-cover classes by a rule, and the east hatched \"no model yet\" where SGU's model ends (the notes that come with the ice-age data in the game's source code say how). Rough previews, not measurements.",
+        "Time window 23 (about 8,750 to 8,250 BC (10200-10700 years BP)) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Turned into the four land-cover classes of the ice-age maps (tundra, birch woodland, pine, mixed forest) by a rule of ours.",
+        "Time window 21 (about 7,750 to 7,250 BC (9200-9700 years BP)) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Turned into the four land-cover classes of the ice-age maps (tundra, birch woodland, pine, mixed forest) by a rule of ours.",
+        "Time window 16 (about 5,250 to 4,750 BC (6700-7200 years BP)) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Turned into the four land-cover classes of the ice-age maps (tundra, birch woodland, pine, mixed forest) by a rule of ours."
       ],
       "licenceName": "CC BY-SA 4.0",
       "licenceUri": "creativecommons.org/licenses/by-sa/4.0/",
@@ -198,6 +204,42 @@
       "licenceUri": "creativecommons.org/licenses/by/4.0/",
       "notes": [],
       "unofficialCopy": "Fetched from PROJ-data (OSGeo's package of grids for the PROJ software, release 1.25.0), which is byte-identical to the file on the NKG's own site."
+    },
+    {
+      "title": "SGU",
+      "owner": "Sveriges geologiska undersökning (SGU, the Geological Survey of Sweden)",
+      "version": "Strandförskjutningsmodell (öppna data), product description version 2.0 of 2024-06-09 (tables for 11900, 11400, 10400, 9400 and 6900 years before 1950)",
+      "uses": [
+        "the five ice-age maps: where the water and the ice stood, and the land cover, about 10,000 to 5,000 BC"
+      ],
+      "line": "Ice-age water and ice: shore-displacement model © SGU (Geological Survey of Sweden), released as open data (CC0).",
+      "citation": "Påsse, T. & Daniels, J. (2015). Past shore-level and sea-level displacements. Sveriges geologiska undersökning, Rapporter och meddelanden 137. Data: SGU, Strandförskjutningsmodell (öppna data).",
+      "changes": [
+        "Five tables (about 10,000, 9,500, 8,500, 7,500 and 5,000 BC): sea, lake and ice polygons moved onto the game's 1 km grid as water and ice; SGU's small modelled lakes left out.",
+        "Ice-age maps: SGU's shore-model polygons and DATED-1's ice margin moved onto 1 km cells as water and ice, the pollen shares turned into four land-cover classes by a rule, and the east hatched \"no model yet\" where SGU's model ends (the notes that come with the ice-age data in the game's source code say how). Rough previews, not measurements."
+      ],
+      "licenceName": "CC0 1.0",
+      "licenceUri": "creativecommons.org/publicdomain/zero/1.0/",
+      "notes": [],
+      "unofficialCopy": null
+    },
+    {
+      "title": "DATED-1",
+      "owner": "Anna L. C. Hughes, Richard Gyllencreutz, Øystein S. Lohne, Jan Mangerud and John Inge Svendsen (University of Bergen and the Bjerknes Centre), published by PANGAEA",
+      "version": "DATED-1 time-slices, PANGAEA doi:10.1594/PANGAEA.848117 (published 2015-07-14), slice TS12_mc",
+      "uses": [
+        "the five ice-age maps: where the water and the ice stood, and the land cover, about 10,000 to 5,000 BC"
+      ],
+      "line": "Ice sheet at about 10,000 BC: the DATED-1 reconstruction by Hughes and others (2016).",
+      "citation": "Hughes, A.L.C., Gyllencreutz, R., Lohne, Ø.S., Mangerud, J. and Svendsen, J.I. (2016) The last Eurasian ice sheets - a chronological database and time-slice reconstruction, DATED-1. Boreas 45(1): 1-45. doi:10.1111/bor.12142. Data: doi:10.1594/PANGAEA.848117",
+      "changes": [
+        "Only the most-credible margin at 12 ka (TS12_mc) is used, moved onto the game's 1 km grid as the ice sheet of the 10,000 BC map.",
+        "Ice-age maps: SGU's shore-model polygons and DATED-1's ice margin moved onto 1 km cells as water and ice, the pollen shares turned into four land-cover classes by a rule, and the east hatched \"no model yet\" where SGU's model ends (the notes that come with the ice-age data in the game's source code say how). Rough previews, not measurements."
+      ],
+      "licenceName": "CC BY 3.0",
+      "licenceUri": "creativecommons.org/licenses/by/3.0/",
+      "notes": [],
+      "unofficialCopy": null
     }
   ],
   "font": {

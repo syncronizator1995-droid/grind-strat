@@ -26,6 +26,8 @@
     "pyzel-2021": { "author": "Pyzel, J.", "year": 2021, "title": "On the Bandkeramik on the Lower Vistula River. Sprawozdania Archeologiczne 73/1: 203-219", "url": "https://journals.iaepan.pl/sa/article/download/2545/2751/10443", "seen": "read" },
     "taavitsainen-1994": { "author": "Taavitsainen, J.-P., Ikonen, L. and Saksa, A.", "year": 1994, "title": "On early agriculture in the archipelago of Lake Ladoga. Fennoscandia archaeologica XI", "url": "https://journal.fi/fennoscandiaarchaeologica/article/download/126648/76466/265810", "seen": "read" },
     "passe-daniels-2015": { "author": "Påsse, T. and Daniels, J.", "year": 2015, "title": "Past shore-level and sea-level displacements. SGU Rapporter och Meddelanden 137 (the model behind SGU's shore-displacement maps)", "url": "https://resource.sgu.se/dokument/publikation/rm/rm137rapport/rm137-rapport.pdf", "seen": "read" },
+    "sgu-model-2024": { "author": "SGU (Geological Survey of Sweden)", "year": 2024, "title": "Strandförskjutningsmodell, produktbeskrivning (product description of the shore-displacement model), version 2.0", "url": "https://resource.sgu.se/dokument/produkter/strandforskjutningsmodell-beskrivning.pdf", "seen": "read" },
+    "hughes-2016-dated1": { "author": "Hughes, A.L.C., Gyllencreutz, R., Lohne, Ø.S., Mangerud, J. and Svendsen, J.I.", "year": 2016, "title": "DATED-1: the last Eurasian ice sheets, time-slice margins (the margin 12 thousand years ago, read as data from PANGAEA; the paper is Boreas 45(1): 1-45)", "url": "https://doi.pangaea.de/10.1594/PANGAEA.848117", "seen": "read (the data and its readme; the paper itself was not read)" },
     "reimer-2020": { "author": "Reimer, P.J. and others", "year": 2020, "title": "The IntCal20 Northern Hemisphere radiocarbon age calibration curve (0-55 cal kBP). Radiocarbon 62(4)", "url": "https://raw.githubusercontent.com/Maarten14C/rintcal/master/inst/extdata/3Col_intcal20.14C", "seen": "read (the curve file, used by us to convert radiocarbon years; checked against the published Pulli and reindeer ranges)" }
   },
   "ages": [
@@ -36,7 +38,7 @@
       "stage": { "name": "Baltic Ice Lake", "sources": ["vassiljev-saarse-2013"] },
       "sentences": [
         { "text": "Ice still covers most of Finland, and its edge lies along the Salpausselkä ridges in southern Finland, laid down about 12,300 to 11,600 years ago.", "sources": ["lunkka-2019", "vassiljev-saarse-2013"] },
-        { "text": "In Sweden the ice still covers Stockholm and the land south of it.", "sources": ["stromberg-1989"], "marks": ["TO CHECK"] },
+        { "text": "In Sweden the ice still covers Stockholm and the land south of it.", "sources": ["stromberg-1989", "hughes-2016-dated1"] },
         { "text": "The Baltic is a huge freshwater lake held back by the ice, the Baltic Ice Lake, and its old shores are now found 140 to 160 m up in Finland.", "sources": ["vassiljev-saarse-2013"] },
         { "text": "In the far south the lake stood more than 20 m below today's sea, so parts of today's southern Baltic floor were dry land, where peat grew.", "sources": ["vassiljev-saarse-2013"] },
         { "text": "The land around Tallinn has lain under this lake since about 13,000 years ago.", "sources": ["saarse-vassiljev-2010"] },
@@ -44,6 +46,7 @@
         { "text": "Reindeer herds roam the eastern Baltic.", "sources": ["ukkonen-2006"] },
         { "text": "Small bands of reindeer hunters of the Swiderian tradition have come north from the south; one of their camps, Salaspils Laukskola near Riga, could date anywhere from about 10,500 to 9,000 BC, and how early people reached Lithuania is disputed.", "sources": ["berg-hansen-2019", "riede-ivanovaite-2018"] },
         { "text": "In the south-west of the map, Ahrensburgian hunters camp on Rügen, Usedom, Wolin and Bornholm, then all joined by dry land, and hunt reindeer among other game.", "sources": ["adamczyk-2021"] },
+        { "text": "On this map the water comes from the Swedish model (SGU), which leaves a strait between Bornholm and the mainland, so the map differs from that study there.", "sources": ["sgu-model-2024"] },
         { "text": "The last mammoths may still have lived in Estonia, near Puurmani.", "sources": ["krivokorin-2025-err"], "marks": ["not yet confirmed"] }
       ]
     },
@@ -56,6 +59,7 @@
         { "text": "The ice lake has just drained: around 9,650 BC its water poured out past Mount Billingen in Sweden, its level fell about 25 m, and the Yoldia Sea began.", "sources": ["vassiljev-saarse-2013", "saarse-vassiljev-2010"] },
         { "text": "The water stayed mostly fresh, with a short spell of slightly salty (brackish) water in the Gulf of Finland.", "sources": ["saarse-vassiljev-2010"] },
         { "text": "Most of today's Tallinn lies under water; only the highest parts of Nõmme, Lasnamäe and Viimsi stand out as islands, which grow as the land, freed of the ice's weight, slowly rises.", "sources": ["saarse-vassiljev-2010", "passe-daniels-2015"] },
+        { "text": "The map's water comes from the Swedish model (SGU), which is coarse outside Sweden, and it shows more of the Tallinn area dry than this study does.", "sources": ["sgu-model-2024"] },
         { "text": "The ice edge is drawing back north of the Salpausselkä ridges in Finland, and in Sweden it is near Stockholm.", "sources": ["lunkka-2019", "stromberg-1989"], "marks": ["TO CHECK"] },
         { "text": "Birch and pine woods spread over the thawing land, around openings of sedge and grass.", "sources": ["stancikaite-2006", "veski-1998", "niinemets-2002"] },
         { "text": "Reindeer are dying out in the region; the youngest dated bone is from about 9,800 to 9,300 BC, converted by us (IntCal20).", "sources": ["ukkonen-2006", "reimer-2020"] },
@@ -71,6 +75,7 @@
       "sentences": [
         { "text": "Around 8,750 BC the strait through central Sweden closed, and the Baltic became a rising freshwater lake, the Ancylus Lake.", "sources": ["saarse-vassiljev-2010", "passe-daniels-2015"] },
         { "text": "At its peak, about 8,350 BC, its shore near Tallinn is now found 34 to 36 m up, and Toompea and Viimsi were islands.", "sources": ["saarse-vassiljev-2010"] },
+        { "text": "The map's water comes from the Swedish model (SGU), which is coarse outside Sweden, and it shows the Tallinn area mostly dry.", "sources": ["sgu-model-2024"] },
         { "text": "Forests of pine and birch cover the land, and hazel has just reached north-west Estonia, about 8,700 to 8,300 BC, converted by us (IntCal20).", "sources": ["veski-1998", "reimer-2020"] },
         { "text": "This is the early Kunda culture, which takes its name from a site in north Estonia.", "sources": ["vle-kunda", "liiva-loze-1993"] },
         { "text": "At Pulli, on the Pärnu River a few km from the Baltic shore, people camped in spring and summer from about 9,000 to 8,550 BC.", "sources": ["osipowicz-2025"] },
