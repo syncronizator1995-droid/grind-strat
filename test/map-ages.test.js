@@ -396,6 +396,11 @@ describe('the ages block', () => {
     assert.ok(licenceProblems(wrong, sources).some((p) => /share-alike|SA|BY-SA/i.test(p)), 'a BY-SA input needs a BY-SA block');
     const unread = sources.map((/** @type {any} */ s) => (s.id === 'sgu-shore-ages' ? { ...s, licenceStatus: 'unverified' } : s));
     assert.ok(licenceProblems(blocks, unread).some((p) => /sgu-shore-ages/.test(p)));
+    // SGU's CC0 data alone may sit in a CC BY or a public-domain block (CC0 waives every right); DATED-1's CC BY 3.0 may not sit in a public-domain one.
+    const sguOnly = (/** @type {string} */ licence, /** @type {string[]} */ ids) => [{ kind: 'ages', text: JSON.stringify({ ...block, licence, sources: ids }) }];
+    assert.deepEqual(licenceProblems(sguOnly('CC-BY-4.0', ['sgu-shore-ages']), sources), []);
+    assert.deepEqual(licenceProblems(sguOnly('public-domain', ['sgu-shore-ages']), sources), []);
+    assert.ok(licenceProblems(sguOnly('public-domain', ['sgu-shore-ages', 'dated1-ts12']), sources).length > 0);
   });
 
   it('is a late block: a 1219 game never reads it, and the first map is built without it', () => {

@@ -159,14 +159,16 @@ export function licenceProblems(blocks, sources, { allowInterim = false } = {}) 
     // ODbL block. Share-alike blocks must say so. Public-domain blocks hold only public domain.
     const osm = used.filter((/** @type {SourceRecord} */ s) => s.collection === 'osm');
     if (osm.length && (block.licence !== 'ODbL-1.0' || osm.length !== used.length)) problems.push(`${name} mixes OpenStreetMap data with other data or licences`);
-    if (block.licence === 'public-domain' && used.some((/** @type {SourceRecord} */ s) => !/^public domain/i.test(s.credit.licenceName))) {
+    // CC0 waives every right, so it counts as public domain here (SGU's shore model is CC0).
+    const free = (/** @type {SourceRecord} */ s) => /^public domain/i.test(s.credit.licenceName) || /^CC0\b/i.test(s.credit.licenceName.trim());
+    if (block.licence === 'public-domain' && used.some((/** @type {SourceRecord} */ s) => !free(s))) {
       problems.push(`${name} says public domain but uses data under another licence`);
     }
     if (used.some((/** @type {SourceRecord} */ s) => /BY-SA/i.test(s.credit.licenceName)) && block.licence !== 'CC-BY-SA-4.0') {
       problems.push(`${name} holds share-alike data but is not under CC BY-SA 4.0`);
     }
     // A CC BY block holds only CC BY or public-domain data: nothing share-alike, ODbL or unknown.
-    const ccByOrFree = (/** @type {SourceRecord} */ s) => /^public domain/i.test(s.credit.licenceName) || /^CC BY 4\.0$/i.test(s.credit.licenceName.trim());
+    const ccByOrFree = (/** @type {SourceRecord} */ s) => free(s) || /^CC BY 4\.0$/i.test(s.credit.licenceName.trim());
     if (block.licence === 'CC-BY-4.0' && !used.every(ccByOrFree)) {
       problems.push(`${name} is under CC BY 4.0 but holds data under another licence`);
     }
