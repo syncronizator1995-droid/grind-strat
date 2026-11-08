@@ -585,7 +585,7 @@ by ids from data/sources.md.
   today's name, and a test keeps every river, line, lake and sea name inside the subset's ranges
   (one "№" falls back to the next font).
 
-### The ice-age maps and their notes (M3b, PR 2: the engine; PR 3 fills the data)
+### The ice-age maps and their notes (M3b, PR 2: the engine; PR 3: the data, built 8 November 2026)
 
 - **Ages:** `AGES` in `src/sim/map-date.js`: 10,000, 9,500, 8,500, 7,500 and 5,000 BC (ids
   `age-10000bc` and so on). `eraOf(year)` gives the age at or before a BC year (9,000 BC shows
@@ -593,7 +593,7 @@ by ids from data/sources.md.
   `ad1` (PR 1's lead-in; until it is in it draws 1219); 1219 on is `historic`. `#date=0` and
   `#date=0BC` are refused; `#date=9500BC` and the other four links parse (`parseTestLink`).
 - **The age block** (kind `ages`, licence CC-BY-SA-4.0, one block for all the ages, a late block: a
-  comment last in the page, read only for a BC date; PR 3 adds it to `BLOCK_FILES` and `LATE_KINDS`).
+  comment last in the page, read only for a BC date; in `BLOCK_FILES` and `LATE_KINDS` since PR 3, file `src/data/by-sa/ages.json`).
   The format is in the header comment of `src/ui/map/slice.js`: `meta.grid` {cols, rows, cell} (the
   terrain grid, 1 km, row 0 south), `meta.ages` [{id, year, stage}], and per age two layers:
   `<id>/surface` (1 km: 0 land, 1 water, 2 ice; water and ice never share a cell) and `<id>/cover`
@@ -610,11 +610,16 @@ by ids from data/sources.md.
   dashed. The date layer stays parked at the year it had; leaving the age is the ordinary move of the
   date layer to the wanted year, so nothing is left to undo. `canvas.dataset.mapAge` names the age.
   A tap in an age says the water's stage name (`setOnAgeTap`).
-- **Cost of an age** (measured in Node on a made-up full-size age, 1573 x 1328 cells, water with many
-  small lakes, 2 November 2026): `oldShore` about 150-175 ms, `paintAge` 40-70 ms, `hatchRects`
-  30-40 ms on the development computer, once each time an age is first shown (the picture is
-  dropped on leaving it). On a mid-range phone that may be a pause of about a second: PR 3 times it
-  on the real data, and if it is too slow ships the shore lines in the block or builds them in pieces.
+- **Cost of an age** (once each time an age is first shown; the picture is dropped on leaving it).
+  Made-up full-size age, 2 November 2026: `oldShore` about 150-175 ms, `paintAge` 40-70 ms,
+  `hatchRects` 30-40 ms. **On the real block** (8 November 2026, Node, development computer, median
+  of 7): `paintAge` 20-31 ms, `oldShore` 36-65 ms (392 to 1,237 lines), `hatchRects` 12-19 ms,
+  68-114 ms per age in all (the single cold run of 9,500 BC was 146 ms); unpacking an age 5-17 ms;
+  inflating and unbundling the whole block 30 ms. About half the made-up numbers, because the real
+  water has few lakes (SGU's small lakes are left out), so the shore shapes are simple. On a
+  mid-range phone, a few times slower: well under a second, so the shore lines are not shipped in
+  the block and nothing is built in pieces. `test/map-ages.test.js` bounds it loosely (4 s) and
+  prints the numbers.
 - **The notes** (`tools/map/age-notes.json` by hand, packed by `pack-age-notes.mjs` into
   `src/data/own/age-notes.json`, kind `age-notes`, a late block): every sentence carries source ids,
   explained with links in data/sources.md; the block holds authors, years and titles, no links. The
@@ -653,8 +658,28 @@ by ids from data/sources.md.
   a reload, and leaving the link says the map follows the game's date again.
 - **Soak:** `npm run soak` also runs the map from AD 1 to 2021 and requires it to meet a 1219
   game's land and coast exactly at 1219 and to end on today.
-- **For PR 3 (the ages' data):** the `ages` block format is in the header of `src/ui/map/slice.js`
-  and in the section above; it is not in `BLOCK_FILES` yet, and `main.js` reads it optionally.
+- **The ages' data (PR 3, 8 November 2026):** the block `ages` (`src/data/by-sa/ages.json`, CC BY-SA
+  4.0, 125.5 KB, late) is made by `npm run map:ages` (`tools/map/build-ages.mjs`, rules in
+  `tools/map/ages.mjs`, packed by `tools/map/pack-ages.mjs`; `npm run map:pack` repacks it from the
+  derived layers when they are here) in exactly the format `slice.js` reads. `main.js` still reads
+  it only through `loadAgeMaps`, called from `onAgeChange`; a test checks that and that `showMap`
+  never touches it; the other blocks' fingerprints are unchanged, so a 1219 game and the first map
+  are the same. Per age: the surface is SGU's code 1 and 2 polygons (sea, lake) as water and the ice
+  (DATED-1's TS12_mc at 10,000 BC, SGU's code 5 later; ice wins) rasterised on the 1 km grid by cell
+  centres; SGU's code 4 (small modelled lakes) is left out. The cover is 2 km, from the SpatioCompo
+  windows 25, 23, 21 and 16 blended smoothly and classed by `coverClass` (10,000 BC: painted
+  tundra). Hatched = cover 0 = land east of SGU's model rectangle (`SGU_DOMAIN`, `eastOfModel`; the
+  build checks every polygon vertex against it to 1 m) for the four oldest ages: 189,360 cover cells,
+  36% of the map. At 5,000 BC `floodEast` carries the Gulf of Finland east (level 19 m from the
+  Estonian shore, within 150 km), a rough estimate. Inputs are fetched with their SHA-256 into
+  `data/raw/manifest.json` (SGU's four GeoPackages 221 to 506 MB each, DATED-1's zip, four CSVs);
+  DATED-1's zip and the three files read from it are pinned in `build-ages.mjs`, and the
+  third-party copy on GitHub was found byte-identical. New readers: `tools/map/shp.mjs` (polygon
+  shapefiles and their table), `tools/map/zip.mjs` (stored and deflated entries),
+  `northPolarLaeaInverse` in `projection.mjs` (DATED-1's projection). The block carries hashes and
+  names, no web addresses; its meta has the labels (the rules in plain words), the model rectangle,
+  and per age the table, cell counts, water bodies and the estimate. Credits: SGU, DATED-1 and the
+  four windows are in `sources.json` with their licences read (SGU CC0, DATED-1 CC BY 3.0).
 
 ## 10. Invariants and soak outputs
 

@@ -389,8 +389,11 @@ polished, error-free Lithuanian playthrough that holds together however the play
     (more forest, a higher northern sea, no reservoirs), blending into 1219 square by square;
     on the map the only Roman names are the Vistula and the Borysthenes (Mela), with Ptolemy's
     guesses in the tap panel only, marked "?". Each ice-age date shows a banner ("Rough preview:
-    about 10,000 BC (about 12,000 years ago)") that opens the full sourced note; until the age
-    maps' data is in (PR 3) the map is hatched and says "map not built yet".
+    about 10,000 BC (about 12,000 years ago)") that opens the full sourced note. PR 3 (8 November
+    2026) put the five maps in: water from SGU's shore model, the ice from DATED-1 (10,000 BC) and
+    SGU, land cover from four older pollen windows (10,000 BC painted as tundra), the land east of
+    SGU's model hatched "no model yet" for the four oldest ages (36% of the map), and the Gulf of
+    Finland carried east at 5,000 BC as a rough estimate (Ignas's choices of 2 November, as agreed).
 
 The Baltic basin changed shape after the ice:
 
@@ -559,6 +562,7 @@ Step 2 split down are his step 2 answers, later the same day.
 | Ice-age east | Hatched "no model yet" until 5,000 BC, where a rough estimate stands (Ignas, 2 November 2026: "Hatch it (Recommended)") |
 | Ice-age notes | The full note (4 to 6 sentences, each with its sources), with neighbours inside the map, mammoths marked "not yet confirmed", and our converted dates tagged "converted by us" (Ignas, 2 November 2026: "Full note"; "Neighbours on the map, Mammoths (TO CHECK), Our converted dates") |
 | Age label | "about 10,000 BC (about 12,000 years ago)", never "BP" (Ignas, 2 November 2026) |
+| M3b PR 3 (Claude's choices inside the approved plan, 8 November 2026; TO CHECK with Ignas) | SGU's licence is CC0 1.0 (its current description), not CC BY 4.0. Only the east is hatched: the land south of SGU's model (below about 52.8N) is plain land, as no sea or ice stood there. At 10,000 BC the strip between DATED-1's ice edge and SGU's lake (17,769 km2) is land. Cover classes come from a written rule (open 45% or more is tundra in the three cold ages; conifer share 60% or more is pine; 40% or less is birch where "broadleaf" means birch; otherwise mixed), and no cover comes out as pine. 7,500 BC reads "broadleaf" as forest trees, not birch. The 5,000 BC sea east of the model is the Gulf carried on at the level of the Estonian shore (19 m), within 150 km; eastern lakes are not drawn. Where SGU's coarse model contradicts a local study (Tallinn, Bornholm) the note says so rather than the map being changed |
 | M3b defaults (approved with the plan) | SGU's shore model is the main source for the ice-age water; SGU's small modelled lakes are left out; Narva written as "first pottery, made by people who still hunted and fished"; AD 1 uses the same clearing rule as 1219; the ice-age maps switch at each age, AD 1 blends into 1219. Hazel is dropped from the 5,000 BC note (no source for that time). 4,999 BC to 1 BC show the 5,000 BC map, then AD 1 |
 | Our own map data | Same terms as the game; Ignas chooses them later (Ignas, 12 October 2026: "Same as the game (Recommended)") |
 | Reservoirs | The 12 big ones get researched, sourced filling years. The small ones too: each appears in the year OpenStreetMap gives, marked "year from OpenStreetMap"; ones with no year stay hidden (Ignas, 12 October 2026: "Small ones too") |

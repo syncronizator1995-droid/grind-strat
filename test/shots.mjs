@@ -489,12 +489,16 @@ async function earlyMaps(browser, scheme) {
     for (const p of await layoutProblems(page)) failures.push(`${at} link off: ${p}`);
     await page.goto('about:blank');
   }
-  for (const year of ['10000BC', '9500BC', '8500BC', '7500BC', '5000BC']) {
-    const at = `${label} ${year}`;
-    await page.goto(`${fileUrl}#date=${year}&view=8434,5899,0.05`);
+  // Each age, whole (the overview: 390 CSS px across the 1,572 km map) and in the middle (zoom 0.05).
+  const AGE_VIEWS = [{ name: 'overview', view: '7862,6636,0.0245' }, { name: 'middle', view: '8434,5899,0.05' }];
+  for (const year of ['10000BC', '9500BC', '8500BC', '7500BC', '5000BC']) for (const v of AGE_VIEWS) {
+    const at = `${label} ${year} ${v.name}`;
+    await page.goto(`${fileUrl}#date=${year}&view=${v.view}`);
     await page.evaluate(() => document.fonts.ready);
     try {
       await page.waitForFunction(() => document.querySelector('#map')?.getAttribute('data-map-age'), undefined, { timeout: 30000 });
+      // The age's data comes in a moment later (a late block): the banner stops saying "not built yet".
+      await page.waitForFunction(() => !/Map not built yet/.test(document.querySelector('#ageBanner')?.textContent ?? 'Map not built yet'), undefined, { timeout: 30000 });
     } catch {
       failures.push(`${at}: no ice-age map appeared`);
     }
@@ -502,10 +506,11 @@ async function earlyMaps(browser, scheme) {
     check(await page.locator('#ageBanner').isVisible(), `${at}: no banner`);
     const banner = await page.locator('#ageBanner').innerText();
     check(/Rough preview: about/.test(banner) && /years ago/.test(banner) && !/\bBP\b/.test(banner), `${at}: the banner reads "${banner}"`);
-    check(/Map not built yet/.test(banner), `${at}: the banner does not say the map is not built yet ("${banner}")`);
+    check(!/Map not built yet/.test(banner), `${at}: the banner still says the map is not built yet ("${banner}")`);
     check((await dateText(page)) === '1 January 1219', `${at}: the test link changed the game's date`);
     for (const p of await layoutProblems(page)) failures.push(`${at}: ${p}`);
-    await page.screenshot({ path: join(SHOTS, `${scheme}-age-${year}.png`) });
+    await page.screenshot({ path: join(SHOTS, `${scheme}-age-${year}-${v.name}.png`) });
+    if (v.name !== 'middle') { await page.goto('about:blank'); continue; }
     await page.locator('#ageBanner').click();
     await page.waitForTimeout(400);
     check(await page.locator('#ageSheet').evaluate((e) => !(/** @type {HTMLElement} */ (e)).hidden), `${at}: the banner did not open the note`);
