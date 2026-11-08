@@ -55,9 +55,9 @@ export const LABELS = Object.freeze({
   ice10000: 'Ice at about 10,000 BC: DATED-1\'s most-credible ice margin at 12 thousand years ago (Hughes and others 2016), a reconstruction, not a measurement.',
   iceSgu: 'Ice at the later ages: the ice sheet of SGU\'s model, a simplified model of the melting.',
   cover10000: 'Painted by a rule, not from a pollen map: open herb and grass land with birch, juniper and willow (Stančikaitė 2006), shown as tundra.',
-  cover: 'Land cover from the pollen map (SpatioCompo, gap-filled REVEALS, 1 degree cells blended smoothly) turned into four classes by a rule of ours: open land above 45% is tundra; otherwise forest, where a conifer share of 60% or more is pine; below that, where the pollen map\'s broadleaf trees are birch (9,500 and 8,500 BC), a conifer share of 35% or less is birch woodland and the rest is mixed (birch and pine); later (7,500 and 5,000 BC) broadleaf means broad-leaved forest trees and the rest is mixed forest.',
+  cover: 'Land cover from the pollen map (SpatioCompo: REVEALS cover of conifer forest, broadleaved forest and open land, in which birch counts as broadleaved and pine\'s plentiful pollen is corrected for; 1 degree cells blended smoothly) turned into four classes by a rule of ours: in the three cold ages, open land that is half the land or more is tundra; otherwise forest, where conifers that are half the forest or more are pine; below that, where the broadleaved trees are birch (9,500 and 8,500 BC), a conifer share of 40% or less is birch woodland and the rest is mixed (birch and pine); later (7,500 and 5,000 BC) the broadleaved trees are birch with hazel and elm, then lime and oak, and the rest is mixed forest.',
   hatch: 'Hatched "no model yet": land east of SGU\'s model for the four oldest ages (the model\'s east edge runs from about 26.2E at 55N to about 27.5E at 59N).',
-  east5000: 'East of the model at about 5,000 BC the sea is a rough estimate: the Gulf of Finland carried on east at the old sea level read from SGU\'s shore (TO CHECK, error maybe 4 m). Lakes there are not drawn.',
+  east5000: 'East of the model at about 5,000 BC the sea is a rough estimate: the Gulf of Finland carried on east, up to 150 km, over land now 10 m or less above the sea, the middle of the Litorina Sea\'s highest shore in the Narva-Luga area (6 to 14 m, Rosentau and others 2013), so about 4 m either way (TO CHECK). Lakes there are not drawn.',
 });
 
 /** @param {Uint8Array} bytes */
@@ -263,8 +263,8 @@ async function main() {
     /** @type {Record<string, unknown> | null} */
     let estimate = null;
     if (!age.hatchEast) {
-      // The Gulf of Finland within eastShoreBandKm of the model's edge: its south shore sets the old
-      // sea level; the sea is carried east no further than eastReachKm.
+      // The Gulf of Finland within eastShoreBandKm of the model's edge: its south shore's height is
+      // reported as a check on the level; the sea is carried east no further than eastReachKm.
       const gulf = new Uint8Array(cols * rows);
       const reach = new Uint8Array(cols * rows);
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -273,7 +273,7 @@ async function main() {
         if (lat > 58.5 && away < 0 && -away < AGES_PARAMS.eastShoreBandKm * 1000) gulf[r * cols + c] = 1;
         if (away > 0 && away < AGES_PARAMS.eastReachKm * 1000) reach[r * cols + c] = 1;
       }
-      estimate = floodEast({ cols, rows, surface, east: reach, gulf, height: heightAt });
+      estimate = floodEast({ cols, rows, surface, east: reach, gulf, height: heightAt, level: AGES_PARAMS.eastSeaLevelM });
     }
     const cover = await coverOf(age, lon2, lat2, east2);
     let water = 0; let ice = 0; let hatched = 0;

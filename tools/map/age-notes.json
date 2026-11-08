@@ -38,7 +38,7 @@
       "stage": { "name": "Baltic Ice Lake", "sources": ["vassiljev-saarse-2013"] },
       "sentences": [
         { "text": "Ice still covers most of Finland, and its edge lies along the Salpausselkä ridges in southern Finland, laid down about 12,300 to 11,600 years ago.", "sources": ["lunkka-2019", "vassiljev-saarse-2013"] },
-        { "text": "In Sweden the ice still covers Stockholm and the land south of it.", "sources": ["stromberg-1989", "hughes-2016-dated1"] },
+        { "text": "In Sweden the ice still covers Stockholm and the land just south of it.", "sources": ["stromberg-1989", "hughes-2016-dated1"] },
         { "text": "The Baltic is a huge freshwater lake held back by the ice, the Baltic Ice Lake, and its old shores are now found 140 to 160 m up in Finland.", "sources": ["vassiljev-saarse-2013"] },
         { "text": "In the far south the lake stood more than 20 m below today's sea, so parts of today's southern Baltic floor were dry land, where peat grew.", "sources": ["vassiljev-saarse-2013"] },
         { "text": "The land around Tallinn has lain under this lake since about 13,000 years ago.", "sources": ["saarse-vassiljev-2010"] },

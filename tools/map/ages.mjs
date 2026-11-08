@@ -31,7 +31,9 @@ export const SGU_CODE = Object.freeze({ sea: 1, iceLake: 2, lake: 4, ice: 5 });
  * - cover 'painted': a rule, not a pollen map (the oldest pollen window is 9,750 to 9,250 BC).
  *   Otherwise the SpatioCompo source id of the window that holds the age.
  * - broadleaf: what the pollen map's "broadleaf" share means in this age: 'birch' (the early
- *   woods are birch and pine; hazel and elm come later) or 'mixed' (broad-leaved forest trees).
+ *   woods are birch and pine; hazel reaches north-west Estonia only about 8,500 BC) or 'mixed'
+ *   (birch with hazel and elm; elm spreads in Estonia from about 8,250 BC, Saarse and Veski
+ *   2001, 9000 to 7800 radiocarbon years, converted by us).
  * - tundra: whether open land can be tundra in this age (the three cold ones; later, open land is
  *   forest-steppe and light woodland, which the four classes do not name, so it takes the forest
  *   class the conifer share gives).
@@ -50,11 +52,18 @@ export const AGE_BUILDS = Object.freeze([
 
 /** Every parameter of the build, fingerprinted so a stale build is refused (pack-ages.mjs). */
 export const AGES_PARAMS = Object.freeze({
-  /** Cover classes from the blended pollen shares (see coverClass). */
-  openTundra: 0.45,
-  coniferPine: 0.6,
+  /** Cover classes from the blended pollen shares (see coverClass): open land that is the larger part of the land is tundra, conifers that are the larger part of the forest are pine, birch woodland needs birch at 60% of the forest or more. */
+  openTundra: 0.5,
+  coniferPine: 0.5,
   coniferBirch: 0.4,
-  /** The estimate east of the model at 5,000 BC: the shore is read within this far of the edge, and the sea is carried east at most this far. */
+  /**
+   * The estimate east of the model at 5,000 BC: the old sea level there (metres above today's sea),
+   * from the Narva-Luga study (Rosentau et al. 2013: the Litorina Sea's highest shore, about
+   * 5,350 BC, is now found 6 to 14 m up there; 10 m is its middle, so about 4 m either way); the
+   * sea is carried east at most `eastReachKm`. `eastShoreBandKm` is only a check: the Estonian
+   * shore's median height within that band of the edge is reported beside it.
+   */
+  eastSeaLevelM: 10,
   eastShoreBandKm: 40,
   eastReachKm: 150,
 });
@@ -65,14 +74,20 @@ export const paramsSha256 = (value = { AGE_BUILDS, AGES_PARAMS }) => createHash(
 /**
  * The land cover class of one place from the blended pollen shares.
  *
- * THE RULE (ours, from shares; not a historical map): open land at or above `openTundra` of the
- * place is tundra (open herb and grass land with scattered trees; only in the ages with `tundra`).
- * Otherwise it is forest, and
- * the conifer share of the forest decides, with 60 and 40 percent as the lines between "dominates"
- * and "mixed": at or above `coniferPine` pine; below it, in the ages
- * where the pollen map's broadleaf share means birch, a conifer share at or below `coniferBirch`
- * is birch woodland and the middle is mixed (birch and pine); in the later ages broadleaf means
- * broad-leaved forest trees, so anything not pine is mixed forest.
+ * What the shares are (SpatioCompo's README; Githumbi et al. 2022): REVEALS estimates of the cover
+ * of coniferous forest, broadleaved forest and open land. REVEALS corrects each tree's pollen for
+ * how much pollen it makes and how far it flies (pine makes more than birch, so raw pollen
+ * percentages, which most pollen diagrams show, overstate pine), and birch, a summer-green tree,
+ * counts as broadleaved. So these shares show less pine than the "pine forest" of pollen diagrams.
+ *
+ * THE RULE (ours, from shares; not a historical map): open land that is at least `openTundra` of the
+ * place (the larger part) is tundra: open herb and grass land with scattered trees, only in the
+ * ages with `tundra`. Otherwise it is forest, and the conifer share of the forest decides: at or
+ * above `coniferPine` (conifers are the larger part) it is pine, the class the game has for conifer
+ * forest. Below that, in the ages where the pollen map's broadleaf trees
+ * are birch, a conifer share at or below `coniferBirch` (birch 60% of the forest or more) is birch
+ * woodland and the middle is mixed (birch and pine); in the later ages broadleaf means birch with
+ * hazel and elm, and later lime and oak, so anything not pine is mixed forest.
  * @param {number} conifer @param {number} broadleaf @param {number} open shares 0-1
  * @param {'birch' | 'mixed'} broadleafMeans
  * @param {boolean} [tundra] whether open land can be tundra (the cold ages)
@@ -81,7 +96,8 @@ export const paramsSha256 = (value = { AGE_BUILDS, AGES_PARAMS }) => createHash(
 export function coverClass(conifer, broadleaf, open, broadleafMeans, tundra = true, p = AGES_PARAMS) {
   if (tundra && open >= p.openTundra) return COVER.tundra;
   const forest = conifer + broadleaf;
-  const share = forest > 0 ? conifer / forest : 0.5;
+  if (!(forest > 0)) return COVER.mixed; // no forest share at all (open land in a warm age): no tree wins
+  const share = conifer / forest;
   if (share >= p.coniferPine) return COVER.pine;
   if (broadleafMeans === 'birch' && share <= p.coniferBirch) return COVER.birch;
   return COVER.mixed;
@@ -177,20 +193,20 @@ export function eastOfModel(lon, lat) {
 
 /**
  * The rough estimate of the sea east of SGU's model at 5,000 BC (Ignas's choice, 2 November 2026;
- * the plan put its error at about 4 m, not checked). The model's sea is cut off by a straight line
- * across the Gulf of Finland, so the sea is carried on east by a rule: the old sea level L is the
- * median of today's height of the land cells on the Gulf of Finland's south (Estonian) shore within
- * `eastShoreBandKm` of the edge (the cells with SGU's sea to their north), and the sea floods, from
- * the cells that touch the edge, every cell east of the edge, but no further than `eastReachKm`,
- * whose height is at or below L, cell by cell (8 neighbours). The Estonian shore is read, not the
- * Finnish one, because the land there has risen less (the Finnish shore stands higher). The land
- * further east has risen less still, so L is probably too high the further east it goes. Inland
- * lakes (Peipus, Ladoga) are not drawn in the east.
+ * the plan put its error at about 4 m). The model's sea is cut off by a straight line across the
+ * Gulf of Finland, so the sea is carried on east by a rule: from the cells that touch the edge, it
+ * floods every cell east of the edge, no further than `eastReachKm`, whose height today is at or
+ * below the old sea level `level`, cell by cell (8 neighbours). The level is the Narva-Luga study's
+ * (AGES_PARAMS.eastSeaLevelM), not read from the map: the median of today's heights on the Estonian
+ * shore just west of the edge (the land cells with SGU's sea to their north, in `gulf`) is only
+ * reported beside it as a check, because the 2 km heights there average the Baltic Klint into the
+ * shore (it read 19 m, against 6 to 14 m in the study). The land further east has risen less, so
+ * one level for the whole east is rough. Inland lakes (Peipus, Ladoga) are not drawn in the east.
  * @param {{ cols: number, rows: number, surface: Uint8Array, east: Uint8Array, gulf: Uint8Array,
- *   height: (c: number, r: number) => number }} g `east` marks cells east of the model, `gulf` the
- *   cells (inside the model) whose south shore is read for L; `east` is already cut to the reach;
- *   `height` is today's height in metres
- * @returns {{ level: number | null, quartiles: number[], samples: number, flooded: number }}
+ *   height: (c: number, r: number) => number, level: number }} g `east` marks cells east of the
+ *   model, already cut to the reach; `gulf` the cells (inside the model) whose south shore is read
+ *   for the check; `height` is today's height in metres; `level` the old sea level in metres
+ * @returns {{ level: number, shore: { median: number | null, quartiles: number[], samples: number }, flooded: number }}
  *   and floods `surface` in place
  */
 export function floodEast(g) {
@@ -209,10 +225,10 @@ export function floodEast(g) {
     // South shore: land with SGU's sea in the row above (north).
     if (gulf[i] && surface[i] === SURFACE.land && r + 1 < rows && [c - 1, c, c + 1].some((cc) => cc >= 0 && cc < cols && surface[(r + 1) * cols + cc] === SURFACE.water)) samples.push(g.height(c, r));
   }
-  if (!samples.length) return { level: null, quartiles: [], samples: 0, flooded: 0 };
   samples.sort((a, b) => a - b);
   const q = (/** @type {number} */ f) => samples[Math.min(samples.length - 1, Math.floor(f * samples.length))];
-  const level = q(0.5);
+  const shore = samples.length ? { median: q(0.5), quartiles: [q(0.25), q(0.5), q(0.75)], samples: samples.length } : { median: null, quartiles: [], samples: 0 };
+  const { level } = g;
   /** @type {number[]} */
   const queue = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -230,7 +246,7 @@ export function floodEast(g) {
       if (east[j] && surface[j] === SURFACE.land && g.height(cc, rr) <= level) { surface[j] = SURFACE.water; queue.push(j); flooded++; }
     }
   }
-  return { level, quartiles: [q(0.25), q(0.5), q(0.75)], samples: samples.length, flooded };
+  return { level, shore, flooded };
 }
 
 /**

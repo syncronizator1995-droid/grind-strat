@@ -54,14 +54,17 @@ describe('the rules on made-up inputs', () => {
 
   it('turns pollen shares into the four classes by the written rule', () => {
     const P = AGES_PARAMS;
-    assert.equal(coverClass(0.1, 0.3, 0.6, 'birch'), COVER.tundra, 'open land from 45% is tundra');
+    assert.equal(coverClass(0.1, 0.3, 0.6, 'birch'), COVER.tundra, 'open land that is the larger part is tundra');
     assert.equal(coverClass(0.2, 0.3, P.openTundra, 'birch'), COVER.tundra, 'at the line');
+    assert.equal(coverClass(0.3, 0.25, 0.45, 'birch'), COVER.pine, 'open land under half is forest, here conifer-led');
     assert.equal(coverClass(0.1, 0.3, 0.6, 'mixed', false), COVER.mixed, 'later ages have no tundra');
-    assert.equal(coverClass(0.4, 0.2, 0.4, 'birch'), COVER.pine, 'a conifer share of 60% or more is pine');
+    assert.equal(coverClass(0.3, 0.3, 0.4, 'birch'), COVER.pine, 'conifers that are half the forest or more are pine');
+    assert.equal(coverClass(0.29, 0.31, 0.4, 'birch'), COVER.mixed, 'just under half is mixed (birch and pine)');
+    assert.equal(coverClass(0.3, 0.3, 0.4, 'mixed', false), COVER.pine, 'pine in the later ages too');
     assert.equal(coverClass(0.12, 0.48, 0.4, 'birch'), COVER.birch, 'a conifer share of 40% or less is birch where broadleaf means birch');
-    assert.equal(coverClass(0.12, 0.48, 0.4, 'mixed'), COVER.mixed, 'and mixed forest where it means forest trees');
-    assert.equal(coverClass(0.25, 0.25, 0.5, 'mixed', false), COVER.mixed);
-    assert.equal(coverClass(0, 0, 1, 'mixed', false), COVER.mixed, 'no forest at all does not divide by zero');
+    assert.equal(coverClass(0.24, 0.36, 0.4, 'birch'), COVER.birch, 'at the line (40%)');
+    assert.equal(coverClass(0.12, 0.48, 0.4, 'mixed'), COVER.mixed, 'and mixed forest where it means birch, hazel, elm and the rest');
+    assert.equal(coverClass(0, 0, 1, 'mixed', false), COVER.mixed, 'no forest at all does not divide by zero, and no tree wins');
   });
 
   it('finds the bodies of a mask (8 neighbours) and sizes them', () => {
@@ -75,7 +78,7 @@ describe('the rules on made-up inputs', () => {
     assert.equal(label[1], 0, 'cells outside the mask have no body');
   });
 
-  it('carries the sea east at the old level read from the Estonian shore, only as far as the reach', () => {
+  it('carries the sea east at the given old level, only as far as the reach, and reports the Estonian shore as a check', () => {
     // 10 x 4 cells, row 0 south; sea (1) in the top rows on the west half; the "Estonian shore" is row 1.
     const cols = 10; const rows = 4;
     const surface = new Uint8Array(cols * rows);
@@ -85,13 +88,15 @@ describe('the rules on made-up inputs', () => {
     for (let c = 2; c < 5; c++) gulf[1 * cols + c] = 1;
     // Heights: the shore land (row 1, columns 2-4) stands at 12 m; east of the edge it is 5 m in rows 2-3, 20 m in row 1.
     const height = (/** @type {number} */ c, /** @type {number} */ r) => (c < 5 ? (r === 1 ? 12 : 0) : r >= 2 ? 5 : 20);
-    const out = floodEast({ cols, rows, surface, east, gulf, height });
-    assert.equal(out.level, 12);
-    assert.equal(out.samples, 3);
+    const out = floodEast({ cols, rows, surface, east, gulf, height, level: 10 });
+    assert.equal(out.level, 10, 'the level is the one given, not the shore\'s');
+    assert.deepEqual(out.shore, { median: 12, quartiles: [12, 12, 12], samples: 3 });
     assert.equal(out.flooded, 6, 'rows 2 and 3, columns 5-7');
     assert.equal(surface[2 * cols + 7], SURFACE.water);
     assert.equal(surface[2 * cols + 8], SURFACE.land, 'beyond the reach it stays land');
     assert.equal(surface[1 * cols + 5], SURFACE.land, 'higher than the old level stays land');
+    const low = surface.slice(); for (let c = 5; c < 8; c++) { low[2 * cols + c] = SURFACE.land; low[3 * cols + c] = SURFACE.land; }
+    assert.equal(floodEast({ cols, rows, surface: low, east, gulf, height, level: 4 }).flooded, 0, 'land above the level stays dry');
   });
 
   it('knows which side of the model\'s east edge a place is on', () => {
@@ -295,25 +300,39 @@ describe('the ages block', () => {
     assert.equal(at('age-10000bc', 28.2, 59.38), 'none');
   });
 
-  it('draws the five covers the way the rule says', () => {
+  it('draws the five covers the way the rule says, with the classes the pollen map gives', () => {
     const count = (/** @type {string} */ id) => { const c = [0, 0, 0, 0, 0]; for (const v of slice(id).cover) c[v]++; return c; };
     const c10 = count('age-10000bc'); const c95 = count('age-9500bc'); const c85 = count('age-8500bc'); const c75 = count('age-7500bc'); const c50 = count('age-5000bc');
     assert.equal(c10[COVER.birch] + c10[COVER.pine] + c10[COVER.mixed], 0, '10,000 BC is painted as tundra');
     assert.ok(c10[COVER.tundra] > 300000);
-    assert.ok(c95[COVER.tundra] > 100000 && c95[COVER.mixed] > 50000);
-    assert.ok(c85[COVER.birch] > 50000, 'birch woodland at 8,500 BC');
+    // 9,500 BC: conifers lead the forest in the south (Poland, Lithuania), birch in the north-east; open land in the south-west.
+    assert.ok(c95[COVER.pine] > 50000 && c95[COVER.tundra] > 30000 && c95[COVER.mixed] > 50000 && c95[COVER.birch] > 5000, JSON.stringify(c95));
+    // 8,500 BC: birch woodland and mixed birch and pine; much less pine.
+    assert.ok(c85[COVER.birch] > 50000 && c85[COVER.mixed] > 50000 && c85[COVER.pine] < c95[COVER.pine] / 3, JSON.stringify(c85));
+    // 7,500 and 5,000 BC: broadleaved trees lead the forest nearly everywhere (the pollen map's conifer share is under half).
     assert.equal(c75[COVER.tundra] + c75[COVER.birch], 0, 'no tundra or birch class after 8,500 BC');
     assert.equal(c50[COVER.tundra] + c50[COVER.birch] + c50[COVER.none], 0);
+    assert.ok(c75[COVER.mixed] > 0.98 * (787 * 664 - c75[COVER.none]) && c50[COVER.mixed] > 0.98 * 787 * 664);
     for (const c of [c10, c95, c85, c75, c50]) assert.equal(c.reduce((a, b) => a + b, 0), 787 * 664);
+    /** @param {string} id @param {number} lon @param {number} lat */
+    const coverAt = (id, lon, lat) => { const [x, y] = MAP.toUnits(lon, lat); return slice(id).cover[Math.floor(y / 20) * 787 + Math.floor(x / 20)]; };
+    assert.equal(coverAt('age-9500bc', 23.9, 54.9), COVER.pine, 'Kaunas at 9,500 BC');
+    assert.equal(coverAt('age-9500bc', 26.72, 58.38), COVER.birch, 'Tartu at 9,500 BC');
+    assert.equal(coverAt('age-8500bc', 24.1, 56.95), COVER.birch, 'Riga at 8,500 BC');
     assert.equal(block.meta.labels.cover10000.startsWith('Painted by a rule'), true);
+    assert.match(block.meta.labels.cover, /half the forest or more are pine/);
   });
 
   it('carries the sea east of the model as a rough estimate at 5,000 BC, from the Gulf of Finland only', () => {
     const est = block.meta.built['age-5000bc'].estimateEast;
-    assert.ok(est.level > 5 && est.level < 40 && est.flooded > 1000 && est.samples > 20, JSON.stringify(est));
+    assert.equal(est.level, AGES_PARAMS.eastSeaLevelM, 'the level is the Narva-Luga study\'s, not read from the map');
+    assert.ok(AGES_PARAMS.eastSeaLevelM >= 6 && AGES_PARAMS.eastSeaLevelM <= 14, 'inside the study\'s 6 to 14 m');
+    assert.ok(est.flooded > 1000 && est.shore.samples > 20, JSON.stringify(est));
     assert.equal(at('age-5000bc', 28.0, 59.7), 'water', 'the Gulf still open just east of the edge');
     assert.equal(at('age-5000bc', 28.2, 59.38), 'land', 'Narva stands dry (south of the carried sea)');
-    assert.equal(at('age-5000bc', 32.0, 59.9), 'land', 'no sea beyond the reach, and no Ladoga');
+    assert.equal(at('age-5000bc', 32.0, 59.9), 'land', 'no sea beyond the reach');
+    assert.equal(at('age-5000bc', 31.5, 60.8), 'land', 'and no Ladoga');
+    assert.match(block.meta.labels.east5000, /6 to 14 m/);
     assert.match(block.meta.labels.east5000, /TO CHECK/);
     for (const a of AGE_BUILDS.slice(0, 4)) assert.equal(block.meta.built[a.id].estimateEast, null);
   });
