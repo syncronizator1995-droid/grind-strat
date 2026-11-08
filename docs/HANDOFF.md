@@ -268,9 +268,9 @@ Then M3: the map follows the game's date.
   and marshes, painted. Pinch to zoom, drag to pan; mouse wheel on a computer.
 - **A map that follows the game's date** (no slider): it shows the land, water and names of the
   game's own date, from 1219 to today (M3a). AD 1 and the five ice-age slices (10,000, 9,500,
-  8,500, 7,500 and 5,000 BC) come as ready data in M3b, with a short sourced note on land,
+  8,500, 7,500 and 5,000 BC) come as ready data in M3b, with a full sourced note on land,
   water, ice, plants, animals and people, checked with a hidden test link (`#date=1550`,
-  later `#10000BC`).
+  `#date=1`, `#date=10000BC`).
 - **Names that change with the time:** 1219 shows the forms used in sources of that age; today
   shows today's local names. Where no name of the time is sourced, today's local name stands in,
   and the data says so. Tap a river, lake or sea for all its names and sources.
@@ -363,15 +363,49 @@ every id.
   fog layer. Uses only Natural Earth's global layers, so the JRC clause doesn't apply.
 - **M2:** coast, named rivers and lakes, hill shading, 1219 terrain, Credits screen. Ask Ignas to
   allow GEBCO and OpenStreetMap here.
-- **M3a (in progress):** the map follows the game's date from 1219 to today, in two pull requests:
+- **M3a (built, waiting for Ignas's review):** the map follows the game's date from 1219 to today, in two pull requests:
   "the land changes" (forest, northern coast, water works), then "the names change".
   - **PR 1, "the land changes": built** (21 October 2026, not yet reviewed by Ignas): the forest
     over time, the northern coast (an estimate), reservoirs, cuts and lagoon outlets by date, our
     drawn shapes, a late save opening at its own year, the hidden `#date=` link, and the speed
     test's time run. ARCHITECTURE section 9 has the numbers.
-  - **PR 2, "the names change":** next.
+    Phone results (Ignas, 25 October 2026; Android 10, Chrome 155, 411x632 at 2x, 8 cores, 8 GB):
+    first map 661.9 ms (page and code ready 343.8; text to bytes 19.7, unpacking 42.2, reading shapes
+    43.1, painting terrain 194.4, preparing shapes 7.6); rivers and lakes 865.8 ms (201.4 ms to
+    unpack and draw); full redraw median 11.1, worst 43.6 ms; pan and zoom 989 frames, 99% on time,
+    median 11.0, 95% under 11.1; names median 2.3, worst 17.1 ms; time run 1219 to 2021 at speed 5:
+    9,758 frames in 118.0 s, 99% on time, median 11.0, 95% under 11.1, date work median 0.0, 95%
+    under 11.1, worst 353.3 ms. The first map was 0.40 s in M2b and 0.66 s now, so PR 2 carries a
+    start-up fix (the late data blocks as comments).
+  - **PR 2, "the names change": built** (25 October 2026, not yet reviewed by Ignas): names of rivers,
+    lakes and seas over time from sources (Lithuania keeps today's names), a name counts as "of the
+    time" within 25 years of its source, medieval forms end in 1400 (TO CHECK), the tap panel for a
+    river, lake or sea (name now, names over time, today, facts), the start-up fix, and screenshots
+    of the panel. ARCHITECTURE section 9 has how it is built. To try: tap a river name at a date
+    after 1219 (use a save, or `#date=1290`), tap a lake, tap the open sea. Missing: names for
+    provinces and holdings (later steps); our drawn land (Ruden) taps as the Baltic Sea; no
+    names block means no sea taps; the panel title is always today's name; the Venta's "Winda"
+    and Ladoga's "Nevo" are panel-only; "Chudskoye ozero" follows BGN/PCGN (to confirm with Ignas).
 - **M3b:** AD 1 and the ice-age data (five slices with notes), ready for step 8; planned with
-  Ignas after M3a. Ask for PANGAEA if still needed.
+  Ignas after M3a. PR 1 (AD 1: land, coast, names) and PR 2 (the age engine, banner and five
+  notes) are built and merged on this branch (2 November 2026). **PR 3, "the five ice-age maps":
+  built** (8 November 2026, not yet reviewed by Ignas): water from SGU's shore model, ice from
+  DATED-1 (10,000 BC) and SGU, land cover from four older pollen windows (10,000 BC painted as
+  tundra), the east hatched "no model yet" for the four oldest ages, a rough estimate of the
+  eastern sea at 5,000 BC; one late block `ages` (127 KB). To try: `#date=10000BC`, `9500BC`,
+  `8500BC`, `7500BC`, `5000BC` (the banner opens the note; tap water, ice or the hatching for
+  what it is). What the data showed against the notes is in data/sources.md (section "Map data
+  used in M3b: the ice-age maps"): the Tallinn sentences at 9,500 and 8,500 BC and the Bornholm
+  strait at 10,000 BC now say the map differs from the local studies; the plan's "Oresund dry
+  until 7,500 BC" is not what SGU shows (the Kattegat sea reaches the northern Oresund at 7,500 BC).
+  Review fixes (same day): the cover rule now lets the larger part win (pine where conifers are
+  half the forest: much of the south at 9,500 BC, a little at 8,500 BC); 7,500 and 5,000 BC are
+  both nearly all mixed forest, as the pollen map has broadleaved trees leading in both; the
+  eastern sea at 5,000 BC uses 10 m from the Narva-Luga study instead of 19 m read off the map.
+  Missing: a broad-leaved forest class to tell 7,500 from 5,000 BC (Ignas to choose); lakes in
+  the east at 5,000 BC; the strip between DATED-1's ice edge and SGU's lake at 10,000 BC is land;
+  Sweden's AD 1 coast from SGU (PR 1's TO CHECK) is still the estimate. Every TO CHECK of PR 3 is
+  listed at the end of that section of data/sources.md.
 - **Settled at M2:** the forest comes from the finished SpatioCompo maps on GitHub, so neither
   waiting until M3 nor PANGAEA was needed (Ignas, 6 October 2026).
 - If M1 shows his phone is too slow, the drawing gets fixed before M2.

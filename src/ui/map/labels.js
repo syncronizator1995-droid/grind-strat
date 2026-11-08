@@ -69,6 +69,7 @@ export const labelFont = (size) => `italic ${Math.max(MIN_FONT_PX, size)}px Geor
  * @property {string} text @property {number} size font size, CSS px
  * @property {number} x @property {number} y centre, CSS px in the frame
  * @property {number} angle radians, clockwise on screen, kept between -90 and 90 degrees
+ * @property {number} [width] the text's width, CSS px (a tap is tested against it)
  * @property {number} [river] for a river's name, the river's index
  * @property {number} [line] for a river's name, the line it was placed along
  * @property {number} [lake] for a lake's name, the lake's index
@@ -240,6 +241,9 @@ function within(f, x, y) {
  * @property {Float64Array[][]} chunkBox per name level and line, the box of every CHUNK points,
  *   so only the parts of a long river near the screen are looked at
  * @property {Uint8Array} lakeLevel coarsest level at which each lake is drawn
+ * @property {Float64Array} lakeBox [minX, minY, maxX, maxY] per lake, game units
+ * @property {Uint32Array} lakeRingStart per lake, the index of its first ring; one more entry
+ *   closes the last (a lake's rings are contiguous in the water data)
  */
 
 /**
@@ -249,10 +253,10 @@ function within(f, x, y) {
  */
 const NAME_LEVELS = [0, 1];
 /** @param {number} level the level drawn */
-const nameLevel = (level) => Math.min(NAME_LEVELS.length - 1, Math.max(0, level - 1));
+export const nameLevel = (level) => Math.min(NAME_LEVELS.length - 1, Math.max(0, level - 1));
 
 /** Points per chunk of a river line. */
-const CHUNK = 64;
+export const CHUNK = 64;
 
 /**
  * [minX, minY, maxX, maxY] of points from..to (inclusive) of a flat line, into out at `at`.
@@ -307,12 +311,24 @@ export function indexWater(water) {
     at += n;
   });
   const lakeLevel = new Uint8Array(water.lakeInfo.length).fill(255);
+  const lakeBox = new Float64Array(water.lakeInfo.length * 4);
+  for (let k = 0; k < water.lakeInfo.length; k++) lakeBox.set([Infinity, Infinity, -Infinity, -Infinity], k * 4);
+  const lakeRingStart = new Uint32Array(water.lakeInfo.length + 1);
   at = 0;
   water.lakes.forEach((ring, i) => {
     const k = water.lakeOf[i];
+    if (i > 0 && k < water.lakeOf[i - 1]) throw new Error('the water data\'s lake rings are not in lake order');
+    lakeRingStart[k + 1]++;
+    for (let p = 0; p < ring.length / 2; p++) {
+      lakeBox[k * 4] = Math.min(lakeBox[k * 4], ring[p * 2]);
+      lakeBox[k * 4 + 1] = Math.min(lakeBox[k * 4 + 1], ring[p * 2 + 1]);
+      lakeBox[k * 4 + 2] = Math.max(lakeBox[k * 4 + 2], ring[p * 2]);
+      lakeBox[k * 4 + 3] = Math.max(lakeBox[k * 4 + 3], ring[p * 2 + 1]);
+    }
     for (let p = 0; p < ring.length / 2; p++) lakeLevel[k] = Math.min(lakeLevel[k], water.lakeLevels[at + p]);
     at += ring.length / 2;
   });
+  for (let k = 0; k < water.lakeInfo.length; k++) lakeRingStart[k + 1] += lakeRingStart[k];
   const riverBox = new Float64Array(water.riverInfo.length * 4);
   for (let k = 0; k < water.riverInfo.length; k++) riverBox.set([Infinity, Infinity, -Infinity, -Infinity], k * 4);
   water.rivers.forEach((_, i) => {
@@ -322,7 +338,7 @@ export function indexWater(water) {
     riverBox[k + 2] = Math.max(riverBox[k + 2], lineBox[i * 4 + 2]);
     riverBox[k + 3] = Math.max(riverBox[k + 3], lineBox[i * 4 + 3]);
   });
-  return { linesOf, riverBox, lineBox, levelLines, chunkBox, lakeLevel };
+  return { linesOf, riverBox, lineBox, levelLines, chunkBox, lakeLevel, lakeBox, lakeRingStart };
 }
 
 /**
@@ -342,6 +358,8 @@ export function indexWater(water) {
  * @param {number} [p.budgetMs] stop placing names after this long (but never before MIN_NAMES are
  *   on screen): the biggest are placed first, so a slow phone shows fewer small names rather than a
  *   slow map
+ * @param {{ line: string[], lake: string[] }} [p.names] the text of every line and lake at the map's
+ *   date (src/ui/map/names.js namesAt): without it, today's names
  * @param {() => number} [p.now] the clock, in ms
  * @param {Map<number, number[]>} [p.previous] per river, where its names were last time
  *   ([mx, my, ...] in game units, from Label.mx and my): tried first, so names stay put
@@ -353,7 +371,7 @@ export function indexWater(water) {
  *   sea at the map's date? No name is placed there.
  * @returns {Label[]}
  */
-export function placeWaterLabels({ water, index, level, scale, ox, oy, width, height, measure, keepOut = [], screen, budgetMs = Infinity, now = () => 0, previous, result, tagOn = null, under }) {
+export function placeWaterLabels({ water, index, level, scale, ox, oy, width, height, measure, keepOut = [], screen, budgetMs = Infinity, now = () => 0, previous, result, tagOn = null, under, names }) {
   const deadline = now() + budgetMs;
   const occupied = new Occupancy(width, height);
   occupied.screen = screen ?? null;
@@ -390,7 +408,7 @@ export function placeWaterLabels({ water, index, level, scale, ox, oy, width, he
     if (!lakeLeft && !riverLeft) break;
     if (lakeLeft && (!riverLeft || lakePriority(li) >= rivers[ri].lengthKm)) {
       const lake = lakes[li];
-      const label = lakeShown(li) && !under?.(lake.at[0], lake.at[1]) ? placeLake(lake, index.lakeLevel[li] <= level, scale, ox, oy, frame, measure, occupied) : null;
+      const label = lakeShown(li) && !under?.(lake.at[0], lake.at[1]) ? placeLake(names?.lake[li] ?? lake.name, lake.areaKm2, lake.at, index.lakeLevel[li] <= level, scale, ox, oy, frame, measure, occupied) : null;
       if (label) keep({ ...label, lake: li });
       li++;
     } else {
@@ -398,7 +416,7 @@ export function placeWaterLabels({ water, index, level, scale, ox, oy, width, he
       // Off the frame altogether: nothing to place (thousands of rivers, most of them elsewhere).
       const inFrame = rb[2] * scale + ox >= 0 && rb[0] * scale + ox <= width && oy - rb[1] * scale >= 0 && oy - rb[3] * scale <= height;
       if (rivers[ri].name && inFrame) {
-        for (const label of placeRiver(water, index, ri, nameLevel(level), scale, ox, oy, frame, measure, occupied, previous?.get(ri), filter)) keep(label);
+        for (const label of placeRiver(water, index, ri, nameLevel(level), scale, ox, oy, frame, measure, occupied, previous?.get(ri), filter, names?.line)) keep(label);
       }
       ri++;
     }
@@ -409,21 +427,23 @@ export function placeWaterLabels({ water, index, level, scale, ox, oy, width, he
 
 /**
  * A lake's name at its middle, if the lake is drawn, on screen, and the place is free.
- * @param {import('./load.js').LakeInfo} lake @param {boolean} drawn @param {number} scale
+ * @param {string} name @param {number} areaKm2 @param {[number, number]} at
+ * @param {boolean} drawn @param {number} scale
  * @param {number} ox @param {number} oy @param {{ cx: number, cy: number, width: number, height: number }} frame
  * @param {(text: string, size: number) => number} measure @param {Occupancy} occupied
  * @returns {Label | null}
  */
-function placeLake(lake, drawn, scale, ox, oy, frame, measure, occupied) {
-  if (!lake.name || !drawn) return null;
-  const x = ox + lake.at[0] * scale;
-  const y = oy - lake.at[1] * scale;
+function placeLake(name, areaKm2, at, drawn, scale, ox, oy, frame, measure, occupied) {
+  if (!name || !drawn) return null;
+  const x = ox + at[0] * scale;
+  const y = oy - at[1] * scale;
   if (!within(frame, x, y)) return null;
-  const size = lakeFont(lake.areaKm2);
-  const discs = labelDiscs(x, y, 0, measure(lake.name, size), size);
+  const size = lakeFont(areaKm2);
+  const width = measure(name, size);
+  const discs = labelDiscs(x, y, 0, width, size);
   if (!occupied.fits(discs)) return null;
   occupied.add(discs);
-  return { text: lake.name, size, x, y, angle: 0 };
+  return { text: name, size, x, y, angle: 0, width };
 }
 
 /**
@@ -441,9 +461,10 @@ function placeLake(lake, drawn, scale, ox, oy, frame, measure, occupied) {
  * @param {Occupancy} occupied
  * @param {number[]} [previous] where this river's names were last time, [mx, my, ...] game units
  * @param {Filter} [filter] stretches to leave out at the map's date
+ * @param {string[]} [lineText] the text of every line at the map's date (else its stretch name today)
  * @returns {Label[]}
  */
-function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occupied, previous, filter) {
+function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occupied, previous, filter, lineText) {
   const river = water.riverInfo[k];
   const size = riverFont(river.lengthKm);
   /** @type {Map<string, number>} */
@@ -472,7 +493,7 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
       const b = index.lineBox.subarray(i * 4, i * 4 + 4);
       if (b[2] < minX || b[0] > maxX || b[3] < minY || b[1] > maxY) continue;
       if (filter && !filter.lineShown(i)) continue;
-      const text = (water.lineName && water.lineNames[water.lineName[i]]) || river.name;
+      const text = lineText?.[i] || (water.lineName && water.lineNames[water.lineName[i]]) || river.name;
       if (skip?.has(text)) continue;
       const textWidth = widthOf(text);
       const length = textWidth + size;
@@ -552,10 +573,11 @@ function placeRiver(water, index, k, level, scale, ox, oy, frame, measure, occup
       const my = (oy - sy) / scale;
       if (filter?.under?.(mx, my)) continue;
       if (once ? out.some((l) => l.text === text) : out.some((l) => Math.hypot(l.x - x, l.y - y) < REPEAT_PX)) continue;
-      const discs = labelDiscs(x, y, angle, s.width ?? widthOf(text), size);
+      const width = s.width ?? widthOf(text);
+      const discs = labelDiscs(x, y, angle, width, size);
       if (!occupied.fits(discs)) continue;
       occupied.add(discs);
-      out.push({ text, size, x, y, angle, river: k, line: s.line, mx, my });
+      out.push({ text, size, x, y, angle, width, river: k, line: s.line, mx, my });
     }
   }
 }

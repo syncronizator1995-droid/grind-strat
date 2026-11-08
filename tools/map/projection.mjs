@@ -64,6 +64,26 @@ export function laea(lon0, lat0, fe = 0, fn = 0) {
   };
 }
 
+/**
+ * The north-polar Lambert azimuthal equal-area projection (latitude of origin 90, central meridian
+ * 0, no false easting or northing; ESRI:102017) that DATED-1's ice margins are stored in: a
+ * polar case of the same formulas (Snyder 1987, pages 187-190: rho = a sqrt(qp - q), the pole
+ * being the case laea() above cannot take, as its D = 0/0 there). Only the inverse is needed.
+ * @param {number} x @param {number} y metres
+ * @returns {[number, number]} lon, lat in degrees
+ */
+export function northPolarLaeaInverse(x, y) {
+  const q0 = QP - (x * x + y * y) / (A * A);
+  const beta = Math.asin(Math.max(-1, Math.min(1, q0 / QP)));
+  const e4 = E2 * E2;
+  const e6 = e4 * E2;
+  const lat = beta
+    + (E2 / 3 + (31 * e4) / 180 + (517 * e6) / 5040) * Math.sin(2 * beta)
+    + ((23 * e4) / 360 + (251 * e6) / 3780) * Math.sin(4 * beta)
+    + ((761 * e6) / 45360) * Math.sin(6 * beta);
+  return [Math.atan2(x, -y) / RAD, lat / RAD];
+}
+
 /** ETRS89-LAEA Europe, EPSG:3035: for checking our formulas against the official definition. */
 export const EPSG3035 = laea(10, 52, 4321000, 3210000);
 

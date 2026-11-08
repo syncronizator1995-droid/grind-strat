@@ -104,3 +104,46 @@ describe('autosave', () => {
     assert.equal(shouldAutosave(firstOfMarch, firstOfMarch - 28, AUTOSAVE_MIN_GAP_MS - 1, 0), false);
   });
 });
+
+describe('tap tracker', () => {
+  /** @param {number} id @param {number} x @param {number} y @param {number} time @param {object} [more] */
+  const ev = (id, x, y, time, more = {}) => ({ pointerId: id, x, y, time, button: 0, isPrimary: true, ...more });
+  it('is a tap when short and still, within the slop', async () => {
+    const { createTapTracker, TAP_MS, TAP_SLOP_PX } = await import('../src/ui/map/hit.js');
+    const t = createTapTracker();
+    t.down(ev(1, 50, 50, 1000), 1);
+    assert.deepEqual(t.start, { x: 50, y: 50 });
+    assert.equal(t.move(ev(1, 50 + TAP_SLOP_PX - 1, 50, 1100)), 'hold');
+    assert.equal(t.up(ev(1, 54, 50, 1000 + TAP_MS - 1)), true);
+    t.down(ev(1, 50, 50, 1000), 1);
+    assert.equal(t.up(ev(1, 50, 50, 1000 + TAP_MS)), false, 'a long press is not a tap');
+  });
+  it('releases once past the slop, then is free, and the touch is no tap', async () => {
+    const { createTapTracker, TAP_SLOP_PX } = await import('../src/ui/map/hit.js');
+    const t = createTapTracker();
+    t.down(ev(1, 0, 0, 0), 1);
+    assert.equal(t.move(ev(1, TAP_SLOP_PX, 0, 10)), 'release');
+    assert.equal(t.move(ev(1, TAP_SLOP_PX + 1, 0, 20)), 'free');
+    assert.equal(t.move(ev(1, 2, 0, 30)), 'free', 'back near the start does not hold again');
+    assert.equal(t.up(ev(1, 2, 0, 40)), false);
+  });
+  it('drops the tap for a second finger, cancel, the right button or a non-primary pointer', async () => {
+    const { createTapTracker } = await import('../src/ui/map/hit.js');
+    const t = createTapTracker();
+    t.down(ev(1, 0, 0, 0), 1);
+    t.down(ev(2, 30, 0, 5), 2);
+    assert.equal(t.move(ev(1, 1, 0, 6)), 'free');
+    assert.equal(t.up(ev(1, 1, 0, 7)), false);
+    assert.equal(t.up(ev(2, 30, 0, 8)), false);
+    t.down(ev(1, 0, 0, 0), 1);
+    t.cancel();
+    assert.equal(t.up(ev(1, 0, 0, 5)), false);
+    t.down(ev(1, 0, 0, 0, { button: 2 }), 1);
+    assert.equal(t.up(ev(1, 0, 0, 5)), false);
+    t.down(ev(1, 0, 0, 0, { isPrimary: false }), 1);
+    assert.equal(t.move(ev(1, 1, 0, 1)), 'free');
+    assert.equal(t.up(ev(1, 0, 0, 5)), false);
+    t.down(ev(1, 0, 0, 0), 1);
+    assert.equal(t.up(ev(7, 0, 0, 5)), false, 'another pointer going up is not this tap');
+  });
+});

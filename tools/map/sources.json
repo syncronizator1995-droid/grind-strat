@@ -246,8 +246,8 @@
         "short": "SpatioCompo",
         "onMap": false,
         "line": "Forest around 1219: pollen-based land-cover maps by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
-        "groupVersion": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time windows 4, 3, 2 and 1 (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950)",
-        "groupLine": "Forest around 1219 and how it changes after 1250: pollen-based land-cover maps of four time windows (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950) by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "groupVersion": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time windows 4, 3, 2 and 1 (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950), 6 (about 250 BC to AD 250) and, for the ice-age maps, 25, 23, 21 and 16 (about 9,500, 8,500, 7,500 and 5,000 BC)",
+        "groupLine": "Forest around 1219 and how it changes after 1250: pollen-based land-cover maps of four time windows (about AD 750-1250, 1250-1600, 1600-1850 and 1850-1950) by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022). The AD 1 map and the ice-age maps use older windows of the same maps.",
         "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
         "changes": "Time window 4 (about AD 750-1250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are.",
         "licenceName": "CC BY-SA 4.0",
@@ -378,6 +378,211 @@
       }
     },
     {
+      "id": "spatiocompo-tw6",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_2000.csv",
+      "file": "spatiocompo/Land_Cover_2000.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 6 (about 250 BC to AD 250 (1700-2200 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub (the same as the other windows). Used for the forest anchor of M3b's AD 1 map. Its eastern squares (Belarus, north-west Russia) are model-filled from far away and of lower quality (Githumbi et al. 2022).",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP, then 500-year steps (BP = AD 1950): 1200-1700, 1700-2200 and so on. That Land_Cover_2000.csv is the 1700-2200 BP window (250 BC to AD 250) rests on the count and the names (each named after its rounded middle), not on a per-file statement. The 25 file names match the 25 windows."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 6 (about 250 BC to AD 250)",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest around AD 1: a pollen-based land-cover map (about 250 BC to AD 250) by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 6 (about 250 BC to AD 250) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Its forest and conifer shares set the quotas of the AD 1 forest; which 1 km cells are forest, and in which year before 1219 they change, is a rule (see the terrain-ad1 block). The eastern squares are model-filled and of lower quality, as the paper says.",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
+      "id": "spatiocompo-tw25",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_11500.csv",
+      "file": "spatiocompo/Land_Cover_11500.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 25 (about 9,750 to 9,250 BC (11200-11700 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub (the same as the other windows). Used for the ice-age map of about 9,500 BC. Its eastern squares (Belarus, north-west Russia) are model-filled from far away and of lower quality (Githumbi et al. 2022).",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP, then 500-year steps (BP = AD 1950), so window 25 is 11200-11700 BP. That Land_Cover_11500.csv is that window rests on the count and the names (each named after its rounded middle), not on a per-file statement; the 25 file names match the 25 windows. Early windows have fewer pollen sites: the paper's quality warning applies (TO CHECK against the paper's figures)."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 25 (about 9,750 to 9,250 BC (11200-11700 years BP))",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest around 9,750 to 9,250 BC: a pollen-based land-cover map by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 25 (about 9,750 to 9,250 BC (11200-11700 years BP)) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Turned into the four land-cover classes of the ice-age maps (tundra, birch woodland, pine, mixed forest) by a rule of ours.",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
+      "id": "spatiocompo-tw23",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_10500.csv",
+      "file": "spatiocompo/Land_Cover_10500.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 23 (about 8,750 to 8,250 BC (10200-10700 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub (the same as the other windows). Used for the ice-age map of about 8,500 BC. Its eastern squares (Belarus, north-west Russia) are model-filled from far away and of lower quality (Githumbi et al. 2022).",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP, then 500-year steps (BP = AD 1950), so window 23 is 10200-10700 BP. That Land_Cover_10500.csv is that window rests on the count and the names (each named after its rounded middle), not on a per-file statement; the 25 file names match the 25 windows. Early windows have fewer pollen sites: the paper's quality warning applies (TO CHECK against the paper's figures)."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 23 (about 8,750 to 8,250 BC (10200-10700 years BP))",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest around 8,750 to 8,250 BC: a pollen-based land-cover map by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 23 (about 8,750 to 8,250 BC (10200-10700 years BP)) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Turned into the four land-cover classes of the ice-age maps (tundra, birch woodland, pine, mixed forest) by a rule of ours.",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
+      "id": "spatiocompo-tw21",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_9500.csv",
+      "file": "spatiocompo/Land_Cover_9500.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 21 (about 7,750 to 7,250 BC (9200-9700 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub (the same as the other windows). Used for the ice-age map of about 7,500 BC. Its eastern squares (Belarus, north-west Russia) are model-filled from far away and of lower quality (Githumbi et al. 2022).",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP, then 500-year steps (BP = AD 1950), so window 21 is 9200-9700 BP. That Land_Cover_9500.csv is that window rests on the count and the names (each named after its rounded middle), not on a per-file statement; the 25 file names match the 25 windows. Early windows have fewer pollen sites: the paper's quality warning applies (TO CHECK against the paper's figures)."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 21 (about 7,750 to 7,250 BC (9200-9700 years BP))",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest around 7,750 to 7,250 BC: a pollen-based land-cover map by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 21 (about 7,750 to 7,250 BC (9200-9700 years BP)) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Turned into the four land-cover classes of the ice-age maps (tundra, birch woodland, pine, mixed forest) by a rule of ours.",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
+      "id": "spatiocompo-tw16",
+      "collection": "spatiocompo",
+      "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/Land-cover%20Maps/Land_Cover_7000.csv",
+      "file": "spatiocompo/Land_Cover_7000.csv",
+      "what": "SpatioCompo pollen-based land cover (gap-filled REVEALS), time window 16 (about 5,250 to 4,750 BC (6700-7200 years BP)): conifer, broadleaf and open-land shares (fractions 0-1) per 1 degree cell. Pinned to commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 on the author's own GitHub (the same as the other windows). Used for the ice-age map of about 5,000 BC. Its eastern squares (Belarus, north-west Russia) are model-filled from far away and of lower quality (Githumbi et al. 2022).",
+      "files": [
+        {
+          "name": "README.md",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+          "file": "spatiocompo/README.md"
+        },
+        {
+          "name": "LICENSE",
+          "url": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/LICENSE",
+          "file": "spatiocompo/LICENSE"
+        }
+      ],
+      "licence": "CC BY-SA 4.0 (the README's data licence; Ignas chose to use it so)",
+      "licenceUrl": "https://raw.githubusercontent.com/BehnazP/SpatioCompo_entireHolocene/894d44d58f66bb5c273491d98c3ec23a35e6a796/README.md",
+      "licenceStatus": "read",
+      "licenceReadAt": "README.md at commit 894d44d58f66bb5c273491d98c3ec23a35e6a796 of github.com/BehnazP/SpatioCompo_entireHolocene, the author's own repository (owner's own host). Quoted without its HTML tags.",
+      "licenceQuote": "The usage of the land-cover maps is free, however attribution to the publication is required.\n[...]\nLand-cover maps based on pollen observations for Europe by Behnaz Pirzamanbein is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.\nBased on a work at https://github.com/BehnazP/SpatioCompo_entireHolocene.",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The repository's LICENSE file is GPL-3.0 while the README licenses the data under CC BY-SA 4.0. Ignas chose CC BY-SA 4.0 for the data; the author is being asked to confirm.",
+        "ShareAlike: forest data derived from this and shipped in the game must be offered under CC BY-SA 4.0 too.",
+        "Which years the file covers: Githumbi et al. (2022) list the windows as present-100, 100-350, 350-700, 700-1200 BP, then 500-year steps (BP = AD 1950), so window 16 is 6700-7200 BP. That Land_Cover_7000.csv is that window rests on the count and the names (each named after its rounded middle), not on a per-file statement; the 25 file names match the 25 windows. Early windows have fewer pollen sites: the paper's quality warning applies (TO CHECK against the paper's figures)."
+      ],
+      "credit": {
+        "owner": "Behnaz Pirzamanbein",
+        "version": "SpatioCompo_entireHolocene, commit 894d44d58f66bb5c273491d98c3ec23a35e6a796, time window 16 (about 5,250 to 4,750 BC (6700-7200 years BP))",
+        "short": "SpatioCompo",
+        "onMap": false,
+        "line": "Forest around 5,250 to 4,750 BC: a pollen-based land-cover map by Behnaz Pirzamanbein, from Githumbi, Pirzamanbein et al. (2022).",
+        "citation": "Githumbi, E., Pirzamanbein, B., et al. (2022) Pollen-Based Maps of Past Regional Vegetation Cover in Europe Over 12 Millennia - Evaluation and Potential. Frontiers in Ecology and Evolution 10:795794. doi:10.3389/fevo.2022.795794",
+        "changes": "Time window 16 (about 5,250 to 4,750 BC (6700-7200 years BP)) only, unblended; the 1 degree cells that touch the Baltic map kept as they are. Turned into the four land-cover classes of the ice-age maps (tundra, birch woodland, pine, mixed forest) by a rule of ours.",
+        "licenceName": "CC BY-SA 4.0",
+        "licenceUri": "creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    {
       "id": "osm-water",
       "collection": "osm",
       "access": "overture",
@@ -476,12 +681,100 @@
       }
     },
     {
+      "id": "sgu-shore-ages",
+      "collection": "sgu",
+      "access": "gpkg",
+      "url": "https://resource.sgu.se/data/oppnadata/jord/strandforskjutningsmodell/strandforskjutning_11000_11900.gpkg",
+      "file": "sgu/strandforskjutning_11000_11900.gpkg",
+      "what": "SGU's shore-displacement model (Strandförskjutningsmodell, öppna data), the four GeoPackages of the ice-age maps: one file per 1000 years, each with ten polygon tables issjohav_<cal BP> (years before 1950), in SWEREF 99 TM (EPSG:3006); column code: 1 sea, 2 ice-dammed lake (the Baltic Ice Lake and, in this model, the Ancylus Lake), 4 lake (small modelled lakes made by filling hollows), 5 ice sheet; land is where no polygon lies. Built from shore-displacement curves and a 50 m height model in Sweden (Påsse and Daniels 2015). Fetched by tools/map/build-ages.mjs (the first file is the main url, the others are listed under files).",
+      "files": [
+        {
+          "name": "strandforskjutningsmodell-beskrivning.pdf",
+          "url": "https://resource.sgu.se/dokument/produkter/strandforskjutningsmodell-beskrivning.pdf",
+          "file": "sgu/strandforskjutningsmodell-beskrivning.pdf"
+        },
+        {
+          "name": "strandforskjutning_6000_6900.gpkg",
+          "url": "https://resource.sgu.se/data/oppnadata/jord/strandforskjutningsmodell/strandforskjutning_6000_6900.gpkg",
+          "file": "sgu/strandforskjutning_6000_6900.gpkg"
+        },
+        {
+          "name": "strandforskjutning_9000_9900.gpkg",
+          "url": "https://resource.sgu.se/data/oppnadata/jord/strandforskjutningsmodell/strandforskjutning_9000_9900.gpkg",
+          "file": "sgu/strandforskjutning_9000_9900.gpkg"
+        },
+        {
+          "name": "strandforskjutning_10000_10900.gpkg",
+          "url": "https://resource.sgu.se/data/oppnadata/jord/strandforskjutningsmodell/strandforskjutning_10000_10900.gpkg",
+          "file": "sgu/strandforskjutning_10000_10900.gpkg"
+        }
+      ],
+      "licence": "CC0 1.0 Universal (Creative Commons Noll), as SGU's product description version 2.0 and its licence page state; the earlier description 1.0 (2022-06-14) said CC BY 4.0 and is out of date",
+      "licenceUrl": "https://resource.sgu.se/dokument/produkter/strandforskjutningsmodell-beskrivning.pdf",
+      "licenceStatus": "read",
+      "licenceReadAt": "The product description PDF (https://resource.sgu.se/dokument/produkter/strandforskjutningsmodell-beskrivning.pdf, version 2.0 of 2024-06-09, read 8 November 2026) and SGU's licence page https://www.sgu.se/produkter-och-tjanster/geologiska-data/om-geologiska-data/licensvillkor/ (last reviewed 2024-05-11, read 8 November 2026), both on the owner's own host. The product page https://www.sgu.se/produkter-och-tjanster/geologiska-data/allmant-geologi--geologiska-data/strandlinjer/ links the description and the data.",
+      "licenceQuote": "Licens CC0 1.0 universell [product description, version 2.0 of 2024-06-09, table 'Kort information om produkten']. And on SGU's page 'Licensvillkor' (last reviewed 2024-05-11): 'Öppna data från SGU har licensen Creative Commons Noll (CC0). CC0-licens innebär att data tillhandahålls utan kostnad och kan användas och återanvändas utan restriktioner.'",
+      "unofficialCopy": null,
+      "toCheck": [
+        "The files were found by the name pattern strandforskjutning_<a>_<b>.gpkg on resource.sgu.se; the product page now offers one zip (strandforskjutningsmodell.zip) holding the same GeoPackages 'per 1000 years'. The per-file copies were fetched and their SHA-256 recorded; whether the two are byte-identical was not checked.",
+        "The product description warns that the dating error can be up to about 500 years, so the 100-year tables are a relative change between the 1000-year files, not real years; our five ages are the nearest tables, not exact years.",
+        "Outside Sweden the model's height data is coarse (1000 m in Norway, 10 km from NOAA recomputed to 500 m elsewhere); the east of our map is hatched \"no model yet\" for the four oldest ages (Ignas, 2 November 2026)."
+      ],
+      "credit": {
+        "owner": "Sveriges geologiska undersökning (SGU, the Geological Survey of Sweden)",
+        "version": "Strandförskjutningsmodell (öppna data), product description version 2.0 of 2024-06-09 (tables for 11900, 11400, 10400, 9400 and 6900 years before 1950)",
+        "short": "SGU",
+        "onMap": false,
+        "line": "Ice-age water and ice: shore-displacement model © SGU (Geological Survey of Sweden), released as open data (CC0).",
+        "citation": "Påsse, T. & Daniels, J. (2015). Past shore-level and sea-level displacements. Sveriges geologiska undersökning, Rapporter och meddelanden 137. Data: SGU, Strandförskjutningsmodell (öppna data).",
+        "changes": "Five tables (about 10,000, 9,500, 8,500, 7,500 and 5,000 BC): sea, lake and ice polygons moved onto the game's 1 km grid as water and ice; SGU's small modelled lakes left out.",
+        "licenceName": "CC0 1.0",
+        "licenceUri": "creativecommons.org/publicdomain/zero/1.0/"
+      }
+    },
+    {
+      "id": "dated1-ts12",
+      "collection": "dated1",
+      "access": "whole",
+      "url": "https://store.pangaea.de/Publications/HughesA-etal_2015/DATED-1_TimeSlices_shp.zip",
+      "file": "dated1/DATED-1_TimeSlices_shp.zip",
+      "what": "DATED-1 (Hughes et al. 2016), the time-slice ice-sheet margins as shapefiles, zip from PANGAEA (doi:10.1594/PANGAEA.848117). The game reads only TS12_mc (the most-credible margin at 12 ka, about 10,000 BC) from inside it. A third-party copy of TS12_mc (github.com/villhei/earth-browser, data-sources/textures/ice-sheets/eurasia) was compared byte for byte with this original and is identical (.shp, .dbf, .shx, .prj).",
+      "files": [
+        {
+          "name": "DATED-1_readme.pdf",
+          "url": "https://store.pangaea.de/Publications/HughesA-etal_2015/DATED-1_readme.pdf",
+          "file": "dated1/DATED-1_readme.pdf"
+        }
+      ],
+      "licence": "Creative Commons Attribution 3.0 Unported (CC BY 3.0), as PANGAEA states",
+      "licenceUrl": "https://doi.pangaea.de/10.1594/PANGAEA.848117?format=textfile",
+      "licenceStatus": "read",
+      "licenceReadAt": "The dataset page https://doi.pangaea.de/10.1594/PANGAEA.848117 and its text file (?format=textfile), PANGAEA's own pages (the data publisher), read 8 November 2026.",
+      "licenceQuote": "License: Creative Commons Attribution 3.0 Unported (CC-BY-3.0) (URI: https://creativecommons.org/licenses/by/3.0/). Always quote citation above when using data!",
+      "unofficialCopy": null,
+      "toCheck": [
+        "TS12 is the 12 ka slice; the readme names the slices by 'ka' (thousand years before present) and the paper dates them in calibrated years, so TS12 is read as about 10,050 BC for our 10,000 BC map (TO CHECK against the paper).",
+        "The margin is a reconstruction on the 'most-credible' (mc) line, with min and max lines beside it; we use mc only."
+      ],
+      "credit": {
+        "owner": "Anna L. C. Hughes, Richard Gyllencreutz, Øystein S. Lohne, Jan Mangerud and John Inge Svendsen (University of Bergen and the Bjerknes Centre), published by PANGAEA",
+        "version": "DATED-1 time-slices, PANGAEA doi:10.1594/PANGAEA.848117 (published 2015-07-14), slice TS12_mc",
+        "short": "DATED-1",
+        "onMap": false,
+        "line": "Ice sheet at about 10,000 BC: the DATED-1 reconstruction by Hughes and others (2016).",
+        "citation": "Hughes, A.L.C., Gyllencreutz, R., Lohne, Ø.S., Mangerud, J. and Svendsen, J.I. (2016) The last Eurasian ice sheets - a chronological database and time-slice reconstruction, DATED-1. Boreas 45(1): 1-45. doi:10.1111/bor.12142. Data: doi:10.1594/PANGAEA.848117",
+        "changes": "Only the most-credible margin at 12 ka (TS12_mc) is used, moved onto the game's 1 km grid as the ice sheet of the 10,000 BC map.",
+        "licenceName": "CC BY 3.0",
+        "licenceUri": "creativecommons.org/licenses/by/3.0/"
+      }
+    },
+    {
       "id": "grind-strat-own",
       "collection": "own",
       "access": "own",
       "url": "https://github.com/syncronizator1995-droid/grind-strat/tree/main/src/data/own",
-      "file": "(none: our own work lives in the repository, in tools/map/water-changes.json and tools/map/history-shapes.json)",
-      "what": "Grind Strat's own work for the map over time (M3a): the dated list of water works and other changes (tools/map/water-changes.json: years, facts in plain English, the sources by name, marks) and our own drawn shapes (tools/map/history-shapes.json: the Vistula Lagoon's old outlets and today's Pillau strait, Ruden and its lost land bridge, a larger Lake Drużno, the Vistula delta's marsh before diking, each marked reconstructed and drawn on public-domain heights and land and published coordinates, never on OpenStreetMap). Packed by tools/map/pack-changes.mjs into src/data/own/changes.json. Nothing to fetch.",
+      "file": "(none: our own work lives in the repository, in tools/map/water-changes.json, tools/map/history-shapes.json and tools/map/names-of-the-time.json)",
+      "what": "Grind Strat's own work for the map over time (M3a): the dated list of water works and other changes (tools/map/water-changes.json: years, facts in plain English, the sources by name, marks) and our own drawn shapes (tools/map/history-shapes.json: the Vistula Lagoon's old outlets and today's Pillau strait, Ruden and its lost land bridge, a larger Lake Drużno, the Vistula delta's marsh before diking, each marked reconstructed and drawn on public-domain heights and land and published coordinates, never on OpenStreetMap). Packed by tools/map/pack-changes.mjs into src/data/own/changes.json. Also the names of rivers, lakes and seas over time (tools/map/names-of-the-time.json: every form with its source named, the title and the place in the text; the web links stay in that file and data/sources.md), packed by tools/map/pack-names.mjs into src/data/own/names.json. Also the five notes of the ice-age maps (tools/map/age-notes.json: every sentence with its sources named; links stay in that file and data/sources.md), packed by tools/map/pack-age-notes.mjs into src/data/own/age-notes.json. Nothing to fetch.",
       "licence": "Grind Strat's own terms (not yet chosen by Ignas; until then all rights reserved, as for the rest of the repository)",
       "licenceUrl": "https://github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md",
       "licenceStatus": "read",
@@ -496,9 +789,9 @@
         "version": "M3a (October 2026)",
         "short": "Grind Strat",
         "onMap": false,
-        "line": "Dated facts and drawn shapes (marked reconstructed): Grind Strat's own work, from the sources named with each fact.",
-        "citation": "Grind Strat, the dated list of water works and other changes, and its drawn shapes (M3a, October 2026). Sources of each fact in data/sources.md.",
-        "changes": "Our own work: years and facts read from the sources named with each, and shapes drawn by us on public-domain heights and land (GEBCO_2026 heights and sea depths, and Natural Earth's land); the Vistula delta's (Żuławy) marsh before diking is the low ground outlined on GEBCO_2026's heights, and its 1 km cells those 5 m or lower in the base block's heights (from GEBCO); years still to check are marked TO CHECK.",
+        "line": "Dated facts, drawn shapes (marked reconstructed) and the names of rivers, lakes and seas over time: Grind Strat's own work, from the sources named with each.",
+        "citation": "Grind Strat, the dated list of water works and other changes, its drawn shapes, and the names of rivers, lakes and seas over time (M3a, October 2026). Sources of each fact in data/sources.md.",
+        "changes": "Our own work: years and facts read from the sources named with each, and shapes drawn by us on public-domain heights and land (GEBCO_2026 heights and sea depths, and Natural Earth's land); the Vistula delta's (Żuławy) marsh before diking is the low ground outlined on GEBCO_2026's heights, and its 1 km cells those 5 m or lower in the base block's heights (from GEBCO); years still to check are marked TO CHECK. The names of rivers, lakes and seas over time are forms read in the chronicles and other texts named with each; the Latin-letter spelling of an Old East Slavic form follows the BGN/PCGN Russian table after plain spelling changes; the rough outlines of the Gulf of Riga and the Gulf of Finland are drawn by us (marked TO CHECK) after the limits in the IHO's Limits of Oceans and Seas (1953).",
         "licenceName": "Grind Strat's own terms (not yet chosen)",
         "licenceUri": "github.com/syncronizator1995-droid/grind-strat/blob/main/src/data/own/LICENSE.md"
       }

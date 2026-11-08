@@ -41,6 +41,7 @@ export function quantile(values, q) {
  * @property {number[]} labelMs placing and drawing the names, per full redraw, at three zooms
  * @property {number[]} timeFrameMs the time run: time between frames while the years pass
  * @property {number[]} timeDateMs the time run: the map's date work in each of its frames
+ * @property {number[]} timeRenameMs the time run: how long each change of names took to place and draw
  * @property {number} timeRunMs how long the time run took (NaN when the map over time was not in)
  */
 
@@ -133,11 +134,12 @@ export async function runSpeedTest(view) {
 async function timeRun(view) {
   /** @type {number[]} */
   const timeFrameMs = [];
-  if (!view.mapYear().dated) return { timeFrameMs, timeDateMs: [], timeRunMs: NaN };
+  if (!view.mapYear().dated) return { timeFrameMs, timeDateMs: [], timeRenameMs: [], timeRunMs: NaN };
   const before = view.mapYear().pinned;
   view.setMapYear(TIME_RUN.from);
   await new Promise((done) => setTimeout(done, 300));
   view.takeDateMs();
+  view.takeRenameMs();
   const t0 = performance.now();
   await new Promise((done) => {
     let day = dayFromDate(TIME_RUN.from, 1, 1);
@@ -155,8 +157,9 @@ async function timeRun(view) {
   });
   const timeRunMs = performance.now() - t0;
   const timeDateMs = view.takeDateMs();
+  const timeRenameMs = view.takeRenameMs();
   view.setMapYear(before);
-  return { timeFrameMs, timeDateMs, timeRunMs };
+  return { timeFrameMs, timeDateMs, timeRenameMs, timeRunMs };
 }
 
 /**
@@ -201,5 +204,6 @@ function timeRunLines(r, fmt, verdict) {
     `Time run ${TIME_RUN.from} to ${TIME_RUN.to} at speed 5: ${r.timeFrameMs.length} frames in ${fmt(r.timeRunMs / 1000)} s, ${Math.round(onTime * 100)}% on time`,
     `  frame time median ${fmt(quantile(r.timeFrameMs, 0.5))} ms, 95% under ${fmt(p95)} ms (target 16.7): ${verdict(p95 <= 17.7)}`,
     `  date work per frame median ${fmt(quantile(r.timeDateMs, 0.5))} ms, 95% under ${fmt(quantile(r.timeDateMs, 0.95))} ms, worst ${fmt(r.timeDateMs.length ? Math.max(...r.timeDateMs) : NaN)} ms`,
+    `  names changed ${r.timeRenameMs.length} times, median ${fmt(quantile(r.timeRenameMs, 0.5))} ms, worst ${fmt(r.timeRenameMs.length ? Math.max(...r.timeRenameMs) : NaN)} ms`,
   ];
 }

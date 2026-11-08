@@ -109,3 +109,23 @@ each anchor.
 To make it again: `npm run map:grids` (for the pollen windows), `npm run map:terrain`, then
 `npm run map:terrain-time` (tools/map/build-terrain-time.mjs with the rules in
 tools/map/terrain-time.mjs, then tools/map/pack-terrain-time.mjs).
+
+## The ice-age maps (`ages.json`, M3b)
+
+The block `ages.json` holds the five ice-age maps (about 10,000, 9,500, 8,500, 7,500 and 5,000 BC),
+also under CC BY-SA 4.0 because the land cover comes from the SpatioCompo pollen maps. The SGU
+shore model (CC0) and DATED-1 (CC BY 3.0) are in it too.
+
+- Per age two layers in the bundle: `<id>/surface`, 1573 x 1328 bytes on the same 1 km grid as the
+  terrain (0 land, 1 water, 2 ice) and `<id>/cover`, 787 x 664 bytes of 2 km cells (0 no model yet,
+  1 tundra, 2 birch woodland, 3 pine, 4 mixed forest).
+- Water: SGU's shore-displacement model, the table nearest each age (11900, 11400, 10400, 9400 and
+  6900 years before 1950); its small modelled lakes are left out. Ice: DATED-1's most-credible margin
+  at 12 thousand years ago at 10,000 BC; SGU's ice sheet at the later ages.
+- Cover: the SpatioCompo window of each age, turned into the four classes by a rule of ours (the
+  block's `meta.labels` and data/sources.md write it out); 10,000 BC is painted as tundra by a rule.
+- **What it is not:** rough previews, not measurements. SGU's own tables can be off by up to about
+  500 years and are coarse outside Sweden. The land east of SGU's model is hatched "no model yet"
+  (cover 0) for the four oldest ages; at 5,000 BC the sea there is a rough estimate. Lakes smaller
+  than the model's big ones are not drawn.
+- Made by `npm run map:ages` (tools/map/build-ages.mjs, rules in tools/map/ages.mjs).

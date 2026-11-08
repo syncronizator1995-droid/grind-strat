@@ -11,7 +11,7 @@
 /**
  * @param {keyof HTMLElementTagNameMap} tag @param {string} text @param {string} [className]
  */
-function el(tag, text, className) {
+export function el(tag, text, className) {
   const e = document.createElement(tag);
   e.textContent = text;
   if (className) e.className = className;

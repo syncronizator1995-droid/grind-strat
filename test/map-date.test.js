@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { dayFromDate } from '../src/sim/calendar.js';
 import { hash01 } from '../src/sim/grid.js';
-import { activeAt, BLOCK_CELLS, createTerrainTimeline, eraOf, FIRST_MAP_YEAR, mapYear, timelineFromBlock } from '../src/sim/map-date.js';
+import { activeAt, AGES, ageOf, BLOCK_CELLS, createTerrainTimeline, eraOf, FIRST_LEAD_YEAR, mapYear, timelineFromBlock } from '../src/sim/map-date.js';
 import { changePlane } from '../tools/map/terrain-time.mjs';
 import { distanceTo } from '../tools/map/terrain-fields.mjs';
 
@@ -22,13 +22,35 @@ describe('mapYear and eraOf', () => {
     assert.equal(mapYear(dayFromDate(-10000, 6, 1)), -10000);
   });
 
-  it('show the 1219 map for every year before 1219, and say when a year has no map of its own', () => {
+  it('show the map of the year from 1219, the AD 1 lead-in year before it, and an ice-age map for a BC year', () => {
     assert.deepEqual(eraOf(1550), { id: 'historic', year: 1550, noData: false });
-    assert.deepEqual(eraOf(800), { id: 'historic', year: FIRST_MAP_YEAR, noData: false });
-    assert.deepEqual(eraOf(1), { id: 'historic', year: FIRST_MAP_YEAR, noData: false });
-    assert.deepEqual(eraOf(-1), { id: 'historic', year: FIRST_MAP_YEAR, noData: true });
+    assert.deepEqual(eraOf(1219), { id: 'historic', year: 1219, noData: false });
+    assert.deepEqual(eraOf(1218), { id: 'ad1', year: 1218, noData: false });
+    assert.deepEqual(eraOf(800), { id: 'ad1', year: 800, noData: false });
+    assert.deepEqual(eraOf(1), { id: 'ad1', year: FIRST_LEAD_YEAR, noData: false });
     assert.throws(() => eraOf(0), /no year 0/);
     assert.throws(() => eraOf(1.5), /bad year/);
+  });
+
+  it('show the age at or before a BC year, 10,000 BC for anything earlier, and 5,000 BC up to 1 BC (M3b)', () => {
+    const at = (/** @type {number} */ y) => eraOf(y).id;
+    assert.deepEqual(eraOf(-10000), { id: 'age-10000bc', year: -10000, noData: false });
+    assert.equal(at(-12000), 'age-10000bc');
+    assert.equal(at(-9999), 'age-10000bc');
+    assert.equal(at(-9500), 'age-9500bc');
+    assert.equal(at(-9000), 'age-9500bc');
+    assert.equal(at(-8501), 'age-9500bc');
+    assert.equal(at(-8500), 'age-8500bc');
+    assert.equal(at(-7500), 'age-7500bc');
+    assert.equal(at(-5001), 'age-7500bc');
+    assert.equal(at(-5000), 'age-5000bc');
+    assert.equal(at(-1000), 'age-5000bc');
+    assert.equal(at(-1), 'age-5000bc', '1 BC is still the last age');
+    assert.equal(at(1), 'ad1', 'AD 1 is not an age: the day after 1 BC');
+    assert.equal(ageOf(1), null);
+    assert.equal(ageOf(1219), null);
+    assert.deepEqual(AGES.map((a) => a.year), [-10000, -9500, -8500, -7500, -5000]);
+    assert.throws(() => ageOf(0), /no year 0/);
   });
 });
 

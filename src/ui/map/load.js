@@ -6,6 +6,8 @@
 import { createCoast } from '../../sim/coast-date.js';
 import { timelineFromBlock } from '../../sim/map-date.js';
 import { decodeGrid16, decodeShapes, decodeUints, fromBase64, inflate, unbundleBlocks } from './codec.js';
+import { namesShapeProblem } from './names.js';
+import { unpackAge } from './slice.js';
 
 /**
  * @typedef {object} PackedBlock
@@ -207,12 +209,30 @@ export async function loadWater(block, times) {
 }
 
 /**
+ * Unpacks the names of rivers, lakes and seas over time (src/data/own/names.json).
+ * @param {PackedBlock} block
+ * @param {LoadTimes} times added to
+ * @returns {Promise<import('./names.js').NamesInfo>}
+ */
+export async function loadNames(block, times) {
+  if (block.kind !== 'names') throw new Error(`expected the names data, got ${block.kind}`);
+  const [n] = await unpackBlocks([block], times);
+  const info = JSON.parse(new TextDecoder().decode(n('info')));
+  const problem = namesShapeProblem(info);
+  if (problem) throw new Error(`the names data does not add up: ${problem}`);
+  return info;
+}
+
+/**
  * @typedef {object} DatedEntry one fact of the map over time (src/data/own/changes.json): what is
  *   on from which year to which (BC years negative, null: open-ended)
  * @property {string} id @property {string} kind
  * @property {[number | null, number | null]} [on] @property {string} [tagPrefix] for a rule such as
  *   "osm-year-": the year is in the tag itself
  * @property {string[]} [marks] such as "reconstructed" or "estimate"
+ * @property {string} [fact] what the tap panel says about it @property {{ wikidata: string }} [about]
+ *   the river or lake it is about @property {string} [toCheck] what is not yet checked
+ * @property {string} [source] the id of its source in DatedData.cites
  */
 
 /**
@@ -230,19 +250,24 @@ export async function loadWater(block, times) {
  * @property {import('../../sim/map-date.js').TerrainTimeline} timeline
  * @property {import('../../sim/coast-date.js').Coast} coast
  * @property {DatedEntry[]} entries @property {OwnShape[]} shapes
+ * @property {Record<string, string>} cites the sources of the entries, by id, as short citations
  */
 
 /**
  * Unpacks the map over time: the land from 1219 to today (terrain-time), the northern coast
  * (coast) and our own dated facts and shapes (changes). Not needed for the first picture of a new
  * game, so it is unpacked just after it; a save from a later year needs it first.
- * @param {{ terrainTime: PackedBlock, coast: PackedBlock, changes: PackedBlock }} blocks
+ * For a date before 1219 (the test link, #date=1) the lead-in blocks come too: the AD 1 land
+ * (terrain-ad1) and the AD 1 coast (coast-ad1). A game that starts in 1219 never passes them.
+ * @param {{ terrainTime: PackedBlock, coast: PackedBlock, changes: PackedBlock, terrainAd1?: PackedBlock | null, coastAd1?: PackedBlock | null }} blocks
  * @param {Uint8Array} base the 1219 terrain grid (copied: the map may change its own afterwards)
  * @param {LoadTimes} times added to
  * @returns {Promise<DatedData>}
  */
-export async function loadDated({ terrainTime, coast, changes }, base, times) {
-  const [t, c, o] = await unpackBlocks([terrainTime, coast, changes], times);
+export async function loadDated({ terrainTime, coast, changes, terrainAd1 = null, coastAd1 = null }, base, times) {
+  const [t, c, o, ...lead] = await unpackBlocks([terrainTime, coast, changes, ...(terrainAd1 ? [terrainAd1] : []), ...(coastAd1 ? [coastAd1] : [])], times);
+  const leadTerrain = terrainAd1 ? lead[0] : null;
+  const leadCoast = coastAd1 ? lead[terrainAd1 ? 1 : 0] : null;
   // The pieces below take a moment each on a slow phone: let a frame through between them.
   await breathe();
   let t0 = performance.now();
@@ -252,7 +277,8 @@ export async function loadDated({ terrainTime, coast, changes }, base, times) {
   const overrides = (info.overrides ?? []).map((/** @type {any} */ v) => ({
     cells: decodeUints(o(v.cells)), bands: o(v.bands), cls: v.cls, from: v.from, to: v.to, hold: v.hold,
   }));
-  const timeline = timelineFromBlock({ meta: /** @type {any} */ (terrainTime.meta), layers: t.layers, base: base.slice(), overrides });
+  const timeline = timelineFromBlock({ meta: /** @type {any} */ (terrainTime.meta), layers: t.layers, base: base.slice(), overrides,
+    lead: terrainAd1 && leadTerrain ? { meta: /** @type {any} */ (terrainAd1.meta), layers: leadTerrain.layers } : null });
   times.decodeMs += performance.now() - t0;
   await breathe();
   t0 = performance.now();
@@ -270,10 +296,55 @@ export async function loadDated({ terrainTime, coast, changes }, base, times) {
     return shape;
   });
   if (at !== levels.length) throw new Error('the drawn shapes do not add up');
-  const dated = { timeline, coast: createCoast({ box, codes }), entries: info.entries, shapes };
+  const dated = { timeline, coast: createCoast({ box, codes, lead: coastAd1 && leadCoast ? leadCoast('lead') : null }), entries: info.entries, shapes, cites: info.sources ?? {} };
   times.decodeMs += performance.now() - t0;
   return dated;
 }
 
 /** Waits a moment, so the page can draw and answer a tap between pieces of unpacking. */
 const breathe = () => new Promise((done) => setTimeout(done, 0));
+
+/**
+ * @typedef {object} AgeNote one age's note (src/data/own/age-notes.json)
+ * @property {string} id @property {number} year @property {string} title
+ * @property {{ name: string, sources: string[] }} stage the water's name, with its sources
+ * @property {{ text: string, sources: string[], marks?: string[] }[]} sentences
+ * @typedef {{ sources: Record<string, { author: string, year: number, title: string }>, ages: AgeNote[] }} AgeNotes
+ */
+
+/**
+ * Unpacks the notes of the ice-age maps. Read only when the map shows a BC date: a game in 1219
+ * never reads this block.
+ * @param {PackedBlock} block
+ * @param {LoadTimes} times added to
+ * @returns {Promise<AgeNotes>}
+ */
+export async function loadAgeNotes(block, times) {
+  if (block.kind !== 'age-notes') throw new Error(`expected the age notes, got ${block.kind}`);
+  const [n] = await unpackBlocks([block], times);
+  const info = JSON.parse(new TextDecoder().decode(n('info')));
+  if (!Array.isArray(info.ages) || !info.sources) throw new Error('the age notes do not add up');
+  return info;
+}
+
+/**
+ * Unpacks the ice-age maps (the "ages" block, format in src/ui/map/slice.js), one slice per age.
+ * An age with no layers has no data yet (it is left out). Read only for a BC date.
+ * @param {PackedBlock} block
+ * @param {LoadTimes} times added to
+ * @returns {Promise<Map<string, import('./slice.js').AgeSlice>>}
+ */
+export async function loadAges(block, times) {
+  if (block.kind !== 'ages') throw new Error(`expected the ice-age maps, got ${block.kind}`);
+  const [a] = await unpackBlocks([block], times);
+  const t0 = performance.now();
+  const grid = block.meta.grid;
+  /** @type {Map<string, import('./slice.js').AgeSlice>} */
+  const out = new Map();
+  for (const entry of block.meta.ages ?? []) {
+    if (!a.has(`${entry.id}/surface`) || !a.has(`${entry.id}/cover`)) continue;
+    out.set(entry.id, unpackAge(entry, grid, a(`${entry.id}/surface`), a(`${entry.id}/cover`)));
+  }
+  times.decodeMs += performance.now() - t0;
+  return out;
+}
