@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { inflateSync } from 'node:zlib';
 import { AGES } from '../src/sim/map-date.js';
@@ -352,6 +352,22 @@ describe('the ages block', () => {
       assert.match(byId(w).url, /commit|894d44d58f66bb5c273491d98c3ec23a35e6a796/);
       assert.equal(byId(w).credit.licenceName, 'CC BY-SA 4.0');
     }
+  });
+
+  it('reads no OpenStreetMap data: no import of its modules, and none of its sources', () => {
+    /** @type {Set<string>} */
+    const seen = new Set();
+    /** @param {string} file */
+    const walk = (file) => {
+      if (seen.has(file)) return;
+      seen.add(file);
+      for (const m of readFileSync(file, 'utf8').matchAll(/from '(\.[^']+)'/g)) { const next = resolve(dirname(file), m[1]); if (existsSync(next)) walk(next); }
+    };
+    for (const f of ['ages.mjs', 'build-ages.mjs', 'pack-ages.mjs']) walk(join(ROOT, 'tools/map', f));
+    const names = [...seen].map((f) => f.slice(ROOT.length));
+    assert.ok(names.length > 10, 'the walk reached the tools');
+    for (const n of names) assert.ok(!/osm|overture|parquet|water|names-of-the-time/.test(n), `${n} is imported by the ice-age build`);
+    for (const id of AGES_SOURCES) assert.notEqual(sources.find((/** @type {any} */ s) => s.id === id)?.collection, 'osm');
   });
 
   it('passes the licence guard, and the guard stops it with a wrong licence or an unread source', () => {
